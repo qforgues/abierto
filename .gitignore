@@ -1,0 +1,7 @@
+node_modules/
+backend/uploads/
+backend/tiles/
+backend/db/*.db
+.DS_Store
+dist/
+.bridge/
