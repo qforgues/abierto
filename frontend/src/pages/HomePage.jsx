@@ -70,7 +70,7 @@ export default function HomePage() {
             key={cat}
             onClick={() => setFilter(cat)}
             className={`btn btn-sm ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ whiteSpace: 'nowrap' }}
           >
             {t.categories[cat]}
           </button>
