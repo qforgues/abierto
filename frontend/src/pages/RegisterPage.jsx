@@ -7,7 +7,7 @@ import { useLang } from '../context/LangContext';
 const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other'];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '', password: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '' });
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,8 +32,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return setError(r.errName);
-    if (!form.password) return setError(r.errPassword);
-    if (form.password.length < 8) return setError(r.errPasswordLen);
     setError('');
     setLoading(true);
     try {
@@ -43,7 +41,6 @@ export default function RegisterPage() {
         category: form.category || null,
         lat: form.lat ? parseFloat(form.lat) : null,
         lon: form.lon ? parseFloat(form.lon) : null,
-        password: form.password,
       });
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
     } catch (err) {
@@ -78,15 +75,6 @@ export default function RegisterPage() {
             <div className="field">
               <label>{r.labelDescription}</label>
               <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder={r.placeholderDescription} rows={3} />
-            </div>
-          </div>
-
-          <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h2>{r.sectionPassword}</h2>
-            <p className="text-sm text-muted">{r.passwordHint}</p>
-            <div className="field">
-              <label>{r.labelPassword} *</label>
-              <input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder={r.placeholderPassword} />
             </div>
           </div>
 

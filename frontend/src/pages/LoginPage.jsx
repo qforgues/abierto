@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 export default function LoginPage() {
   const [mode, setMode] = useState('owner'); // 'owner' | 'admin'
   const [code, setCode] = useState('');
-  const [ownerPassword, setOwnerPassword] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +24,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await api.post('/auth/business/login', { code: code.toUpperCase(), password: ownerPassword || undefined });
+      const data = await api.post('/auth/business/login', { code: code.toUpperCase() });
       login(data.token);
       navigate('/owner');
     } catch (err) {
@@ -94,15 +93,6 @@ export default function LoginPage() {
                   autoFocus
                 />
                 <span className="text-sm text-muted">3-character code given when you registered</span>
-              </div>
-              <div className="field">
-                <label>Password <span className="text-muted" style={{ fontWeight: 400 }}>(if you set one)</span></label>
-                <input
-                  type="password"
-                  value={ownerPassword}
-                  onChange={e => setOwnerPassword(e.target.value)}
-                  placeholder="Leave blank if no password"
-                />
               </div>
               <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 3}>
                 {loading ? 'Checking...' : 'Login →'}
