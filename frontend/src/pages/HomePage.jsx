@@ -12,6 +12,7 @@ export default function HomePage() {
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [userLocation, setUserLocation] = useState(null);
   const { t } = useLang();
 
   const fetchBusinesses = () =>
@@ -24,6 +25,15 @@ export default function HomePage() {
     fetchBusinesses();
     const interval = setInterval(fetchBusinesses, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      pos => setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => {}
+    );
+    return () => navigator.geolocation.clearWatch(id);
   }, []);
 
   const OPEN_STATUSES = ['Open', 'Opening Late', 'Back Soon'];
@@ -51,7 +61,7 @@ export default function HomePage() {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <MapView businesses={businesses} />
+          <MapView businesses={businesses} userLocation={userLocation} />
         </div>
 
         {loading ? (
@@ -62,7 +72,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {filtered.map(b => <BusinessCard key={b.id} business={b} />)}
+            {filtered.map(b => <BusinessCard key={b.id} business={b} userLocation={userLocation} />)}
           </div>
         )}
       </div>

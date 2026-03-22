@@ -13,7 +13,7 @@ export default function NotificationBell() {
   }, []);
 
   return (
-    <Link to="/admin" style={{ position: 'relative', color: 'white', fontSize: '1.3rem', textDecoration: 'none' }}>
+    <Link to="/admin?tab=notifications" style={{ position: 'relative', color: 'white', fontSize: '1.3rem', textDecoration: 'none' }}>
       🔔
       {count > 0 && (
         <span className="notif-badge">{count > 99 ? '99+' : count}</span>

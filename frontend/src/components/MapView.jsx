@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 
 const VIEQUES_CENTER = [18.12, -65.44];
@@ -12,11 +12,25 @@ const STATUS_COLORS = {
   'Closed for the Season': '#64748b',
 };
 
-export default function MapView({ businesses }) {
+function FlyToUser({ userLocation }) {
+  const map = useMap();
+  useEffect(() => {
+    if (userLocation) map.flyTo([userLocation.lat, userLocation.lon], 16, { duration: 1 });
+  }, [userLocation?.lat, userLocation?.lon]);
+  return null;
+}
+
+export default function MapView({ businesses, userLocation }) {
   const located = (businesses || []).filter(b => b.lat && b.lon);
+  const [flyRequested, setFlyRequested] = React.useState(false);
+
+  const handleLocate = () => {
+    if (userLocation) setFlyRequested(f => !f);
+    else navigator.geolocation?.getCurrentPosition(() => {});
+  };
 
   return (
-    <div className="map-container">
+    <div className="map-container" style={{ position: 'relative' }}>
       <MapContainer
         center={VIEQUES_CENTER}
         zoom={DEFAULT_ZOOM}
@@ -47,7 +61,40 @@ export default function MapView({ businesses }) {
             </Popup>
           </CircleMarker>
         ))}
+        {userLocation && (
+          <CircleMarker
+            center={[userLocation.lat, userLocation.lon]}
+            radius={9}
+            pathOptions={{ fillColor: '#3b82f6', fillOpacity: 1, color: 'white', weight: 2.5 }}
+          >
+            <Popup>📍 You are here</Popup>
+          </CircleMarker>
+        )}
+        {flyRequested && userLocation && <FlyToUser userLocation={userLocation} />}
       </MapContainer>
+      <button
+        onClick={handleLocate}
+        title="Find my location"
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 10,
+          zIndex: 1000,
+          background: 'white',
+          border: '2px solid rgba(0,0,0,0.2)',
+          borderRadius: 6,
+          width: 36,
+          height: 36,
+          cursor: 'pointer',
+          fontSize: '1.1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+        }}
+      >
+        {userLocation ? '🎯' : '📍'}
+      </button>
     </div>
   );
 }

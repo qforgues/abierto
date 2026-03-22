@@ -3,6 +3,26 @@ import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
 
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function getBearing(lat1, lon1, lat2, lon2) {
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function fmtDist(m) {
+  return m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`;
+}
+
 const CATEGORY_ICONS = {
   Restaurant: '🍽️', 'Food Truck': '🚚', Bar: '🍹', Cafe: '☕',
   Shop: '🛍️', Service: '🔧', Beach: '🏖️', Other: '📍',
@@ -22,9 +42,13 @@ function fmtDate(d) {
   return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export default function BusinessCard({ business }) {
+export default function BusinessCard({ business, userLocation }) {
   const icon = CATEGORY_ICONS[business.category] || '📍';
   const { status, return_time, return_date, note } = business;
+
+  const hasGeo = business.lat && business.lon && userLocation;
+  const distance = hasGeo ? getDistance(userLocation.lat, userLocation.lon, business.lat, business.lon) : null;
+  const bearing = hasGeo ? getBearing(userLocation.lat, userLocation.lon, business.lat, business.lon) : null;
 
   return (
     <Link to={`/business/${business.id}`} className="card business-card" style={{ display: 'flex' }}>
@@ -38,9 +62,17 @@ export default function BusinessCard({ business }) {
           <h3 style={{ margin: 0, lineHeight: 1.3 }}>{business.name}</h3>
           <StatusBadge status={status} />
         </div>
-        {business.category && (
-          <p className="text-sm text-muted mt-2">{icon} {business.category}</p>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+          {business.category && (
+            <span className="text-sm text-muted">{icon} {business.category}</span>
+          )}
+          {hasGeo && (
+            <span className="text-sm" style={{ color: 'var(--ocean)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ display: 'inline-block', transform: `rotate(${bearing}deg)`, lineHeight: 1 }}>▲</span>
+              {fmtDist(distance)}
+            </span>
+          )}
+        </div>
         {business.description && (
           <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.7, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{business.description}</p>
         )}

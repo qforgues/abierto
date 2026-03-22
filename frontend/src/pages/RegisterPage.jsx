@@ -6,7 +6,7 @@ import { api } from '../api/client';
 const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other'];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '', password: '' });
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return setError('Business name is required.');
+    if (!form.password) return setError('Password is required.');
+    if (form.password.length < 8) return setError('Password must be at least 8 characters.');
     setError('');
     setLoading(true);
     try {
@@ -38,6 +40,7 @@ export default function RegisterPage() {
         category: form.category || null,
         lat: form.lat ? parseFloat(form.lat) : null,
         lon: form.lon ? parseFloat(form.lon) : null,
+        password: form.password,
       });
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
     } catch (err) {
@@ -72,6 +75,15 @@ export default function RegisterPage() {
             <div className="field">
               <label>Description</label>
               <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="Tell customers what you offer…" rows={3} />
+            </div>
+          </div>
+
+          <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2>Owner Password</h2>
+            <p className="text-sm text-muted">Set a password to protect your business. You'll need it to log in and manage your listing.</p>
+            <div className="field">
+              <label>Password *</label>
+              <input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="At least 8 characters" />
             </div>
           </div>
 

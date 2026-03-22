@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import { api } from '../api/client';
@@ -236,11 +237,21 @@ function timeAgo(ts) {
 }
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState('businesses');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') || 'businesses';
+  const [tab, setTab] = useState(tabParam);
   const [businesses, setBusinesses] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => { setTab(tabParam); }, [tabParam]);
+
+  const switchTab = (t) => {
+    setTab(t);
+    setSearchParams(t !== 'businesses' ? { tab: t } : {});
+  };
 
   const loadBusinesses = useCallback(() =>
     api.get('/businesses/admin/all').then(setBusinesses), []);
@@ -249,7 +260,9 @@ export default function AdminDashboard() {
     api.get('/notifications').then(setNotifications), []);
 
   useEffect(() => {
-    Promise.all([loadBusinesses(), loadNotifications()]).finally(() => setLoading(false));
+    Promise.all([loadBusinesses(), loadNotifications()])
+      .catch(err => setLoadError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const remove = async (id) => {
@@ -280,14 +293,15 @@ export default function AdminDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <h1>Admin Dashboard</h1>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className={`btn btn-sm ${tab === 'businesses' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('businesses')}>🏪 Businesses</button>
-            <button className={`btn btn-sm ${tab === 'billing' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('billing')}>💳 Billing</button>
-            <button className={`btn btn-sm ${tab === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('notifications')}>
+            <button className={`btn btn-sm ${tab === 'businesses' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('businesses')}>🏪 Businesses</button>
+            <button className={`btn btn-sm ${tab === 'billing' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('billing')}>💳 Billing</button>
+            <button className={`btn btn-sm ${tab === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('notifications')}>
               🔔 Notifications{notifications.filter(n => !n.is_read).length > 0 ? ` (${notifications.filter(n => !n.is_read).length})` : ''}
             </button>
           </div>
         </div>
 
+        {loadError && <div className="alert alert-error" style={{ marginBottom: 16 }}>Failed to load: {loadError} — try refreshing or logging in again.</div>}
         {loading ? <div className="spinner" /> : (
           <>
             {tab === 'businesses' && (

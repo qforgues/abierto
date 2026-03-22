@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export default function LoginPage() {
   const [mode, setMode] = useState('owner'); // 'owner' | 'admin'
   const [code, setCode] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,7 +25,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await api.post('/auth/business/login', { code: code.toUpperCase() });
+      const data = await api.post('/auth/business/login', { code: code.toUpperCase(), password: ownerPassword || undefined });
       login(data.token);
       navigate('/owner');
     } catch (err) {
@@ -80,21 +81,30 @@ export default function LoginPage() {
         {mode === 'owner' ? (
           <div className="card card-body">
             <h2 style={{ marginBottom: 16 }}>Enter your business code</h2>
-            <form onSubmit={handleOwnerLogin}>
+            <form onSubmit={handleOwnerLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
                 <label>Business Code</label>
                 <input
                   type="text"
                   value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase().slice(0, 3))}
-                  placeholder="e.g. B47"
-                  maxLength={3}
-                  style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '0.3em', fontFamily: 'monospace', fontWeight: 700 }}
+                  onChange={e => setCode(e.target.value.toUpperCase().slice(0, 6))}
+                  placeholder="e.g. AB1234"
+                  maxLength={6}
+                  style={{ fontSize: '1.6rem', textAlign: 'center', letterSpacing: '0.3em', fontFamily: 'monospace', fontWeight: 700 }}
                   autoFocus
                 />
-                <span className="text-sm text-muted">1 letter + 2 numbers (given when you registered)</span>
+                <span className="text-sm text-muted">6-character code given when you registered</span>
               </div>
-              <button type="submit" className="btn btn-primary btn-full mt-4" disabled={loading || code.length !== 3}>
+              <div className="field">
+                <label>Password <span className="text-muted" style={{ fontWeight: 400 }}>(if you set one)</span></label>
+                <input
+                  type="password"
+                  value={ownerPassword}
+                  onChange={e => setOwnerPassword(e.target.value)}
+                  placeholder="Leave blank if no password"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 6}>
                 {loading ? 'Checking...' : 'Login →'}
               </button>
             </form>
