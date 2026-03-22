@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: abierto
+    runtime: node
+    buildCommand: npm install --prefix backend && npm install --include=dev --prefix frontend && npm --prefix frontend run build
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
