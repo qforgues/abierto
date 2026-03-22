@@ -6,33 +6,35 @@ import NotificationBell from './NotificationBell';
 
 const styles = {
   nav: {
-    background: 'var(--ocean)',
+    background: 'var(--nav-gradient)',
     padding: '0 20px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: '56px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+    height: '60px',
+    boxShadow: '0 2px 20px rgba(0,0,0,0.22)',
     position: 'sticky',
     top: 0,
     zIndex: 1000,
   },
   brand: {
     fontFamily: "'Pacifico', cursive",
-    fontSize: '1.5rem',
+    fontSize: '1.6rem',
     color: 'white',
     textDecoration: 'none',
     letterSpacing: '-0.5px',
+    textShadow: '0 1px 8px rgba(0,0,0,0.18)',
   },
-  actions: { display: 'flex', alignItems: 'center', gap: '10px' },
+  actions: { display: 'flex', alignItems: 'center', gap: '8px' },
   link: {
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.92)',
     textDecoration: 'none',
-    fontSize: '0.9rem',
+    fontSize: '0.88rem',
     fontWeight: 600,
-    padding: '6px 12px',
-    borderRadius: '8px',
-    transition: 'background 0.15s',
+    padding: '7px 13px',
+    borderRadius: '9px',
+    transition: 'background 0.15s, color 0.15s',
+    letterSpacing: '0.01em',
   },
 };
 
@@ -53,7 +55,7 @@ export default function Navbar() {
         {!user && (
           <>
             <Link to="/register" style={styles.link}>{t.addBusiness}</Link>
-            <Link to="/login" style={{ ...styles.link, background: 'rgba(255,255,255,0.15)' }}>
+            <Link to="/login" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>
               {t.login}
             </Link>
           </>

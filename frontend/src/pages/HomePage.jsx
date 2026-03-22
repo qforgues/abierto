@@ -46,7 +46,22 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <div className="page" style={{ paddingTop: 24 }}>
+      {/* Hero Banner */}
+      <div style={{
+        background: 'var(--nav-gradient)',
+        padding: '28px 20px 24px',
+        textAlign: 'center',
+        color: 'white',
+      }}>
+        <h1 style={{ fontFamily: "'Pacifico', cursive", fontSize: '2.8rem', color: 'white', textShadow: '0 2px 12px rgba(0,0,0,0.2)', marginBottom: 6, letterSpacing: '-0.5px' }}>
+          Abierto
+        </h1>
+        <p style={{ fontSize: '1rem', opacity: 0.88, fontWeight: 500, letterSpacing: '0.01em' }}>
+          What's open in Vieques right now?
+        </p>
+      </div>
+
+      <div className="page" style={{ paddingTop: 20 }}>
         <div style={{ margin: '0 0 16px', overflowX: 'auto', display: 'flex', gap: 8 }}>
           {CATEGORIES.map(cat => (
             <button
