@@ -58,7 +58,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const business = await db.get(`
-      SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.created_at,
+      SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.phone, b.created_at,
              s.status, s.note, s.updated_at AS status_updated_at
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
@@ -115,7 +115,7 @@ router.post('/register', async (req, res) => {
 
 // PATCH /api/businesses/:id — update business info (owner or admin)
 router.patch('/:id', async (req, res) => {
-  const { name, description, category, lat, lon } = req.body;
+  const { name, description, category, lat, lon, phone } = req.body;
   const { id } = req.params;
 
   // Auth check: must be owner of this business or admin
@@ -133,9 +133,10 @@ router.patch('/:id', async (req, res) => {
 
     await db.run(
       `UPDATE businesses SET name = COALESCE(?, name), description = COALESCE(?, description),
-       category = COALESCE(?, category), lat = COALESCE(?, lat), lon = COALESCE(?, lon)
+       category = COALESCE(?, category), lat = COALESCE(?, lat), lon = COALESCE(?, lon),
+       phone = COALESCE(?, phone)
        WHERE id = ?`,
-      [name || null, description || null, category || null, lat || null, lon || null, id]
+      [name || null, description || null, category || null, lat || null, lon || null, phone || null, id]
     );
 
     const updated = await db.get('SELECT * FROM businesses WHERE id = ?', [id]);

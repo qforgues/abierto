@@ -27,7 +27,7 @@ export default function OwnerDashboard() {
     setPhotos(b.photos || []);
     setStatus(b.status || 'Closed');
     setNote(b.note || '');
-    setEditForm({ name: b.name, description: b.description || '', category: b.category || '', lat: b.lat || '', lon: b.lon || '' });
+    setEditForm({ name: b.name, description: b.description || '', category: b.category || '', lat: b.lat || '', lon: b.lon || '', phone: b.phone || '' });
   };
 
   useEffect(() => { load(); }, [businessId]);
@@ -56,6 +56,7 @@ export default function OwnerDashboard() {
         category: editForm.category || null,
         lat: editForm.lat ? parseFloat(editForm.lat) : null,
         lon: editForm.lon ? parseFloat(editForm.lon) : null,
+        phone: editForm.phone || null,
       });
       await load();
       setEditMode(false);
@@ -127,6 +128,10 @@ export default function OwnerDashboard() {
               {business.category && <p className="text-sm"><strong>Category:</strong> {business.category}</p>}
               {business.description && <p className="text-sm">{business.description}</p>}
               {business.lat && <p className="text-sm text-muted">📍 {Number(business.lat).toFixed(5)}, {Number(business.lon).toFixed(5)}</p>}
+              {business.phone
+                ? <p className="text-sm">📱 <strong>WhatsApp/SMS:</strong> {business.phone}</p>
+                : <p className="text-sm text-muted">📱 No phone linked — add your number to update status by text</p>
+              }
             </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -144,6 +149,18 @@ export default function OwnerDashboard() {
               <div className="field">
                 <label>Description</label>
                 <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+              </div>
+              <div className="field">
+                <label>WhatsApp / SMS number</label>
+                <input
+                  type="tel"
+                  placeholder="+1787XXXXXXX"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                />
+                <p className="text-sm text-muted" style={{ marginTop: 4 }}>
+                  Text OPEN, CLOSED, LATE, etc. to your Abierto number to update your status instantly.
+                </p>
               </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>📍 Use Current Location</button>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

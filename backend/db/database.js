@@ -31,10 +31,14 @@ const initializeDatabase = async () => {
     category    TEXT,
     lat         REAL,
     lon         REAL,
+    phone       TEXT,
     code        TEXT NOT NULL UNIQUE,
     is_active   INTEGER NOT NULL DEFAULT 1,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+
+  // Add phone column to existing databases
+  try { await run(`ALTER TABLE businesses ADD COLUMN phone TEXT`); } catch (_) {}
 
   await run(`CREATE TABLE IF NOT EXISTS business_status (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

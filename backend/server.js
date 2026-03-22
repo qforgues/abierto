@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3005;
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5200' }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
@@ -18,6 +19,7 @@ app.use('/api/businesses/:id/photos', require('./routes/photos'));
 app.use('/api/businesses/:id/hours', require('./routes/hours'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
+app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/tiles', require('./routes/tiles'));
 
 initializeDatabase()
