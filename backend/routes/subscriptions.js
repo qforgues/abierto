@@ -6,7 +6,7 @@ const router = express.Router();
 
 async function ensureSubscription(businessId) {
   await db.run(
-    `INSERT OR IGNORE INTO subscriptions (business_id, monthly_amount) VALUES (?, 20.00)`,
+    `INSERT OR IGNORE INTO subscriptions (business_id, monthly_amount) VALUES (?, 5.00)`,
     [businessId]
   );
 }
@@ -21,7 +21,7 @@ router.get('/', requireAdmin, async (req, res) => {
     // All active businesses with current-month payment
     const businesses = await db.all(`
       SELECT b.id, b.name, b.category, b.created_at,
-             COALESCE(s.monthly_amount, 20.00) AS monthly_amount,
+             COALESCE(s.monthly_amount, 5.00) AS monthly_amount,
              p.amount_paid, p.paid_at, p.note
       FROM businesses b
       LEFT JOIN subscriptions s ON s.business_id = b.id
@@ -39,7 +39,7 @@ router.get('/', requireAdmin, async (req, res) => {
     const recentPayments = await db.all(`
       SELECT business_id, year, month
       FROM subscription_payments
-      WHERE amount_paid > 0
+      WHERE (amount_paid > 0 OR forgiven = 1)
         AND (year > ? OR (year = ? AND month >= ?))
     `, [lookbackYear, lookbackYear, lookbackMonth]);
 
@@ -90,7 +90,7 @@ router.get('/', requireAdmin, async (req, res) => {
 router.get('/:businessId/history', requireAdmin, async (req, res) => {
   try {
     const payments = await db.all(`
-      SELECT year, month, amount_paid, paid_at, note
+      SELECT year, month, amount_paid, paid_at, note, forgiven
       FROM subscription_payments
       WHERE business_id = ?
       ORDER BY year DESC, month DESC
@@ -137,6 +137,30 @@ router.post('/:businessId/payment', requireAdmin, async (req, res) => {
                     paid_at     = excluded.paid_at,
                     note        = excluded.note
     `, [req.params.businessId, year, month, parseFloat(amount_paid), note || null]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// POST /api/subscriptions/:businessId/forgive
+router.post('/:businessId/forgive', requireAdmin, async (req, res) => {
+  const { year, month } = req.body;
+  if (!year || !month) {
+    return res.status(400).json({ error: 'year and month are required.' });
+  }
+  try {
+    await ensureSubscription(req.params.businessId);
+    await db.run(`
+      INSERT INTO subscription_payments (business_id, year, month, amount_paid, paid_at, note, forgiven)
+      VALUES (?, ?, ?, 0, datetime('now'), 'Forgiven', 1)
+      ON CONFLICT(business_id, year, month)
+      DO UPDATE SET forgiven  = 1,
+                    amount_paid = 0,
+                    paid_at   = excluded.paid_at,
+                    note      = 'Forgiven'
+    `, [req.params.businessId, year, month]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);

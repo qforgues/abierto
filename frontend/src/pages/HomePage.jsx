@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import { Link, useNavigate } from 'react-router-dom';
 import MapView from '../components/MapView';
 import BusinessCard from '../components/BusinessCard';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
+import { useAuth } from '../context/AuthContext';
+import '../styles/HomePage.css';
 
 const CATEGORIES = ['All', 'Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other', 'Closed'];
 
@@ -13,7 +14,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [userLocation, setUserLocation] = useState(null);
-  const { t } = useLang();
+  const { t, lang, toggle } = useLang();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const fetchBusinesses = () =>
     api.get('/businesses')
@@ -43,27 +46,39 @@ export default function HomePage() {
       ? businesses.filter(b => !OPEN_STATUSES.includes(b.status))
       : businesses.filter(b => b.category === filter && OPEN_STATUSES.includes(b.status));
 
+  const handleLogout = () => { logout(); navigate('/'); };
+
   return (
-    <>
-      <Navbar />
-      <div className="page" style={{ paddingTop: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${CATEGORIES.length}, 1fr)`, gap: 6, marginBottom: 16, overflowX: 'auto' }}>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={`btn btn-sm ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ whiteSpace: 'nowrap', padding: '8px 6px', minWidth: 0, fontSize: '0.78rem' }}
-            >
-              {t.categories[cat]}
-            </button>
-          ))}
-        </div>
+    <div className="home-wrapper">
 
-        <div style={{ marginBottom: 16 }}>
-          <MapView businesses={businesses} userLocation={userLocation} />
+      {/* ── Hero: logo left, map right ── */}
+      <div className="home-hero">
+        <div className="home-logo-panel">
+          <img src="/combined-logo.png" alt="Abierto?" />
         </div>
+        <div className="home-map-panel">
+          <div className="map-wrap">
+            <MapView businesses={businesses} userLocation={userLocation} />
+          </div>
+        </div>
+      </div>
 
+      {/* ── Category filters ── */}
+      <div className="home-filters">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            className={`btn btn-sm ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            {t.categories[cat]}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Business list ── */}
+      <div className="home-list">
         {loading ? (
           <div className="spinner" />
         ) : filtered.length === 0 ? (
@@ -76,6 +91,41 @@ export default function HomePage() {
           </div>
         )}
       </div>
-    </>
+
+      {/* ── Footer ── */}
+      <footer className="home-footer">
+        <div className="home-footer-auth">
+          {!user && (
+            <>
+              <Link to="/register" className="footer-link-gold">{t.addBusiness}</Link>
+              <Link to="/login" className="footer-link-ghost">{t.login}</Link>
+            </>
+          )}
+          {user?.role === 'owner' && (
+            <>
+              <Link to="/owner" className="footer-link-plain">{t.myBusiness}</Link>
+              <button onClick={handleLogout} className="footer-btn-plain">{t.logout}</button>
+            </>
+          )}
+          {user?.role === 'admin' && (
+            <>
+              <Link to="/admin" className="footer-link-plain">{t.dashboard}</Link>
+              <button onClick={handleLogout} className="footer-btn-plain">{t.logout}</button>
+            </>
+          )}
+        </div>
+
+        <div className="home-footer-brand">
+          <span className="footer-copy">© 2025 Abierto?</span>
+          <button
+            onClick={toggle}
+            className="footer-lang-btn"
+            title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+          >
+            {lang === 'en' ? '🇵🇷' : '🇺🇸'}
+          </button>
+        </div>
+      </footer>
+    </div>
   );
 }

@@ -41,12 +41,9 @@ function computeStatus(stored, returnTime, todayHours, timeStr) {
 }
 
 function generateCode() {
-  const letters = Array.from(
-    { length: 2 },
-    () => String.fromCharCode(65 + Math.floor(Math.random() * 26))
-  ).join('');
-  const nums = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-  return letters + nums;
+  const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  const nums = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+  return letter + nums;
 }
 
 async function makeUniqueCode() {

@@ -81,7 +81,7 @@ const initializeDatabase = async () => {
   await run(`CREATE TABLE IF NOT EXISTS subscriptions (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     business_id    INTEGER NOT NULL UNIQUE REFERENCES businesses(id) ON DELETE CASCADE,
-    monthly_amount REAL NOT NULL DEFAULT 20.00
+    monthly_amount REAL NOT NULL DEFAULT 5.00
   )`);
 
   await run(`CREATE TABLE IF NOT EXISTS subscription_payments (
@@ -96,6 +96,7 @@ const initializeDatabase = async () => {
   )`);
 
   try { await run(`ALTER TABLE businesses ADD COLUMN password_hash TEXT`); } catch (_) {}
+  try { await run(`ALTER TABLE subscription_payments ADD COLUMN forgiven INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
 
   await run(`CREATE TABLE IF NOT EXISTS guest_codes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

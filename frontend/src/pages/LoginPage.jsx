@@ -87,13 +87,13 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase().slice(0, 6))}
-                  placeholder="e.g. AB1234"
-                  maxLength={6}
-                  style={{ fontSize: '1.6rem', textAlign: 'center', letterSpacing: '0.3em', fontFamily: 'monospace', fontWeight: 700 }}
+                  onChange={e => setCode(e.target.value.toUpperCase().slice(0, 3))}
+                  placeholder="e.g. A12"
+                  maxLength={3}
+                  style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '0.4em', fontFamily: 'monospace', fontWeight: 700 }}
                   autoFocus
                 />
-                <span className="text-sm text-muted">6-character code given when you registered</span>
+                <span className="text-sm text-muted">3-character code given when you registered</span>
               </div>
               <div className="field">
                 <label>Password <span className="text-muted" style={{ fontWeight: 400 }}>(if you set one)</span></label>
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   placeholder="Leave blank if no password"
                 />
               </div>
-              <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 6}>
+              <button type="submit" className="btn btn-primary btn-full" disabled={loading || code.length !== 3}>
                 {loading ? 'Checking...' : 'Login →'}
               </button>
             </form>

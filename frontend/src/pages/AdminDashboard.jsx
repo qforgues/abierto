@@ -19,6 +19,7 @@ function BillingTab() {
   const [history, setHistory] = useState({});
   const [editing, setEditing] = useState({});
   const [paying, setPaying] = useState({});
+  const [forgiving, setForgiving] = useState({});
 
   const load = useCallback(() => {
     setError(null);
@@ -54,8 +55,22 @@ function BillingTab() {
       note: p.note || '',
     });
     setPaying(prev => { const n = { ...prev }; delete n[businessId]; return n; });
-    setHistory(prev => { const n = { ...prev }; delete n[businessId]; return n; }); // invalidate cache
+    setHistory(prev => { const n = { ...prev }; delete n[businessId]; return n; });
     load();
+  };
+
+  const forgiveMonth = async (businessId) => {
+    const f = forgiving[businessId];
+    if (!f) return;
+    await api.post(`/subscriptions/${businessId}/forgive`, { year: f.year, month: f.month });
+    setForgiving(prev => { const n = { ...prev }; delete n[businessId]; return n; });
+    setHistory(prev => { const n = { ...prev }; delete n[businessId]; return n; });
+    load();
+  };
+
+  const openForgive = (businessId) => {
+    const now = data ? { year: data.year, month: data.month } : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+    setForgiving(prev => ({ ...prev, [businessId]: now }));
   };
 
   if (error) return <div className="alert alert-error">{error}</div>;
@@ -91,6 +106,8 @@ function BillingTab() {
           const pastDue = b.months_unpaid > 0;
           const isEditingAmount = editing[b.id] != null;
           const isPaying = paying[b.id] != null;
+          const isForgiven = b.note === 'Forgiven' && b.amount_paid === 0;
+          const isForgiving = forgiving[b.id] != null;
 
           return (
             <div key={b.id} className="card card-body" style={pastDue ? { borderLeft: '4px solid #ef4444', background: '#fff8f8' } : {}}>
@@ -146,8 +163,8 @@ function BillingTab() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  {!paid && !isPaying && (
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                  {!paid && !isForgiven && !isPaying && !isForgiving && (
                     <button
                       className="btn btn-sm btn-primary"
                       onClick={() => setPaying(prev => ({ ...prev, [b.id]: { amount: b.monthly_amount.toFixed(2), note: '' } }))}
@@ -155,10 +172,19 @@ function BillingTab() {
                       Record Payment
                     </button>
                   )}
-                  {paid && !isPaying && (
+                  {!paid && !isForgiven && !isForgiving && !isPaying && (
                     <button
                       className="btn btn-sm btn-ghost"
-                      onClick={() => setPaying(prev => ({ ...prev, [b.id]: { amount: b.amount_paid.toFixed(2), note: b.note || '' } }))}
+                      style={{ color: '#d97706', borderColor: '#fde68a' }}
+                      onClick={() => openForgive(b.id)}
+                    >
+                      Forgive
+                    </button>
+                  )}
+                  {(paid || isForgiven) && !isPaying && !isForgiving && (
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => setPaying(prev => ({ ...prev, [b.id]: { amount: b.amount_paid?.toFixed(2) ?? '0.00', note: b.note || '' } }))}
                     >
                       Edit
                     </button>
@@ -199,6 +225,33 @@ function BillingTab() {
                 </div>
               )}
 
+              {/* Inline forgive form */}
+              {isForgiving && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', background: '#fffbeb', borderRadius: 8, padding: 12 }}>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem' }}>Year</label>
+                    <input
+                      type="number" min="2024" max="2099"
+                      value={forgiving[b.id].year}
+                      onChange={e => setForgiving(prev => ({ ...prev, [b.id]: { ...prev[b.id], year: parseInt(e.target.value) } }))}
+                      style={{ width: 80 }}
+                    />
+                  </div>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.8rem' }}>Month</label>
+                    <select
+                      value={forgiving[b.id].month}
+                      onChange={e => setForgiving(prev => ({ ...prev, [b.id]: { ...prev[b.id], month: parseInt(e.target.value) } }))}
+                      style={{ width: 100 }}
+                    >
+                      {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <button className="btn btn-sm" style={{ background: '#d97706', color: 'white' }} onClick={() => forgiveMonth(b.id)}>Forgive Month</button>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setForgiving(prev => { const n = { ...prev }; delete n[b.id]; return n; })}>Cancel</button>
+                </div>
+              )}
+
               {/* Payment history */}
               {expanded === b.id && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
@@ -207,11 +260,15 @@ function BillingTab() {
                     history[b.id].length === 0 ? <p className="text-sm text-muted">No payments recorded yet.</p> : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {history[b.id].map((p, i) => (
-                          <div key={i} className="text-sm" style={{ display: 'flex', gap: 12 }}>
+                          <div key={i} className="text-sm" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                             <span style={{ color: 'var(--mid)', minWidth: 80 }}>{MONTH_NAMES[p.month - 1]} {p.year}</span>
-                            <span style={{ color: '#16a34a', fontWeight: 600 }}>${p.amount_paid.toFixed(2)}</span>
-                            <span style={{ color: 'var(--mid)' }}>received {formatPaidAt(p.paid_at)}</span>
-                            {p.note && <span style={{ color: 'var(--mid)' }}>— {p.note}</span>}
+                            {p.forgiven ? (
+                              <span style={{ color: '#d97706', fontWeight: 600 }}>✦ Forgiven</span>
+                            ) : (
+                              <span style={{ color: '#16a34a', fontWeight: 600 }}>${p.amount_paid.toFixed(2)}</span>
+                            )}
+                            <span style={{ color: 'var(--mid)' }}>{formatPaidAt(p.paid_at)}</span>
+                            {p.note && !p.forgiven && <span style={{ color: 'var(--mid)' }}>— {p.note}</span>}
                           </div>
                         ))}
                       </div>
