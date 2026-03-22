@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { initializeDatabase } = require('./db/database');
 
 const app = express();
@@ -10,6 +11,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5200' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -21,6 +23,17 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/tiles', require('./routes/tiles'));
+
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/tiles')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 initializeDatabase()
   .then(() => {

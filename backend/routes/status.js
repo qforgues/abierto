@@ -5,7 +5,7 @@ const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
-const VALID_STATUSES = ['Open', 'Closed', 'Opening Late', 'Back Soon', 'Sold Out'];
+const VALID_STATUSES = ['Open', 'Closed', 'Out to Lunch', 'Closed for the Season'];
 
 // GET /api/businesses/:id/status
 router.get('/', async (req, res) => {
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
 
 // PUT /api/businesses/:id/status
 router.put('/', async (req, res) => {
-  const { status, note } = req.body;
+  const { status, note, return_time, return_date } = req.body;
   const businessId = parseInt(req.params.id);
 
   if (!status || !VALID_STATUSES.includes(status)) {
@@ -40,10 +40,17 @@ router.put('/', async (req, res) => {
       return res.status(403).json({ error: 'Forbidden.' });
     }
 
+    // Only keep return_time for Out to Lunch, return_date for Closed for the Season
+    const rtVal = status === 'Out to Lunch' ? (return_time || null) : null;
+    const rdVal = status === 'Closed for the Season' ? (return_date || null) : null;
+    // Clear note for override statuses — the return time/date is the info
+    const noteVal = ['Out to Lunch', 'Closed for the Season'].includes(status) ? null : (note || null);
+
     await db.run(
-      `UPDATE business_status SET status = ?, note = ?, updated_at = datetime('now')
+      `UPDATE business_status
+       SET status = ?, note = ?, return_time = ?, return_date = ?, updated_at = datetime('now')
        WHERE business_id = ?`,
-      [status, note || null, businessId]
+      [status, noteVal, rtVal, rdVal, businessId]
     );
 
     const updated = await db.get(

@@ -8,9 +8,8 @@ const DEFAULT_ZOOM = 13;
 const STATUS_COLORS = {
   Open: '#22c55e',
   Closed: '#ef4444',
-  'Opening Late': '#f59e0b',
-  'Back Soon': '#f59e0b',
-  'Sold Out': '#8b5cf6',
+  'Out to Lunch': '#f59e0b',
+  'Closed for the Season': '#64748b',
 };
 
 export default function MapView({ businesses }) {

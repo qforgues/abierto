@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { api } from '../api/client';
+import { api, uploadUrl } from '../api/client';
 
 export default function PhotoUploader({ businessId, photos, onUpdate }) {
   const inputRef = useRef();
@@ -63,7 +63,7 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
         >
           {main ? (
             <>
-              <img src={`/uploads/${main.filename}`} alt="Main photo" />
+              <img src={uploadUrl(main.filename)} alt="Main photo" />
               <button
                 style={{ ...btnBase, top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white' }}
                 onClick={(e) => { e.stopPropagation(); handleDelete(main.id); }}
@@ -86,7 +86,7 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
           >
             {photo ? (
               <>
-                <img src={`/uploads/${photo.filename}`} alt="Business photo" />
+                <img src={uploadUrl(photo.filename)} alt="Business photo" />
                 <button
                   title="Set as main photo"
                   style={{ ...btnBase, top: 8, left: 8, background: 'rgba(0,0,0,0.55)', color: '#facc15' }}

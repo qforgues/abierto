@@ -70,7 +70,7 @@ function Toggle({ checked, onChange }) {
   );
 }
 
-export default function HoursEditor({ businessId }) {
+export default function HoursEditor({ businessId, onSaved }) {
   const [hours, setHours] = useState(blankWeek());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -112,6 +112,7 @@ export default function HoursEditor({ businessId }) {
       await api.put(`/businesses/${businessId}/hours`, { hours });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      if (onSaved) onSaved();
     } catch (err) {
       setError(err.message);
     } finally {

@@ -12,12 +12,11 @@
   --light:      #f0f8ff;
   --border:     #dde8f0;
 
-  --status-open:         #22c55e;
-  --status-closed:       #ef4444;
-  --status-opening-late: #f59e0b;
-  --status-back-soon:    #f59e0b;
-  --status-sold-out:     #8b5cf6;
-  --status-none:         #94a3b8;
+  --status-open:           #22c55e;
+  --status-closed:         #ef4444;
+  --status-out-to-lunch:   #f59e0b;
+  --status-season:         #64748b;
+  --status-none:           #94a3b8;
 
   --radius:  12px;
   --shadow:  0 2px 16px rgba(0,119,182,0.10);
@@ -122,12 +121,11 @@ textarea { resize: vertical; min-height: 80px; }
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.status-badge.Open         { background: var(--status-open); }
-.status-badge.Closed       { background: var(--status-closed); }
-.status-badge.Opening-Late { background: var(--status-opening-late); }
-.status-badge.Back-Soon    { background: var(--status-back-soon); }
-.status-badge.Sold-Out     { background: var(--status-sold-out); }
-.status-badge.none         { background: var(--status-none); }
+.status-badge.Open                  { background: var(--status-open); }
+.status-badge.Closed                { background: var(--status-closed); }
+.status-badge.Out-to-Lunch          { background: var(--status-out-to-lunch); }
+.status-badge.Closed-for-the-Season { background: var(--status-season); }
+.status-badge.none                  { background: var(--status-none); }
 
 /* ── Page wrapper ── */
 .page { flex: 1; padding: 24px 16px; max-width: 900px; margin: 0 auto; width: 100%; }
@@ -279,11 +277,10 @@ textarea { resize: vertical; min-height: 80px; }
   text-align: center;
   transition: all 0.15s;
 }
-.status-selector-btn.active-Open         { border-color: var(--status-open);  background: #f0fdf4; color: var(--status-open); }
-.status-selector-btn.active-Closed       { border-color: var(--status-closed); background: #fef2f2; color: var(--status-closed); }
-.status-selector-btn.active-Opening-Late { border-color: var(--status-opening-late); background: #fffbeb; color: var(--status-opening-late); }
-.status-selector-btn.active-Back-Soon    { border-color: var(--status-back-soon); background: #fffbeb; color: var(--status-back-soon); }
-.status-selector-btn.active-Sold-Out     { border-color: var(--status-sold-out); background: #faf5ff; color: var(--status-sold-out); }
+.status-selector-btn.active-Open                  { border-color: var(--status-open); background: #f0fdf4; color: var(--status-open); }
+.status-selector-btn.active-Closed                { border-color: var(--status-closed); background: #fef2f2; color: var(--status-closed); }
+.status-selector-btn.active-Out-to-Lunch          { border-color: var(--status-out-to-lunch); background: #fffbeb; color: var(--status-out-to-lunch); }
+.status-selector-btn.active-Closed-for-the-Season { border-color: var(--status-season); background: #f8fafc; color: var(--status-season); }
 
 /* ── Code display ── */
 .code-display {

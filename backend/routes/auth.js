@@ -31,11 +31,12 @@ router.post('/admin/login', async (req, res) => {
 router.post('/business/login', async (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'Business code required.' });
+  const normalizedCode = String(code).trim().toUpperCase();
 
   try {
     const business = await db.get(
       'SELECT * FROM businesses WHERE code = ? AND is_active = 1',
-      [code.toUpperCase()]
+      [normalizedCode]
     );
     if (!business) return res.status(401).json({ error: 'Invalid business code.' });
 

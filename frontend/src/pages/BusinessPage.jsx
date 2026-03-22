@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import HoursDisplay from '../components/HoursDisplay';
-import { api } from '../api/client';
+import { api, uploadUrl } from '../api/client';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -12,6 +12,20 @@ function timeAgo(ts) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function fmt12(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const hr = h % 12 || 12;
+  return m === 0 ? `${hr} ${ampm}` : `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 export default function BusinessPage() {
@@ -38,6 +52,8 @@ export default function BusinessPage() {
   if (loading) return <><Navbar /><div className="spinner" /></>;
   if (!business) return <><Navbar /><div className="page text-center mt-6"><p>Business not found.</p><Link to="/">← Back</Link></div></>;
 
+  const { status, return_time, return_date, note } = business;
+
   return (
     <>
       <Navbar />
@@ -45,7 +61,7 @@ export default function BusinessPage() {
         {business.photos?.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(business.photos.length, 3)}, 1fr)`, gap: 8, marginBottom: 20 }}>
             {business.photos.map(p => (
-              <img key={p.id} src={`/uploads/${p.filename}`} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
+              <img key={p.id} src={uploadUrl(p.filename)} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
             ))}
           </div>
         )}
@@ -53,14 +69,26 @@ export default function BusinessPage() {
         <div className="card card-body">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <h1 style={{ fontSize: '1.6rem' }}>{business.name}</h1>
-            <StatusBadge status={business.status} large />
+            <StatusBadge status={status} large />
           </div>
 
           {business.category && <p className="text-sm text-muted mt-2">{business.category}</p>}
           {business.description && <p style={{ marginTop: 12, lineHeight: 1.6 }}>{business.description}</p>}
-          {business.note && (
-            <div className="alert alert-info mt-4">{business.note}</div>
+
+          {status === 'Out to Lunch' && return_time && (
+            <div className="alert alert-info mt-4" style={{ color: 'var(--status-out-to-lunch)', fontWeight: 500 }}>
+              Back at {fmt12(return_time)}
+            </div>
           )}
+          {status === 'Closed for the Season' && return_date && (
+            <div className="alert alert-info mt-4" style={{ color: 'var(--status-season)', fontWeight: 500 }}>
+              Reopening {fmtDate(return_date)}
+            </div>
+          )}
+          {note && status !== 'Out to Lunch' && status !== 'Closed for the Season' && (
+            <div className="alert alert-info mt-4">{note}</div>
+          )}
+
           {business.status_updated_at && (
             <p className="text-sm text-muted mt-4">Updated {timeAgo(business.status_updated_at)}</p>
           )}

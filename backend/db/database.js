@@ -45,8 +45,14 @@ const initializeDatabase = async () => {
     business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
     status      TEXT NOT NULL DEFAULT 'Closed',
     note        TEXT,
+    return_time TEXT,
+    return_date TEXT,
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+
+  // Migrations for existing databases
+  try { await run(`ALTER TABLE business_status ADD COLUMN return_time TEXT`); } catch (_) {}
+  try { await run(`ALTER TABLE business_status ADD COLUMN return_date TEXT`); } catch (_) {}
 
   await run(`CREATE TABLE IF NOT EXISTS business_photos (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,12 +106,20 @@ const initializeDatabase = async () => {
 
   const existing = await get('SELECT id FROM admin WHERE id = 1');
   if (!existing) {
-    const hash = await bcrypt.hash('Abierto1!', 10);
+    const defaultPassword = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === 'production' ? null : 'Abierto1!');
+    if (!defaultPassword) {
+      throw new Error('ADMIN_PASSWORD is required to bootstrap the first admin account in production.');
+    }
+    const hash = await bcrypt.hash(defaultPassword, 10);
     await run(
       `INSERT INTO admin (id, username, password_hash) VALUES (1, 'admin', ?)`,
       [hash]
     );
-    console.log('Admin account created — default password: Abierto1!');
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Admin account created from ADMIN_PASSWORD.');
+    } else {
+      console.log('Admin account created — local dev password: Abierto1!');
+    }
   }
 
   console.log('Database ready.');

@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'abierto-dev-secret-2024';
+const isProduction = process.env.NODE_ENV === 'production';
+const JWT_SECRET = process.env.JWT_SECRET || (isProduction ? null : 'abierto-dev-secret-local-only');
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is required in production.');
+}
 
 const verifyToken = (req, res, next) => {
   const header = req.headers.authorization;

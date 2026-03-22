@@ -4,10 +4,47 @@ const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Puerto Rico / Vieques is UTC-4 year-round (no DST)
+function getViequesNow() {
+  const now = new Date();
+  const local = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const dayOfWeek = local.getUTCDay();
+  const timeStr = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+  return { dayOfWeek, timeStr };
+}
+
+// Compute what status to show publicly.
+// todayHours: { open_time, close_time, is_closed } or null if no hours configured
+function computeStatus(stored, returnTime, todayHours, timeStr) {
+  // Season closure is permanent until owner clears it
+  if (stored === 'Closed for the Season') return stored;
+
+  // Out to Lunch auto-expires when return_time passes
+  if (stored === 'Out to Lunch') {
+    if (!returnTime || timeStr < returnTime) return 'Out to Lunch';
+    // return time has passed — fall through to hours or manual
+  }
+
+  // No hours configured → honour manual Open/Closed
+  if (!todayHours) return stored || 'Closed';
+
+  // Hours configured for today but marked closed
+  if (todayHours.is_closed) return 'Closed';
+
+  // Hours incomplete — fall back to stored
+  if (!todayHours.open_time || !todayHours.close_time) return stored || 'Closed';
+
+  // Time-based
+  return (timeStr >= todayHours.open_time && timeStr < todayHours.close_time) ? 'Open' : 'Closed';
+}
+
 function generateCode() {
-  const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-  const nums = String(Math.floor(Math.random() * 100)).padStart(2, '0');
-  return letter + nums;
+  const letters = Array.from(
+    { length: 2 },
+    () => String.fromCharCode(65 + Math.floor(Math.random() * 26))
+  ).join('');
+  const nums = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  return letters + nums;
 }
 
 async function makeUniqueCode() {
@@ -19,19 +56,39 @@ async function makeUniqueCode() {
   throw new Error('Could not generate unique code.');
 }
 
-// GET /api/businesses — all active businesses with current status
+// GET /api/businesses — all active businesses with computed status
 router.get('/', async (req, res) => {
   try {
+    const { dayOfWeek, timeStr } = getViequesNow();
+
     const businesses = await db.all(`
       SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.created_at,
-             s.status, s.note, s.updated_at AS status_updated_at,
+             s.status AS stored_status, s.note, s.return_time, s.return_date,
+             s.updated_at AS status_updated_at,
              (SELECT filename FROM business_photos WHERE business_id = b.id ORDER BY sort_order ASC LIMIT 1) AS cover_photo
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
       WHERE b.is_active = 1
       ORDER BY b.name ASC
     `);
-    res.json(businesses);
+
+    // Fetch today's hours for all businesses in one query
+    const todayHoursRows = await db.all(
+      'SELECT business_id, open_time, close_time, is_closed FROM business_hours WHERE day_of_week = ?',
+      [dayOfWeek]
+    );
+    const hoursMap = {};
+    for (const row of todayHoursRows) hoursMap[row.business_id] = row;
+
+    const result = businesses.map(b => {
+      const { stored_status, ...rest } = b;
+      return {
+        ...rest,
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr),
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
@@ -41,25 +98,45 @@ router.get('/', async (req, res) => {
 // GET /api/businesses/admin/all — all businesses including inactive (admin only)
 router.get('/admin/all', requireAdmin, async (req, res) => {
   try {
+    const { dayOfWeek, timeStr } = getViequesNow();
+
     const businesses = await db.all(`
-      SELECT b.*, s.status, s.note, s.updated_at AS status_updated_at
+      SELECT b.*, s.status AS stored_status, s.note, s.return_time, s.return_date,
+             s.updated_at AS status_updated_at
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
       ORDER BY b.created_at DESC
     `);
-    res.json(businesses);
+
+    const todayHoursRows = await db.all(
+      'SELECT business_id, open_time, close_time, is_closed FROM business_hours WHERE day_of_week = ?',
+      [dayOfWeek]
+    );
+    const hoursMap = {};
+    for (const row of todayHoursRows) hoursMap[row.business_id] = row;
+
+    const result = businesses.map(b => {
+      const { stored_status, ...rest } = b;
+      return {
+        ...rest,
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr),
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
   }
 });
 
-// GET /api/businesses/:id — single business with photos
+// GET /api/businesses/:id — single business with computed status
 router.get('/:id', async (req, res) => {
   try {
     const business = await db.get(`
       SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.phone, b.created_at,
-             s.status, s.note, s.updated_at AS status_updated_at
+             s.status AS stored_status, s.note, s.return_time, s.return_date,
+             s.updated_at AS status_updated_at
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
       WHERE b.id = ? AND b.is_active = 1
@@ -67,12 +144,26 @@ router.get('/:id', async (req, res) => {
 
     if (!business) return res.status(404).json({ error: 'Business not found.' });
 
+    const hours = await db.all(
+      'SELECT * FROM business_hours WHERE business_id = ? ORDER BY day_of_week ASC',
+      [req.params.id]
+    );
+
     const photos = await db.all(
       'SELECT id, filename, sort_order FROM business_photos WHERE business_id = ? ORDER BY sort_order ASC',
       [req.params.id]
     );
 
-    res.json({ ...business, photos });
+    const { dayOfWeek, timeStr } = getViequesNow();
+    const todayHours = hours.find(h => h.day_of_week === dayOfWeek) || null;
+
+    const { stored_status, ...rest } = business;
+    res.json({
+      ...rest,
+      status: computeStatus(stored_status, business.return_time, todayHours, timeStr),
+      has_hours: hours.length > 0,
+      photos,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
@@ -118,7 +209,6 @@ router.patch('/:id', async (req, res) => {
   const { name, description, category, lat, lon, phone } = req.body;
   const { id } = req.params;
 
-  // Auth check: must be owner of this business or admin
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'Unauthorized.' });
 

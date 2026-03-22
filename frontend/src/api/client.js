@@ -1,4 +1,6 @@
-const BASE = '/api';
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE = RAW_API_BASE.replace(/\/+$/, '');
+const UPLOADS_BASE = BASE.endsWith('/api') ? `${BASE.slice(0, -4)}/uploads` : `${BASE}/uploads`;
 
 function getToken() {
   return localStorage.getItem('abierto_token');
@@ -36,3 +38,8 @@ export const api = {
     return data;
   },
 };
+
+export function uploadUrl(filename) {
+  if (!filename) return '';
+  return `${UPLOADS_BASE}/${filename}`;
+}

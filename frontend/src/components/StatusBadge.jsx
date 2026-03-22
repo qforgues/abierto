@@ -1,6 +1,11 @@
 import React from 'react';
 
-const DOT = { Open: '🟢', Closed: '🔴', 'Opening Late': '🟡', 'Back Soon': '🟡', 'Sold Out': '🟣' };
+const DOT = {
+  Open: '🟢',
+  Closed: '🔴',
+  'Out to Lunch': '🟡',
+  'Closed for the Season': '⛔',
+};
 
 export default function StatusBadge({ status, large }) {
   if (!status) return <span className="status-badge none">No Status</span>;

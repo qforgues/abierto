@@ -13,8 +13,13 @@ export default function OwnerDashboard() {
 
   const [business, setBusiness] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [status, setStatus] = useState('');
+  const [hasHours, setHasHours] = useState(false);
+
+  const [status, setStatus] = useState('Closed');
   const [note, setNote] = useState('');
+  const [returnTime, setReturnTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -22,12 +27,26 @@ export default function OwnerDashboard() {
   const [savingInfo, setSavingInfo] = useState(false);
 
   const load = async () => {
-    const b = await api.get(`/businesses/${businessId}`);
+    const [b, hours] = await Promise.all([
+      api.get(`/businesses/${businessId}`),
+      api.get(`/businesses/${businessId}/hours`),
+    ]);
     setBusiness(b);
     setPhotos(b.photos || []);
-    setStatus(b.status || 'Closed');
-    setNote(b.note || '');
-    setEditForm({ name: b.name, description: b.description || '', category: b.category || '', lat: b.lat || '', lon: b.lon || '', phone: b.phone || '' });
+    setHasHours(hours.length > 0);
+
+    // Get the stored (manual) status from the status endpoint so the selector
+    // reflects what the owner last set, not the computed public status
+    const stored = await api.get(`/businesses/${businessId}/status`);
+    setStatus(stored.status || 'Closed');
+    setNote(stored.note || '');
+    setReturnTime(stored.return_time || '');
+    setReturnDate(stored.return_date || '');
+
+    setEditForm({
+      name: b.name, description: b.description || '', category: b.category || '',
+      lat: b.lat || '', lon: b.lon || '', phone: b.phone || '',
+    });
   };
 
   useEffect(() => { load(); }, [businessId]);
@@ -36,10 +55,17 @@ export default function OwnerDashboard() {
     setSaving(true);
     setMsg('');
     try {
-      await api.put(`/businesses/${businessId}/status`, { status, note });
-      await load();
+      await api.put(`/businesses/${businessId}/status`, {
+        status,
+        note: ['Out to Lunch', 'Closed for the Season'].includes(status) ? undefined : note,
+        return_time: returnTime || undefined,
+        return_date: returnDate || undefined,
+      });
       setMsg('Status updated!');
       setTimeout(() => setMsg(''), 3000);
+      // Reload to sync displayed badge with computed status
+      const b = await api.get(`/businesses/${businessId}`);
+      setBusiness(b);
     } catch (err) {
       setMsg(`Error: ${err.message}`);
     } finally {
@@ -76,6 +102,8 @@ export default function OwnerDashboard() {
 
   if (!business) return <><Navbar /><div className="spinner" /></>;
 
+  const showNote = !['Out to Lunch', 'Closed for the Season'].includes(status);
+
   return (
     <>
       <Navbar />
@@ -83,7 +111,7 @@ export default function OwnerDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1>{business.name}</h1>
-            <p className="text-sm text-muted">Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>{/* code not stored in frontend, show blank */}●●●</strong></p>
+            <p className="text-sm text-muted">Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>●●●</strong></p>
           </div>
           <StatusBadge status={business.status} />
         </div>
@@ -91,11 +119,26 @@ export default function OwnerDashboard() {
         {/* Status update */}
         <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h2>Update Status</h2>
-          <StatusSelector value={status} onChange={setStatus} />
-          <div className="field">
-            <label>Note (optional)</label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Back at 2pm, fresh catch today…" rows={2} />
-          </div>
+          <StatusSelector
+            value={status}
+            onChange={setStatus}
+            returnTime={returnTime}
+            onReturnTimeChange={setReturnTime}
+            returnDate={returnDate}
+            onReturnDateChange={setReturnDate}
+            hasHours={hasHours}
+          />
+          {showNote && (
+            <div className="field">
+              <label>Note (optional)</label>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="e.g. Fresh catch today, closing at 6pm…"
+                rows={2}
+              />
+            </div>
+          )}
           {msg && <p className={msg.startsWith('Error') ? 'text-error' : 'text-success'}>{msg}</p>}
           <button className="btn btn-primary btn-full" onClick={saveStatus} disabled={saving} style={{ padding: '14px' }}>
             {saving ? 'Saving…' : 'Update Status'}
@@ -111,7 +154,10 @@ export default function OwnerDashboard() {
         {/* Hours */}
         <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h2>Business Hours</h2>
-          <HoursEditor businessId={businessId} />
+          <p className="text-sm text-muted">
+            Once hours are set, your open/closed status updates automatically. Use the status panel above for overrides.
+          </p>
+          <HoursEditor businessId={businessId} onSaved={() => load()} />
         </div>
 
         {/* Business info */}
@@ -159,7 +205,7 @@ export default function OwnerDashboard() {
                   onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
                 />
                 <p className="text-sm text-muted" style={{ marginTop: 4 }}>
-                  Text OPEN, CLOSED, LATE, etc. to your Abierto number to update your status instantly.
+                  Text OPEN, CLOSED, LUNCH, or SEASON to your Abierto number to update status instantly.
                 </p>
               </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>📍 Use Current Location</button>
