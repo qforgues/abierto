@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { api } from '../api/client';
+import { useLang } from '../context/LangContext';
 
 const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other'];
 
@@ -11,6 +12,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useLang();
+  const r = t.register;
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -22,15 +25,15 @@ export default function RegisterPage() {
         set('lon', pos.coords.longitude.toFixed(6));
         setLocating(false);
       },
-      () => { alert('Could not get location. Enter manually.'); setLocating(false); }
+      () => { alert(r.errLocation); setLocating(false); }
     );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return setError('Business name is required.');
-    if (!form.password) return setError('Password is required.');
-    if (form.password.length < 8) return setError('Password must be at least 8 characters.');
+    if (!form.name.trim()) return setError(r.errName);
+    if (!form.password) return setError(r.errPassword);
+    if (form.password.length < 8) return setError(r.errPasswordLen);
     setError('');
     setLoading(true);
     try {
@@ -53,60 +56,60 @@ export default function RegisterPage() {
     <>
       <Navbar />
       <div className="page page-narrow" style={{ paddingTop: 32 }}>
-        <h1 style={{ marginBottom: 4 }}>Add Your Business</h1>
-        <p className="text-muted" style={{ marginBottom: 24 }}>Get listed on Abierto and let Vieques know when you're open.</p>
+        <h1 style={{ marginBottom: 4 }}>{r.title}</h1>
+        <p className="text-muted" style={{ marginBottom: 24 }}>{r.subtitle}</p>
 
         {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h2>Business Info</h2>
+            <h2>{r.sectionInfo}</h2>
             <div className="field">
-              <label>Business Name *</label>
-              <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Playa Snacks" autoFocus />
+              <label>{r.labelName} *</label>
+              <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder={r.placeholderName} autoFocus />
             </div>
             <div className="field">
-              <label>Category</label>
+              <label>{r.labelCategory}</label>
               <select value={form.category} onChange={e => set('category', e.target.value)}>
-                <option value="">Select a category…</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">{r.placeholderCategory}</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}
               </select>
             </div>
             <div className="field">
-              <label>Description</label>
-              <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="Tell customers what you offer…" rows={3} />
+              <label>{r.labelDescription}</label>
+              <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder={r.placeholderDescription} rows={3} />
             </div>
           </div>
 
           <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h2>Owner Password</h2>
-            <p className="text-sm text-muted">Set a password to protect your business. You'll need it to log in and manage your listing.</p>
+            <h2>{r.sectionPassword}</h2>
+            <p className="text-sm text-muted">{r.passwordHint}</p>
             <div className="field">
-              <label>Password *</label>
-              <input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="At least 8 characters" />
+              <label>{r.labelPassword} *</label>
+              <input type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder={r.placeholderPassword} />
             </div>
           </div>
 
           <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h2>Location</h2>
-            <p className="text-sm text-muted">Used to pin your business on the map. Great for food trucks and mobile stands.</p>
+            <h2>{r.sectionLocation}</h2>
+            <p className="text-sm text-muted">{r.locationHint}</p>
             <button type="button" className="btn btn-ghost" onClick={getLocation} disabled={locating}>
-              {locating ? 'Getting location…' : '📍 Use My Current Location'}
+              {locating ? r.btnLocating : r.btnLocate}
             </button>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="field">
-                <label>Latitude</label>
+                <label>{r.labelLat}</label>
                 <input type="number" step="any" value={form.lat} onChange={e => set('lat', e.target.value)} placeholder="18.1234" />
               </div>
               <div className="field">
-                <label>Longitude</label>
+                <label>{r.labelLon}</label>
                 <input type="number" step="any" value={form.lon} onChange={e => set('lon', e.target.value)} placeholder="-65.4321" />
               </div>
             </div>
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ padding: '16px' }}>
-            {loading ? 'Registering…' : 'Register Business →'}
+            {loading ? r.btnSubmitting : r.btnSubmit}
           </button>
         </form>
       </div>

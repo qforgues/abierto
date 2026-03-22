@@ -52,8 +52,8 @@ export default function Navbar() {
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.brand}>Abierto</Link>
-      <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.82)', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.04em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-        What's open in Vieques?
+      <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+        {t.navSubtitle}
       </span>
       <div style={styles.actions}>
         {!user && (
