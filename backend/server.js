@@ -24,6 +24,7 @@ app.use('/api/businesses/:id/status', require('./routes/status'));
 app.use('/api/businesses/:id/photos', require('./routes/photos'));
 app.use('/api/businesses/:id/hours', require('./routes/hours'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/contact', require('./routes/contact'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/tiles', require('./routes/tiles'));

@@ -10,7 +10,7 @@ const loginRateLimiter = rateLimit({
 
 const businessCreationRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
+  max: 5,
   message: 'Too many registrations from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

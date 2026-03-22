@@ -11,6 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Forgot code form
+  const [showContact, setShowContact] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactMsg, setContactMsg] = useState('');
+  const [contactSent, setContactSent] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
+
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
@@ -49,6 +57,20 @@ export default function LoginPage() {
     }
   };
 
+  const handleContact = async (e) => {
+    e.preventDefault();
+    if (!contactName.trim()) return;
+    setContactLoading(true);
+    try {
+      await api.post('/contact', { businessName: contactName, message: contactMsg });
+      setContactSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setContactLoading(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -62,14 +84,14 @@ export default function LoginPage() {
           <button
             className={`btn ${mode === 'owner' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ flex: 1 }}
-            onClick={() => { setMode('owner'); setError(''); }}
+            onClick={() => { setMode('owner'); setError(''); setShowContact(false); }}
           >
             Business Owner
           </button>
           <button
             className={`btn ${mode === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ flex: 1 }}
-            onClick={() => { setMode('admin'); setError(''); }}
+            onClick={() => { setMode('admin'); setError(''); setShowContact(false); }}
           >
             Admin
           </button>
@@ -77,7 +99,7 @@ export default function LoginPage() {
 
         {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
 
-        {mode === 'owner' ? (
+        {mode === 'owner' && !showContact && (
           <div className="card card-body">
             <h2 style={{ marginBottom: 16 }}>Enter your business code</h2>
             <form onSubmit={handleOwnerLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -98,8 +120,66 @@ export default function LoginPage() {
                 {loading ? 'Checking...' : 'Login →'}
               </button>
             </form>
+            <button
+              onClick={() => { setShowContact(true); setError(''); }}
+              style={{ marginTop: 16, background: 'none', border: 'none', color: 'var(--mid)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Forgot your code?
+            </button>
           </div>
-        ) : (
+        )}
+
+        {mode === 'owner' && showContact && (
+          <div className="card card-body">
+            {contactSent ? (
+              <div className="text-center" style={{ padding: '12px 0' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 8 }}>✅</div>
+                <h2 style={{ marginBottom: 8 }}>Message sent!</h2>
+                <p className="text-muted text-sm">The admin will reach out with your code shortly.</p>
+                <button className="btn btn-ghost btn-full" style={{ marginTop: 16 }} onClick={() => { setShowContact(false); setContactSent(false); setContactName(''); setContactMsg(''); }}>
+                  Back to Login
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2 style={{ marginBottom: 4 }}>Forgot your code?</h2>
+                <p className="text-sm text-muted" style={{ marginBottom: 16 }}>Send a message to the admin and they'll get back to you.</p>
+                <form onSubmit={handleContact} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="field">
+                    <label>Your Business Name</label>
+                    <input
+                      type="text"
+                      value={contactName}
+                      onChange={e => setContactName(e.target.value)}
+                      placeholder="e.g. Playa Snacks"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Message <span className="text-muted" style={{ fontWeight: 400 }}>(optional)</span></label>
+                    <textarea
+                      value={contactMsg}
+                      onChange={e => setContactMsg(e.target.value)}
+                      placeholder="Any details that help us find your account…"
+                      rows={3}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" disabled={contactLoading || !contactName.trim()}>
+                    {contactLoading ? 'Sending…' : 'Send Message →'}
+                  </button>
+                </form>
+                <button
+                  onClick={() => { setShowContact(false); setError(''); }}
+                  style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--mid)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Back to Login
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {mode === 'admin' && (
           <div className="card card-body">
             <h2 style={{ marginBottom: 16 }}>Admin Login</h2>
             <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
