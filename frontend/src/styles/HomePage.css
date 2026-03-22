@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 52vh;
-  background: linear-gradient(160deg, #022c22 0%, #064e3b 45%, #0d9488 100%);
+  background: linear-gradient(160deg, #0d4f3c 0%, #0d9488 55%, #2dd4bf 100%);
 }
 
 .home-logo-panel {
@@ -66,7 +66,7 @@
 
 /* Footer */
 .home-footer {
-  background: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
+  background: linear-gradient(135deg, #0d4f3c 0%, #0d9488 100%);
   padding: 18px 24px;
   display: flex;
   align-items: center;
