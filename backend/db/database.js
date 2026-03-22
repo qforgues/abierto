@@ -1,27 +1,26 @@
-const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'abierto.db');
-const _db = new sqlite3.Database(dbPath);
+const client = createClient(
+  process.env.TURSO_URL
+    ? { url: process.env.TURSO_URL, authToken: process.env.TURSO_AUTH_TOKEN }
+    : { url: 'file:./db/abierto.db' }
+);
 
-const get = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    _db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
-  });
+const get = async (sql, params = []) => {
+  const result = await client.execute({ sql, args: params });
+  return result.rows[0] ?? undefined;
+};
 
-const all = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    _db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)));
-  });
+const all = async (sql, params = []) => {
+  const result = await client.execute({ sql, args: params });
+  return result.rows;
+};
 
-const run = (sql, params = []) =>
-  new Promise((resolve, reject) => {
-    _db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+const run = async (sql, params = []) => {
+  const result = await client.execute({ sql, args: params });
+  return { lastID: Number(result.lastInsertRowid), changes: result.rowsAffected };
+};
 
 const initializeDatabase = async () => {
   await run(`CREATE TABLE IF NOT EXISTS businesses (
@@ -37,7 +36,6 @@ const initializeDatabase = async () => {
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
 
-  // Add phone column to existing databases
   try { await run(`ALTER TABLE businesses ADD COLUMN phone TEXT`); } catch (_) {}
 
   await run(`CREATE TABLE IF NOT EXISTS business_status (
@@ -50,7 +48,6 @@ const initializeDatabase = async () => {
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
 
-  // Migrations for existing databases
   try { await run(`ALTER TABLE business_status ADD COLUMN return_time TEXT`); } catch (_) {}
   try { await run(`ALTER TABLE business_status ADD COLUMN return_date TEXT`); } catch (_) {}
 
@@ -98,7 +95,6 @@ const initializeDatabase = async () => {
     UNIQUE(business_id, year, month)
   )`);
 
-  // v1.1: owner password field on businesses
   try { await run(`ALTER TABLE businesses ADD COLUMN password_hash TEXT`); } catch (_) {}
 
   await run(`CREATE TABLE IF NOT EXISTS guest_codes (
