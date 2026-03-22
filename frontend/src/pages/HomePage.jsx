@@ -117,7 +117,7 @@ export default function HomePage() {
 
         <div className="home-footer-brand">
           <span className="footer-copy">© 2025 Abierto?</span>
-          <span className="footer-version">v1.2</span>
+          <span className="footer-version">v1.3</span>
           <button
             onClick={toggle}
             className="footer-lang-btn"
