@@ -54,7 +54,7 @@ export default function LoginPage() {
       <Navbar />
       <div className="page page-narrow" style={{ paddingTop: 40 }}>
         <div className="text-center" style={{ marginBottom: 28 }}>
-          <h1 className="brand" style={{ fontSize: '2rem' }}>Abierto</h1>
+          <img src="/logo-solo.png" alt="Abierto?" style={{ height: 80, marginBottom: 8 }} />
           <p className="text-muted mt-2">Sign in to manage your business</p>
         </div>
 
