@@ -131,6 +131,12 @@
   font-size: 0.78rem;
 }
 
+.footer-version {
+  color: rgba(255,255,255,0.2);
+  font-size: 0.68rem;
+  font-family: monospace;
+}
+
 .footer-lang-btn {
   background: none;
   border: none;
