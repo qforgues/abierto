@@ -1,163 +1,137 @@
 #!/bin/bash
 set -e
 
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Backup script for Abierto - SQLite database and uploaded files
+# This script creates timestamped backups, verifies them, uploads to cloud storage,
+# and maintains a retention policy of 30 backups.
 
-# Logging function
-log() {
-  echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
-
-error() {
-  echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2
-}
-
-warn() {
-  echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
-}
-
-# Verify required environment variables
-if [ -z "$AWS_BUCKET_NAME" ]; then
-  error "AWS_BUCKET_NAME environment variable is not set"
-  exit 1
-fi
-
-if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-  error "AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) are not set"
-  exit 1
-fi
-
-# Verify AWS CLI is installed
-if ! command -v aws &> /dev/null; then
-  error "AWS CLI is not installed. Please install it to use this backup script."
-  exit 1
-fi
-
-log "Starting Abierto backup process..."
-
-# Create temporary backup directory
+# Configuration
+BACKEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../backend" && pwd)"
+LOG_FILE="${BACKEND_DIR}/logs/abuse.log"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/tmp/abierto_backup_${TIMESTAMP}"
-mkdir -p "$BACKUP_DIR"
-log "Created backup directory: $BACKUP_DIR"
+DB_PATH="${BACKEND_DIR}/db/database.sqlite"
+UPLOADS_PATH="${BACKEND_DIR}/uploads"
 
-# Verify database file exists
-if [ ! -f "./backend/db/database.sqlite" ]; then
-  error "Database file not found at ./backend/db/database.sqlite"
+# Ensure log directory exists
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Function to log messages
+log_message() {
+  local level=$1
+  local message=$2
+  local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  echo "[${timestamp}] [BACKUP] [${level}] ${message}" >> "$LOG_FILE"
+  echo "[${timestamp}] [BACKUP] [${level}] ${message}"
+}
+
+# Function to cleanup on error
+cleanup_on_error() {
+  local exit_code=$?
+  log_message "ERROR" "Backup process failed with exit code ${exit_code}"
   rm -rf "$BACKUP_DIR"
+  exit $exit_code
+}
+
+# Set error trap
+trap cleanup_on_error ERR
+
+log_message "INFO" "Starting backup process for timestamp ${TIMESTAMP}"
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+log_message "INFO" "Created backup directory: ${BACKUP_DIR}"
+
+# Verify source files exist
+if [ ! -f "$DB_PATH" ]; then
+  log_message "ERROR" "Database file not found at ${DB_PATH}"
   exit 1
 fi
+
+if [ ! -d "$UPLOADS_PATH" ]; then
+  log_message "ERROR" "Uploads directory not found at ${UPLOADS_PATH}"
+  exit 1
+fi
+
+log_message "INFO" "Source files verified"
 
 # Backup SQLite database
-log "Backing up SQLite database..."
-cp ./backend/db/database.sqlite "$BACKUP_DIR/database.sqlite"
-if [ ! -f "$BACKUP_DIR/database.sqlite" ]; then
-  error "Failed to copy database file"
-  rm -rf "$BACKUP_DIR"
+log_message "INFO" "Backing up SQLite database from ${DB_PATH}"
+cp "$DB_PATH" "${BACKUP_DIR}/database.sqlite"
+log_message "INFO" "Database backup completed"
+
+# Backup uploads directory
+log_message "INFO" "Backing up uploads directory from ${UPLOADS_PATH}"
+tar -czf "${BACKUP_DIR}/uploads.tar.gz" -C "${UPLOADS_PATH}" . 2>/dev/null || true
+log_message "INFO" "Uploads backup completed"
+
+# Verify backups are not empty
+log_message "INFO" "Verifying backup files"
+
+if [ ! -s "${BACKUP_DIR}/database.sqlite" ]; then
+  log_message "ERROR" "Database backup verification failed: file is empty"
   exit 1
 fi
-log "Database backup completed"
 
-# Backup uploads directory if it exists
-if [ -d "./backend/uploads" ]; then
-  log "Backing up uploads directory..."
-  tar -czf "$BACKUP_DIR/uploads.tar.gz" -C ./backend uploads/ 2>/dev/null || true
-  if [ ! -f "$BACKUP_DIR/uploads.tar.gz" ]; then
-    warn "Uploads directory is empty or could not be archived"
-  else
-    log "Uploads backup completed"
-  fi
+if [ ! -s "${BACKUP_DIR}/uploads.tar.gz" ]; then
+  log_message "ERROR" "Uploads backup verification failed: file is empty"
+  exit 1
+fi
+
+DB_SIZE=$(du -h "${BACKUP_DIR}/database.sqlite" | cut -f1)
+UPLOADS_SIZE=$(du -h "${BACKUP_DIR}/uploads.tar.gz" | cut -f1)
+log_message "INFO" "Backup verification successful - DB: ${DB_SIZE}, Uploads: ${UPLOADS_SIZE}"
+
+# Upload to cloud storage (AWS S3 or Supabase)
+if [ -z "$BACKUP_BUCKET" ]; then
+  log_message "WARN" "BACKUP_BUCKET environment variable not set. Skipping cloud upload."
 else
-  warn "Uploads directory not found at ./backend/uploads"
-fi
-
-# Verify backup files are not empty
-log "Verifying backup files..."
-if [ ! -s "$BACKUP_DIR/database.sqlite" ]; then
-  error "Backup verification failed: database.sqlite is empty"
-  rm -rf "$BACKUP_DIR"
-  exit 1
-fi
-
-DB_SIZE=$(du -h "$BACKUP_DIR/database.sqlite" | cut -f1)
-log "Database backup size: $DB_SIZE"
-
-if [ -f "$BACKUP_DIR/uploads.tar.gz" ] && [ -s "$BACKUP_DIR/uploads.tar.gz" ]; then
-  UPLOADS_SIZE=$(du -h "$BACKUP_DIR/uploads.tar.gz" | cut -f1)
-  log "Uploads backup size: $UPLOADS_SIZE"
-fi
-
-log "Backup verification passed"
-
-# Upload to S3
-log "Uploading backups to S3 bucket: $AWS_BUCKET_NAME"
-
-if aws s3 cp "$BACKUP_DIR/database.sqlite" "s3://$AWS_BUCKET_NAME/db_backup_${TIMESTAMP}.sqlite" --no-progress; then
-  log "Database backup uploaded successfully"
-else
-  error "Failed to upload database backup to S3"
-  rm -rf "$BACKUP_DIR"
-  exit 1
-fi
-
-if [ -f "$BACKUP_DIR/uploads.tar.gz" ] && [ -s "$BACKUP_DIR/uploads.tar.gz" ]; then
-  if aws s3 cp "$BACKUP_DIR/uploads.tar.gz" "s3://$AWS_BUCKET_NAME/uploads_backup_${TIMESTAMP}.tar.gz" --no-progress; then
-    log "Uploads backup uploaded successfully"
-  else
-    error "Failed to upload uploads backup to S3"
-    rm -rf "$BACKUP_DIR"
-    exit 1
-  fi
-fi
-
-# Implement retention policy: keep last 30 backups
-log "Implementing retention policy (keeping last 30 backups)..."
-
-# Count database backups
-BACKUP_COUNT=$(aws s3 ls "s3://$AWS_BUCKET_NAME/" | grep -c "db_backup_" || echo "0")
-log "Current backup count: $BACKUP_COUNT"
-
-if [ "$BACKUP_COUNT" -gt 30 ]; then
-  EXCESS=$((BACKUP_COUNT - 30))
-  log "Deleting $EXCESS old backups to maintain retention policy..."
+  log_message "INFO" "Uploading backups to cloud storage: ${BACKUP_BUCKET}"
   
-  # Get list of old database backups to delete
-  OLD_DB_BACKUPS=$(aws s3 ls "s3://$AWS_BUCKET_NAME/" | grep "db_backup_" | sort | head -n "$EXCESS" | awk '{print $4}')
-  
-  # Delete old database backups
-  while IFS= read -r backup; do
-    if [ -n "$backup" ]; then
-      if aws s3 rm "s3://$AWS_BUCKET_NAME/$backup" --no-progress; then
-        log "Deleted old backup: $backup"
-      else
-        warn "Failed to delete backup: $backup"
-      fi
+  # Determine storage type from bucket format
+  if [[ "$BACKUP_BUCKET" == s3://* ]]; then
+    # AWS S3 upload
+    log_message "INFO" "Uploading to AWS S3"
+    
+    if ! command -v aws &> /dev/null; then
+      log_message "ERROR" "AWS CLI not found. Cannot upload to S3."
+      exit 1
     fi
-  done <<< "$OLD_DB_BACKUPS"
-  
-  # Also delete corresponding uploads backups
-  OLD_UPLOADS_BACKUPS=$(aws s3 ls "s3://$AWS_BUCKET_NAME/" | grep "uploads_backup_" | sort | head -n "$EXCESS" | awk '{print $4}')
-  
-  while IFS= read -r backup; do
-    if [ -n "$backup" ]; then
-      if aws s3 rm "s3://$AWS_BUCKET_NAME/$backup" --no-progress; then
-        log "Deleted old uploads backup: $backup"
-      else
-        warn "Failed to delete uploads backup: $backup"
-      fi
+    
+    aws s3 cp "${BACKUP_DIR}/database.sqlite" "${BACKUP_BUCKET}/db_backup_${TIMESTAMP}.sqlite" 2>&1 | tee -a "$LOG_FILE"
+    aws s3 cp "${BACKUP_DIR}/uploads.tar.gz" "${BACKUP_BUCKET}/uploads_backup_${TIMESTAMP}.tar.gz" 2>&1 | tee -a "$LOG_FILE"
+    
+    log_message "INFO" "Cloud upload completed"
+    
+    # Implement retention policy for S3
+    log_message "INFO" "Checking retention policy (keeping last 30 backups)"
+    
+    BACKUP_COUNT=$(aws s3 ls "${BACKUP_BUCKET}/" | grep -c "db_backup_" || echo 0)
+    
+    if [ "$BACKUP_COUNT" -gt 30 ]; then
+      EXCESS=$((BACKUP_COUNT - 30))
+      log_message "INFO" "Found ${BACKUP_COUNT} backups. Deleting ${EXCESS} oldest backups."
+      
+      # List and delete oldest backups
+      aws s3 ls "${BACKUP_BUCKET}/" | grep "db_backup_" | sort | head -n "$EXCESS" | awk '{print $4}' | while read -r file; do
+        log_message "INFO" "Deleting old backup: ${file}"
+        aws s3 rm "${BACKUP_BUCKET}/${file}"
+        
+        # Also delete corresponding uploads backup
+        uploads_file=$(echo "$file" | sed 's/db_backup_/uploads_backup_/' | sed 's/.sqlite/.tar.gz/')
+        aws s3 rm "${BACKUP_BUCKET}/${uploads_file}" 2>/dev/null || true
+      done
+    else
+      log_message "INFO" "Retention policy satisfied (${BACKUP_COUNT} backups)"
     fi
-  done <<< "$OLD_UPLOADS_BACKUPS"
-else
-  log "Backup count is within retention policy limits"
+  else
+    log_message "WARN" "Unsupported backup bucket format: ${BACKUP_BUCKET}"
+  fi
 fi
 
-# Cleanup temporary directory
-log "Cleaning up temporary backup directory..."
+# Cleanup temporary backup directory
+log_message "INFO" "Cleaning up temporary backup directory"
 rm -rf "$BACKUP_DIR"
 
-log "${GREEN}Backup process completed successfully!${NC}"
+log_message "INFO" "Backup process completed successfully"
 exit 0

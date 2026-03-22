@@ -1,413 +1,243 @@
-# Abierto Backup and Restore Runbook
+# Restore Runbook for Abierto
 
 ## Overview
 
-This document provides comprehensive instructions for backing up and restoring the Abierto application data, including the SQLite database and uploaded files. The backup system is designed to ensure data safety and enable quick recovery in case of data loss or corruption.
-
-## Backup System Architecture
-
-### Components
-
-1. **Backup Script**: `scripts/backup.sh` - Automated backup creation and upload
-2. **Cloud Storage**: AWS S3 - Stores backup files with automatic retention policy
-3. **Cron Job**: Scheduled nightly execution of the backup script
-4. **Retention Policy**: Automatically maintains the last 30 backups
-
-### Backup Contents
-
-Each backup includes:
-- **database.sqlite**: Complete SQLite database file
-- **uploads.tar.gz**: Compressed archive of all uploaded files
+This document outlines the steps to restore the Abierto database and uploaded files from a backup. The restore process involves downloading backups from cloud storage, extracting files, and verifying data integrity.
 
 ## Prerequisites
 
-Before setting up or running backups, ensure the following are installed and configured:
-
-### Required Software
-- AWS CLI (version 2.x or later)
-- bash shell
-- tar utility
-- Standard Unix utilities (date, cp, etc.)
-
-### AWS Configuration
-
-Ensure the following environment variables are set in your `.env` file:
-
-```bash
-# AWS S3 Configuration
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
-AWS_BUCKET_NAME=your-abierto-backups-bucket
-```
-
-### AWS IAM Permissions
-
-The AWS user or role must have the following S3 permissions:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::your-abierto-backups-bucket",
-        "arn:aws:s3:::your-abierto-backups-bucket/*"
-      ]
-    }
-  ]
-}
-```
-
-## Backup Procedure
-
-### Manual Backup Execution
-
-To manually create a backup:
-
-1. **Navigate to the project root directory**:
-   ```bash
-   cd /path/to/abierto
-   ```
-
-2. **Ensure environment variables are loaded**:
-   ```bash
-   source .env
-   ```
-
-3. **Run the backup script**:
-   ```bash
-   bash scripts/backup.sh
-   ```
-
-4. **Verify the backup was successful**:
-   - Check the console output for success messages
-   - Verify files appear in your S3 bucket:
-     ```bash
-     aws s3 ls s3://$AWS_BUCKET_NAME/ | grep backup
-     ```
-
-### Automated Nightly Backups
-
-To set up automatic nightly backups using cron:
-
-1. **Open the crontab editor**:
-   ```bash
-   crontab -e
-   ```
-
-2. **Add the following cron job** (runs daily at 2:00 AM):
-   ```bash
-   0 2 * * * cd /path/to/abierto && source .env && bash scripts/backup.sh >> /var/log/abierto-backup.log 2>&1
-   ```
-
-3. **Verify the cron job was added**:
-   ```bash
-   crontab -l
-   ```
-
-### Backup Verification
-
-The backup script automatically verifies:
-- Database file is not empty
-- Uploads archive is created (if uploads exist)
-- Files are successfully uploaded to S3
-
-If verification fails, the script will:
-- Log an error message
-- Exit with a non-zero status code
-- Clean up temporary files
-
-## Restore Procedure
-
-### Prerequisites for Restore
-
-- AWS CLI configured with appropriate credentials
-- Access to the S3 bucket containing backups
-- Application stopped (to prevent conflicts during restore)
+- AWS CLI configured with appropriate credentials (for S3 backups)
+- Access to the backup bucket specified in `BACKUP_BUCKET` environment variable
 - Sufficient disk space for backup files
+- The application should be stopped during restore to prevent data conflicts
 
-### Step-by-Step Restore Process
+## Restore Steps
 
-#### 1. Stop the Application
+### Step 1: Stop the Application
+
+Before restoring, ensure the application is not running:
 
 ```bash
-# If running with systemd
+# Stop the application (adjust based on your deployment method)
 sudo systemctl stop abierto
-
-# If running with PM2
-pm2 stop abierto
-
-# If running with Docker
-docker-compose down
+# or
+npm stop
 ```
 
-#### 2. List Available Backups
+### Step 2: List Available Backups
 
-View all available backups in S3:
+List all available backups in the cloud storage:
 
 ```bash
-aws s3 ls s3://$AWS_BUCKET_NAME/ | grep db_backup
+# For AWS S3
+aws s3 ls s3://your-bucket/ | grep "db_backup_"
+
+# Output example:
+# 2024-03-22 10:15:30        1024000 db_backup_20240322_101530.sqlite
+# 2024-03-21 10:15:30        1024000 db_backup_20240321_101530.sqlite
 ```
 
-Example output:
-```
-2024-01-15 02:00:00          1234567 db_backup_20240115_020000.sqlite
-2024-01-14 02:00:00          1234567 db_backup_20240114_020000.sqlite
-2024-01-13 02:00:00          1234567 db_backup_20240113_020000.sqlite
-```
+### Step 3: Download Backup Files
 
-#### 3. Download the Desired Backup
-
-Download the database backup:
+Download the desired backup files from cloud storage:
 
 ```bash
-# Replace TIMESTAMP with the desired backup timestamp
-TIMESTAMP="20240115_020000"
-aws s3 cp "s3://$AWS_BUCKET_NAME/db_backup_${TIMESTAMP}.sqlite" ./backend/db/database.sqlite
+# Set the backup timestamp (choose from the list above)
+BACKUP_TIMESTAMP="20240322_101530"
+BACKET="s3://your-bucket"
+
+# Download database backup
+aws s3 cp "${BUCKET}/db_backup_${BACKUP_TIMESTAMP}.sqlite" ./backend/db/database.sqlite
+
+# Download uploads backup
+aws s3 cp "${BUCKET}/uploads_backup_${BACKUP_TIMESTAMP}.tar.gz" /tmp/uploads_backup.tar.gz
 ```
 
-Download the uploads backup (if needed):
+### Step 4: Verify Downloaded Files
+
+Verify that the downloaded files are valid and not corrupted:
 
 ```bash
-aws s3 cp "s3://$AWS_BUCKET_NAME/uploads_backup_${TIMESTAMP}.tar.gz" /tmp/uploads_backup.tar.gz
+# Check database file size (should be > 0)
+ls -lh ./backend/db/database.sqlite
+
+# Verify tar.gz integrity
+tar -tzf /tmp/uploads_backup.tar.gz > /dev/null && echo "Uploads backup is valid" || echo "Uploads backup is corrupted"
 ```
 
-#### 4. Restore the Database
+### Step 5: Backup Current Data (Optional but Recommended)
 
-The database file is now in place at `./backend/db/database.sqlite`.
-
-Verify the database integrity:
+Before restoring, create a backup of the current data:
 
 ```bash
-sqlite3 ./backend/db/database.sqlite "PRAGMA integrity_check;"
-```
+# Backup current database
+cp ./backend/db/database.sqlite ./backend/db/database.sqlite.backup
 
-Expected output: `ok`
-
-#### 5. Restore Uploaded Files (Optional)
-
-If you need to restore uploaded files:
-
-```bash
-# Create backup of current uploads (optional)
+# Backup current uploads
 tar -czf /tmp/uploads_current_backup.tar.gz ./backend/uploads/
-
-# Extract the restored uploads
-tar -xzf /tmp/uploads_backup.tar.gz -C ./backend/
-
-# Verify permissions
-chown -R app:app ./backend/uploads/
-chmod -R 755 ./backend/uploads/
 ```
 
-#### 6. Start the Application
+### Step 6: Extract Uploads
+
+Extract the uploaded files from the backup:
 
 ```bash
-# If using systemd
+# Clear existing uploads (optional, if you want a clean restore)
+rm -rf ./backend/uploads/*
+
+# Extract uploads from backup
+tar -xzf /tmp/uploads_backup.tar.gz -C ./backend/uploads/
+
+# Verify extraction
+ls -la ./backend/uploads/
+```
+
+### Step 7: Verify Database Integrity
+
+Verify that the restored database is valid:
+
+```bash
+# Check database integrity using SQLite
+sqlite3 ./backend/db/database.sqlite "PRAGMA integrity_check;"
+
+# Expected output: "ok"
+```
+
+### Step 8: Start the Application
+
+Start the application and verify it's running correctly:
+
+```bash
+# Start the application
 sudo systemctl start abierto
+# or
+npm start
 
-# If using PM2
-pm2 start abierto
-
-# If using Docker
-docker-compose up -d
-```
-
-#### 7. Verify the Restore
-
-Test the application:
-
-```bash
-# Check application health
+# Check application status
 curl http://localhost:3000/health
-
-# Verify database connectivity
-curl http://localhost:3000/api/businesses
-
-# Check application logs for errors
-tail -f /var/log/abierto/app.log
 ```
 
-## Disaster Recovery Scenarios
+### Step 9: Verify Data
 
-### Scenario 1: Database Corruption
-
-**Symptoms**: Application crashes, database errors in logs
-
-**Recovery Steps**:
-1. Stop the application
-2. Backup the corrupted database: `cp ./backend/db/database.sqlite ./backend/db/database.sqlite.corrupted`
-3. Follow the restore procedure above
-4. Start the application
-5. Monitor logs for issues
-
-### Scenario 2: Accidental Data Deletion
-
-**Symptoms**: Missing businesses or photos
-
-**Recovery Steps**:
-1. Identify the timestamp of the last good backup
-2. Stop the application
-3. Restore from that backup using the restore procedure
-4. Verify data integrity
-5. Start the application
-
-### Scenario 3: Complete System Failure
-
-**Symptoms**: Server down, unable to access application
-
-**Recovery Steps**:
-1. Provision new server/container
-2. Install application dependencies
-3. Clone the application repository
-4. Configure environment variables
-5. Follow the restore procedure to restore database and uploads
-6. Start the application
-7. Verify all functionality
-
-## Monitoring and Maintenance
-
-### Backup Logs
-
-Monitor backup execution logs:
+Verify that the restored data is accessible and correct:
 
 ```bash
-# View recent backup logs
-tail -f /var/log/abierto-backup.log
-
-# Search for errors
-grep ERROR /var/log/abierto-backup.log
-```
-
-### Retention Policy
-
-The backup system automatically maintains the last 30 backups. Older backups are automatically deleted from S3.
-
-To manually check backup count:
-
-```bash
-aws s3 ls s3://$AWS_BUCKET_NAME/ | grep db_backup | wc -l
-```
-
-### Storage Costs
-
-Estimate S3 storage costs:
-
-```bash
-# Calculate total backup size
-aws s3 ls s3://$AWS_BUCKET_NAME/ --recursive --summarize | grep "Total Size"
-```
-
-### Testing Backups
-
-Regularly test backup restoration to ensure recovery capability:
-
-```bash
-# Monthly backup test procedure
-1. Create a test environment
-2. Download latest backup
-3. Restore to test environment
-4. Verify all data is present and correct
-5. Document any issues
+# Check that at least 3 photos are readable and display correctly
+# 1. Open the application in a browser
+# 2. Navigate to a business profile
+# 3. Verify that photos load correctly
+# 4. Check that business information is intact
 ```
 
 ## Troubleshooting
 
-### Issue: "AWS_BUCKET_NAME environment variable is not set"
+### Database Corruption
 
-**Solution**: Ensure `.env` file contains `AWS_BUCKET_NAME` and is sourced before running the script:
-
-```bash
-source .env
-bash scripts/backup.sh
-```
-
-### Issue: "AWS CLI is not installed"
-
-**Solution**: Install AWS CLI:
+If the database integrity check fails:
 
 ```bash
-# macOS
-brew install awscli
+# Restore from the backup you created in Step 5
+cp ./backend/db/database.sqlite.backup ./backend/db/database.sqlite
 
-# Ubuntu/Debian
-sudo apt-get install awscli
-
-# Or using pip
-pip install awscli
+# Try an older backup
+BACKUP_TIMESTAMP="20240321_101530"
+aws s3 cp "s3://your-bucket/db_backup_${BACKUP_TIMESTAMP}.sqlite" ./backend/db/database.sqlite
 ```
 
-### Issue: "Failed to upload database backup to S3"
+### Missing Uploads
 
-**Possible Causes**:
-- Invalid AWS credentials
-- Insufficient S3 permissions
-- Network connectivity issues
-- S3 bucket doesn't exist
-
-**Solutions**:
-1. Verify AWS credentials: `aws sts get-caller-identity`
-2. Check S3 bucket exists: `aws s3 ls s3://$AWS_BUCKET_NAME/`
-3. Verify IAM permissions (see Prerequisites section)
-4. Check network connectivity: `ping s3.amazonaws.com`
-
-### Issue: "Backup verification failed: database.sqlite is empty"
-
-**Possible Causes**:
-- Database file is corrupted
-- Insufficient disk space
-- File permission issues
-
-**Solutions**:
-1. Check database integrity: `sqlite3 ./backend/db/database.sqlite "PRAGMA integrity_check;"`
-2. Verify disk space: `df -h`
-3. Check file permissions: `ls -la ./backend/db/database.sqlite`
-
-### Issue: "Restore shows old data"
-
-**Solution**: Verify you're restoring from the correct backup timestamp:
+If uploads are missing after extraction:
 
 ```bash
-# List backups with details
-aws s3 ls s3://$AWS_BUCKET_NAME/ | grep db_backup | sort
+# Verify the tar.gz file is not corrupted
+tar -tzf /tmp/uploads_backup.tar.gz | head -20
 
-# Restore from the most recent backup
-LATEST=$(aws s3 ls s3://$AWS_BUCKET_NAME/ | grep db_backup | sort | tail -1 | awk '{print $4}')
-aws s3 cp "s3://$AWS_BUCKET_NAME/$LATEST" ./backend/db/database.sqlite
+# Try extracting to a temporary directory first
+mkdir /tmp/uploads_test
+tar -xzf /tmp/uploads_backup.tar.gz -C /tmp/uploads_test/
+ls -la /tmp/uploads_test/
 ```
 
-## Best Practices
+### Application Won't Start
 
-1. **Test Restores Regularly**: Monthly test restores ensure recovery capability
-2. **Monitor Backup Logs**: Check logs weekly for errors or warnings
-3. **Document Changes**: Keep records of significant data changes for recovery reference
-4. **Secure Credentials**: Never commit `.env` file with credentials to version control
-5. **Verify Backups**: Periodically verify backup files are accessible in S3
-6. **Plan for Growth**: Monitor backup storage costs as data grows
-7. **Automate Monitoring**: Set up alerts for failed backups
+If the application fails to start after restore:
 
-## Additional Resources
+1. Check application logs:
+   ```bash
+   tail -f ./backend/logs/error.log
+   ```
 
-- [AWS S3 Documentation](https://docs.aws.amazon.com/s3/)
-- [AWS CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/)
-- [SQLite Backup Documentation](https://www.sqlite.org/backup.html)
-- [Cron Job Tutorial](https://crontab.guru/)
+2. Verify database permissions:
+   ```bash
+   chmod 644 ./backend/db/database.sqlite
+   ```
 
-## Support and Questions
+3. Restore from backup and try again:
+   ```bash
+   cp ./backend/db/database.sqlite.backup ./backend/db/database.sqlite
+   ```
 
-For issues or questions regarding backups and restoration:
+## Rollback Procedure
 
-1. Check the Troubleshooting section above
-2. Review application logs: `./backend/logs/`
-3. Check backup logs: `/var/log/abierto-backup.log`
-4. Contact the development team with:
-   - Error messages from logs
-   - Steps taken before the issue occurred
-   - Current backup status
+If the restore causes issues, rollback to the previous state:
+
+```bash
+# Stop the application
+sudo systemctl stop abierto
+
+# Restore from the backup created in Step 5
+cp ./backend/db/database.sqlite.backup ./backend/db/database.sqlite
+rm -rf ./backend/uploads/*
+tar -xzf /tmp/uploads_current_backup.tar.gz -C ./backend/uploads/
+
+# Start the application
+sudo systemctl start abierto
+```
+
+## Automated Restore Script
+
+For faster restores, use this automated script:
+
+```bash
+#!/bin/bash
+set -e
+
+BACKUP_TIMESTAMP=${1:-$(aws s3 ls s3://your-bucket/ | grep "db_backup_" | sort | tail -1 | awk '{print $4}' | sed 's/db_backup_//' | sed 's/.sqlite//')}
+BUCKET="s3://your-bucket"
+
+echo "Restoring from backup: ${BACKUP_TIMESTAMP}"
+
+# Stop application
+sudo systemctl stop abierto
+
+# Backup current data
+cp ./backend/db/database.sqlite ./backend/db/database.sqlite.backup
+tar -czf /tmp/uploads_current_backup.tar.gz ./backend/uploads/
+
+# Download and restore
+aws s3 cp "${BUCKET}/db_backup_${BACKUP_TIMESTAMP}.sqlite" ./backend/db/database.sqlite
+aws s3 cp "${BUCKET}/uploads_backup_${BACKUP_TIMESTAMP}.tar.gz" /tmp/uploads_backup.tar.gz
+
+# Verify and extract
+sqlite3 ./backend/db/database.sqlite "PRAGMA integrity_check;" || exit 1
+rm -rf ./backend/uploads/*
+tar -xzf /tmp/uploads_backup.tar.gz -C ./backend/uploads/
+
+# Start application
+sudo systemctl start abierto
+
+echo "Restore completed successfully"
+```
+
+## Notes
+
+- Always create a backup of current data before restoring (Step 5)
+- Test the restore process in a staging environment first
+- Document any issues encountered during the restore process
+- Keep at least 30 backups available for recovery options
+- Verify data integrity after each restore
+- Consider scheduling regular restore tests to ensure backup validity
+
+## Support
+
+For issues or questions regarding the restore process, contact the development team or refer to the main project documentation.
