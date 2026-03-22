@@ -71,6 +71,23 @@ const initializeDatabase = async () => {
     UNIQUE(business_id, day_of_week)
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS subscriptions (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    business_id    INTEGER NOT NULL UNIQUE REFERENCES businesses(id) ON DELETE CASCADE,
+    monthly_amount REAL NOT NULL DEFAULT 20.00
+  )`);
+
+  await run(`CREATE TABLE IF NOT EXISTS subscription_payments (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    year        INTEGER NOT NULL,
+    month       INTEGER NOT NULL,
+    amount_paid REAL NOT NULL DEFAULT 0,
+    paid_at     TEXT,
+    note        TEXT,
+    UNIQUE(business_id, year, month)
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS admin (
     id            INTEGER PRIMARY KEY DEFAULT 1,
     username      TEXT NOT NULL DEFAULT 'admin',

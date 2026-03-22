@@ -24,6 +24,9 @@ export default function BusinessCard({ business }) {
         {business.category && (
           <p className="text-sm text-muted mt-2">{icon} {business.category}</p>
         )}
+        {business.description && (
+          <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.7, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{business.description}</p>
+        )}
         {business.note && (
           <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.75 }}>{business.note}</p>
         )}

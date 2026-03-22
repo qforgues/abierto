@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LangContext';
 import NotificationBell from './NotificationBell';
 
 const styles = {
@@ -37,6 +38,7 @@ const styles = {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { lang, t, toggle } = useLang();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -50,29 +52,36 @@ export default function Navbar() {
       <div style={styles.actions}>
         {!user && (
           <>
-            <Link to="/register" style={styles.link}>Add Business</Link>
+            <Link to="/register" style={styles.link}>{t.addBusiness}</Link>
             <Link to="/login" style={{ ...styles.link, background: 'rgba(255,255,255,0.15)' }}>
-              Login
+              {t.login}
             </Link>
           </>
         )}
         {user?.role === 'owner' && (
           <>
-            <Link to="/owner" style={styles.link}>My Business</Link>
+            <Link to="/owner" style={styles.link}>{t.myBusiness}</Link>
             <button onClick={handleLogout} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
-              Logout
+              {t.logout}
             </button>
           </>
         )}
         {user?.role === 'admin' && (
           <>
             <NotificationBell />
-            <Link to="/admin" style={styles.link}>Dashboard</Link>
+            <Link to="/admin" style={styles.link}>{t.dashboard}</Link>
             <button onClick={handleLogout} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
-              Logout
+              {t.logout}
             </button>
           </>
         )}
+        <button
+          onClick={toggle}
+          title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1, padding: '0 4px' }}
+        >
+          {lang === 'en' ? '🇵🇷' : '🇺🇸'}
+        </button>
       </div>
     </nav>
   );

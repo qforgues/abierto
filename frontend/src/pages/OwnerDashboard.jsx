@@ -37,6 +37,7 @@ export default function OwnerDashboard() {
     setMsg('');
     try {
       await api.put(`/businesses/${businessId}/status`, { status, note });
+      await load();
       setMsg('Status updated!');
       setTimeout(() => setMsg(''), 3000);
     } catch (err) {

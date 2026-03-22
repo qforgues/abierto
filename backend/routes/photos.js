@@ -71,6 +71,27 @@ router.post('/', (req, res) => {
   });
 });
 
+// PATCH /api/businesses/:id/photos/:photoId/main
+router.patch('/:photoId/main', (req, res) => {
+  authCheck(req, res, req.params.id, async () => {
+    try {
+      const photos = await db.all(
+        'SELECT id FROM business_photos WHERE business_id = ? ORDER BY sort_order ASC',
+        [req.params.id]
+      );
+      const photoId = parseInt(req.params.photoId);
+      const ordered = [photoId, ...photos.map(p => p.id).filter(id => id !== photoId)];
+      for (let i = 0; i < ordered.length; i++) {
+        await db.run('UPDATE business_photos SET sort_order = ? WHERE id = ?', [i, ordered[i]]);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error.' });
+    }
+  });
+});
+
 // DELETE /api/businesses/:id/photos/:photoId
 router.delete('/:photoId', (req, res) => {
   authCheck(req, res, req.params.id, async () => {
