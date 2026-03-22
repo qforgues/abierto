@@ -98,6 +98,16 @@ const initializeDatabase = async () => {
     UNIQUE(business_id, year, month)
   )`);
 
+  // v1.1: owner password field on businesses
+  try { await run(`ALTER TABLE businesses ADD COLUMN password_hash TEXT`); } catch (_) {}
+
+  await run(`CREATE TABLE IF NOT EXISTS guest_codes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+    code        TEXT UNIQUE NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS admin (
     id            INTEGER PRIMARY KEY DEFAULT 1,
     username      TEXT NOT NULL DEFAULT 'admin',

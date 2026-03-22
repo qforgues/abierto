@@ -3,11 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db/database');
 const { JWT_SECRET } = require('../middleware/auth');
+const { loginRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // POST /api/auth/admin/login
-router.post('/admin/login', async (req, res) => {
+router.post('/admin/login', loginRateLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required.' });
@@ -28,8 +29,8 @@ router.post('/admin/login', async (req, res) => {
 });
 
 // POST /api/auth/business/login
-router.post('/business/login', async (req, res) => {
-  const { code } = req.body;
+router.post('/business/login', loginRateLimiter, async (req, res) => {
+  const { code, password } = req.body;
   if (!code) return res.status(400).json({ error: 'Business code required.' });
   const normalizedCode = String(code).trim().toUpperCase();
 
@@ -39,6 +40,13 @@ router.post('/business/login', async (req, res) => {
       [normalizedCode]
     );
     if (!business) return res.status(401).json({ error: 'Invalid business code.' });
+
+    // If the business has a password set, require it
+    if (business.password_hash) {
+      if (!password) return res.status(401).json({ error: 'Password required.' });
+      const valid = await bcrypt.compare(password, business.password_hash);
+      if (!valid) return res.status(401).json({ error: 'Invalid business code or password.' });
+    }
 
     const token = jwt.sign(
       { role: 'owner', sub: business.id, businessId: business.id, businessName: business.name },

@@ -2,671 +2,636 @@
    THE BRIDGE — COMPLETION REPORT
 ═══════════════════════════════════════════
 
-Connection:   abierto
+Connection:   abierto-v1-1
 Project:      /Users/bigdaddy/Desktop/abierto
-Completed:    2026-03-21T22:04:21.979Z
-Total Rounds: 4
+Completed:    2026-03-22T17:59:56.307Z
+Total Rounds: 5
 Final MVP:    100%
 
 ══════════════════════════════════════
    HOW TO RUN YOUR PROJECT
 ══════════════════════════════════════
 
-cd /Users/bigdaddy/Desktop/abierto
+# Abierto v1.1 Setup and Launch Instructions
+
+Follow these step-by-step instructions to set up and run the Abierto project. Ensure you have the necessary prerequisites and follow the installation, environment setup, running, and testing sections carefully.
+
+## Prerequisites
+
+1. **Node.js**: Ensure you have Node.js (v18 or higher) installed. You can download it from [nodejs.org](https://nodejs.org/).
+2. **Docker**: Install Docker from [docker.com](https://www.docker.com/get-started).
+3. **Git**: Install Git from [git-scm.com](https://git-scm.com/).
+4. **AWS CLI** (optional for backups): Install from [aws.amazon.com/cli](https://aws.amazon.com/cli/).
+5. **A domain name**: (e.g., `abierto.com`).
+6. **Render or Railway account**: Sign up for either service.
+
+## Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd abierto
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   cd backend
+   npm install
+   cd ../frontend
+   npm install
+   ```
+
+## Environment Setup
+
+1. **Create a `.env` file**:
+   Copy the example environment file and fill in your values:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` with your preferred text editor:
+   ```bash
+   nano .env
+   ```
+   Set the following variables:
+   ```
+   NODE_ENV=production
+   JWT_SECRET=<your_jwt_secret>
+   ADMIN_PASSWORD=<your_admin_password>
+   DATABASE_URL=/app/backend/db/database.sqlite
+   API_URL=https://yourdomain.com
+   UPLOAD_URL=https://yourdomain.com/uploads
+   ```
+
+2. **Build the Docker image**:
+   From the root of the project:
+   ```bash
+   docker build -t abierto-app .
+   ```
+
+## Running the Project
+
+1. **Run the Docker container**:
+   ```bash
+   docker run -d -p 3000:3000 --env-file .env --name abierto-app abierto-app
+   ```
+
+2. **Verify the application is running**:
+   Open your browser and navigate to `http://localhost:3000`. You should see the application running.
+
+## Testing the Application
+
+1. **Check the health endpoint**:
+   Run the following command in your terminal:
+   ```bash
+   curl http://localhost:3000/api/health
+   ```
+   You should receive a response:
+   ```json
+   {"status":"ok"}
+   ```
+
+2. **Smoke test the application**:
+   - Create a test business using the web interface.
+   - Upload a photo to ensure the upload functionality works.
+   - Toggle the business status from an incognito browser to verify real-time updates.
+
+## Deployment to Render
+
+1. **Create a Dockerfile** (if not already created):
+   Ensure the `Dockerfile` is in the root of your project as provided in the project files.
+
+2. **Set up environment variables in Render**:
+   - Go to your Render dashboard.
+   - Create a new Web Service and connect it to your GitHub repository.
+   - Set the environment variables as specified in your `.env` file.
+
+3. **Deploy the application**:
+   Render will automatically build and deploy your application when you push changes to your repository.
+
+4. **Test the deployed application**:
+   After deployment, navigate to your Render URL and repeat the health check and smoke tests.
+
+## Backup Setup
+
+1. **Set up automated SQLite backups**:
+   Create a cron job to run the backup script daily:
+   ```bash
+   # In Render, create a new cron job with the following command:
+   npm run backup
+   ```
+
+2. **Test the backup script**:
+   Manually run the backup script to ensure it works:
+   ```bash
+   bash scripts/backup.sh
+   ```
+
+## Wrap with Capacitor for Android (Optional)
+
+1. **Install Capacitor**:
+   ```bash
+   cd frontend
+   npm install @capacitor/core @capacitor/cli
+   npx cap init abierto-app com.yourcompany.abierto
+   npx cap add android
+   ```
+
+2. **Update `capacitor.json`**:
+   Ensure the `capacitor.json` file is configured correctly.
+
+3. **Build the web app**:
+   ```bash
+   npm run build
+   ```
+
+4. **Copy to Android project**:
+   ```bash
+   npx cap copy android
+   ```
+
+5. **Open Android Studio**:
+   ```bash
+   npx cap open android
+   ```
+   Build and generate a signed APK.
+
+6. **Test the APK** on an emulator or device.
+
+7. **Submit to Google Play**:
+   Follow the Play Store submission process.
+
+## Conclusion
+
+You have successfully set up, run, and tested the Abierto project. Follow the deployment steps to make it live, and consider wrapping it with Capacitor for Android. Monitor user feedback and plan for future iterations.
 
 ── COST SUMMARY ──
-Codex (OpenAI):     $0.4058
-Claude (Anthropic): $0.8562
-Total:              $1.2620
+OpenAI:     $0.0998
+Anthropic: $1.4260
+Total:              $1.5259
 
 ── FILES CREATED ──
-  backend/db/database.js
-  backend/routes/status.js
-  backend/server.js
-  frontend/src/components/OwnerView.jsx
-  frontend/src/components/PublicView.jsx
-  frontend/src/styles/OwnerView.css
-  frontend/src/styles/PublicView.css
-  (7 files total)
+  .env.example
+  Dockerfile
+  backend/routes/health.js
+  backend/src/app.ts
+  backend/src/database/schema.ts
+  backend/src/index.ts
+  backend/src/middleware/abuseLogging.ts
+  backend/src/middleware/fileValidation.ts
+  backend/src/middleware/payloadSizeLimit.ts
+  backend/src/middleware/rateLimiter.ts
+  backend/src/routes/auth.ts
+  backend/src/routes/businesses.ts
+  backend/src/routes/health.ts
+  backend/src/routes/uploads.ts
+  backend/src/services/guestCodeService.ts
+  docs/CRON_SETUP.md
+  docs/RESTORE_RUNBOOK.md
+  scripts/backup.sh
+  (18 files total)
 
 ── ROUNDS ──
-Round 1: 1 files — 2026-03-21
-  └ backend/db/database.js
-Round 2: 1 files — 2026-03-21
-  └ backend/routes/status.js
-Round 3: 2 files — 2026-03-21
-  └ backend/db/database.js
-  └ backend/server.js
-Round 4: 5 files — 2026-03-21
-  └ backend/routes/status.js
-  └ frontend/src/components/OwnerView.jsx
-  └ frontend/src/components/PublicView.jsx
-  └ frontend/src/styles/OwnerView.css
-  └ frontend/src/styles/PublicView.css
+Round 1: 12 files — 2026-03-22
+  └ backend/src/middleware/abuseLogging.ts
+  └ backend/src/services/guestCodeService.ts
+  └ backend/src/middleware/fileValidation.ts
+  └ backend/src/middleware/payloadSizeLimit.ts
+  └ backend/src/middleware/rateLimiter.ts
+  └ backend/src/routes/auth.ts
+  └ backend/src/routes/businesses.ts
+  └ backend/src/routes/uploads.ts
+  └ backend/src/routes/health.ts
+  └ backend/src/app.ts
+  └ backend/src/database/schema.ts
+  └ backend/src/index.ts
+Round 2: 3 files — 2026-03-22
+  └ Dockerfile
+  └ .env.example
+  └ backend/routes/health.js
+Round 3: 2 files — 2026-03-22
+  └ scripts/backup.sh
+  └ docs/RESTORE_RUNBOOK.md
+Round 4: 2 files — 2026-03-22
+  └ scripts/backup.sh
+  └ docs/RESTORE_RUNBOOK.md
+Round 5: 3 files — 2026-03-22
+  └ scripts/backup.sh
+  └ docs/RESTORE_RUNBOOK.md
+  └ docs/CRON_SETUP.md
 
 ── COMPLETED PHASES ──
-  ✓ Setup Project Structure
-  ✓ Build Frontend
-  ✓ Implement Backend
-  ✓ Integrate Frontend and Backend
+  ✓ Phase 1: Strengthen Owner Auth & Add Rate Limiting
+  ✓ Phase 2: Deploy to Render or Railway
+  ✓ Phase 3: Backup Plan for SQLite
 
 ── REQUIREMENT ──
-Love it — this is the cleanest one of the bunch, and honestly one of the most *real-world useful* if executed right.
+# Abierto v1.1 Launch Roadmap
 
-Let’s lock it in with the same system:
+**Goal:** Ship a live, usable MVP on the web within 2–4 weeks, with a pragmatic path to Android and iOS without overengineering.
 
----
-
-# 🧠 Nano App #4 — “Open Right Now?”
-
-## FULL HANDOFF PACKAGE
+**Philosophy:** Fix real launch blockers (auth, ops risk), deploy fast, learn from users, refine after.
 
 ---
 
-# 1️⃣ Mega Planning Handoff Prompt
+## Executive Summary
 
-```markdown
-# PROJECT HANDOFF — OPEN RIGHT NOW? (NANO APP)
-## Mission
-Design and plan a nano web app called **“Open Right Now?”**
+Abierto v1.0 works. v1.1 makes it safe and deployable. The app is a React + Express monolith that's perfect for a one-host deployment. The actual work:
 
-This app allows a small business to instantly publish its current status to customers.
+1. **Strengthen business owner auth** (4–6 hours) — rate limiting, stronger codes/passwords, token expiry
+2. **Deploy to Render/Railway** (2–3 hours) — one URL, one host, no CORS headaches
+3. **Add SQLite backup immediately OR plan Postgres migration** (2–4 hours) — don't launch blind to data loss
+4. **Wrap with Capacitor for Android** (2–4 hours) — reuse the web app, publish to Play Store
 
-The purpose is extremely simple:
+**Real blockers before public launch:**
+- ✅ Owner auth rate limiting
+- ✅ Token expiry (7–30 days, not infinite)
+- ✅ A backup or migration plan for data
 
-> Let customers know if you are open, closed, or temporarily unavailable — and why.
-
-This is a **nano-app**, not a micro-app.
-It must be:
-- extremely small
-- extremely fast
-- extremely clear
-- extremely easy to use
-
-This project is part of an AI bridge test.
-The planning output must be structured, explicit, and directly usable by a builder AI.
-
-The final implementation target is a **mobile-first web app**.
+**Nice-to-haves that can wait:**
+- Refresh token system (adds complexity, not critical for MVP)
+- Postgres migration (SQLite is fine if you back it up)
+- Email 2FA (useful, but stronger password/code is enough to start)
+- Analytics, error tracking, monitoring (important after first users)
 
 ---
 
-## Core Product Vision
+## Phase 1: Strengthen Owner Auth & Add Rate Limiting
 
-This app replaces:
-- “Check Instagram to see if they’re open”
-- “Call and hope they answer”
-- “Drive there and find out they’re closed”
+**Why:** The biggest public-launch risk. A leaked 6-char code gives anyone full control of a business.
 
-With:
+**What to do:**
 
-> One simple page that always answers the question immediately.
+### 1A. Increase code strength and make owner auth actually strong
+- **Business code generation** (in `backend/routes/businesses.js`): Keep 6 chars, but add alphanumeric (not just digits). Or go to 8 chars.
+- **Owner password:** Add a *required* password field for business setup. This becomes the real owner credential, separate from the ephemeral guest code.
+- **Guest code lifespan:** Optional — set a max age (e.g., 30 days) or require explicit refresh by the owner.
 
----
+### 1B. Add rate limiting to login attempts
+- Install `express-rate-limit`:
+  ```bash
+  npm install express-rate-limit
+  ```
+- Apply to `POST /api/auth/login` in `backend/routes/auth.js`:
+  ```javascript
+  const rateLimit = require('express-rate-limit');
 
-## Product Behavior (Extremely Important)
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,                     // max 5 failed attempts
+    message: 'Too many login attempts, try again in 15 minutes',
+    keyGenerator: (req) => req.ip || req.connection.remoteAddress
+  });
 
-There is only **ONE active state at a time**.
+  router.post('/login', loginLimiter, (req, res) => {
+    // existing auth logic
+  });
+  ```
 
-This is not a list app.
-This is not a feed.
-This is not a dashboard.
+### 1C. Set sensible token expiry
+- In `backend/middleware/auth.js`, ensure JWT tokens expire:
+  ```javascript
+  const token = jwt.sign(
+    { businessId, role: 'owner' },
+    process.env.JWT_SECRET,
+    { expiresIn: '30d' } // or '7d' for stricter security
+  );
+  ```
+- Let expired tokens trigger a re-login (don't silently refresh; make it obvious to the user).
 
-This is a **single live status**.
+### 1D. Optional: Add email verification for new business setup
+- If you want extra assurance, require the owner to verify their email before the business goes live.
+- For MVP, skip this — stronger password + rate limiting is enough.
 
----
+**Success criteria:**
+- Owner password is required and hashed (bcrypt, not plaintext)
+- Rate limiting blocks brute force attempts
+- Tokens expire and require re-login
+- Guest codes are still short-lived or owner-refreshable
 
-## Required Status Options
-
-The app must support the following states:
-
-- Open
-- Closed
-- Opening Late
-- Back Soon
-- Sold Out
-
-The planning must define:
-- how these are stored
-- how they are displayed
-- how they map to visual styles (color or icon)
-
----
-
-## Required Data Model
-
-The system must revolve around a **single current status record**.
-
-Fields must include:
-
-- business_name
-- status
-- note (optional)
-- last_updated_timestamp
-
-Optional:
-- last_updated_by (if useful but not required)
-
----
-
-## Required MVP Capabilities
-
-### 1. Owner Update View
-A user can:
-- select a status (tap-based, not dropdown if possible)
-- enter a short optional note
-- save/update instantly
-
-The update process must take under 10 seconds.
+**Estimated effort:** 4–6 hours (including testing)
 
 ---
 
-### 2. Public View
-A user visiting the page sees:
+## Phase 2: Deploy to Render or Railway
 
-- business name
-- current status (very prominent)
-- optional note
-- “last updated X minutes ago”
+**Why:** Get live fast, no infrastructure overhead, one moving part.
 
-It must be readable in under 2 seconds.
+**Choose one:**
 
----
+### Option A: Render.com (recommended for you)
+- Free tier supports Node.js + PostgreSQL
+- Built-in GitHub integration (auto-deploy on push)
+- Persistent disk available (good for SQLite backups)
+- Clear env var management
 
-### 3. Persistence
-The latest status must persist across:
-- refresh
-- server restart
+### Option B: Railway.app
+- Similar feature set
+- Slightly cheaper at scale
+- Good CLI for local testing
 
----
+**Deployment steps (Render.com example):**
 
-### 4. Mobile-First UX
-This app must feel effortless on a phone:
-- big buttons
-- minimal typing
-- strong contrast
-- no clutter
+1. **Create a Dockerfile** (in repo root):
+   ```dockerfile
+   FROM node:18-alpine
+   WORKDIR /app
+   COPY package*.json ./
+   RUN npm ci --only=production
+   COPY . .
+   RUN npm run build
+   EXPOSE 3000
+   CMD ["node", "backend/server.js"]
+   ```
 
----
+2. **Set up env vars in Render dashboard:**
+   ```
+   NODE_ENV=production
+   JWT_SECRET=<your-secret-key>
+   ADMIN_PASSWORD=<your-setup-password>
+   DATABASE_URL=./db/database.sqlite (or path on persistent disk)
+   API_URL=https://yourdomain.com
+   UPLOAD_URL=https://yourdomain.com/uploads
+   ```
 
-## Explicit Non-Goals
-Do NOT include:
+3. **Connect your GitHub repo** and deploy. Render auto-rebuilds on push.
 
-- multiple businesses
-- user accounts (unless extremely lightweight)
-- scheduling system
-- analytics
-- notifications
-- chat
-- history logs (optional but not required)
-- anything that turns this into a “system”
+4. **Test the health endpoint:**
+   ```bash
+   curl https://yourdomain.com/api/health
+   # Should return {"status":"ok"}
+   ```
 
-This is a **single-state publisher**.
+5. **Smoke test:**
+   - Create a test business
+   - Upload a photo
+   - Toggle status from incognito browser
 
----
+**Success criteria:**
+- Web app is live at a public URL
+- All API endpoints respond
+- Images upload and display correctly
+- Health check passes
 
-## Information Architecture
-
-The app should have only two primary views:
-
-1. Public View (default)
-2. Owner Edit View
-
-Optional:
-- a hidden route or toggle to switch between them
-
----
-
-## UX Direction
-
-The app should feel like:
-
-- a sign on a door
-- but digital
-- and always up to date
-
-Status should be:
-- large
-- obvious
-- color-coded
-
-Examples:
-- Green = Open
-- Red = Closed
-- Yellow = Opening Late / Back Soon
-- Orange = Sold Out
+**Estimated effort:** 2–3 hours (includes testing and fixing any env var issues)
 
 ---
 
-## Edge Cases
+## Phase 3: Backup Plan for SQLite (Do This Immediately)
 
-Plan for:
+**Why:** If your host loses the disk (rare but possible), you lose all business data. Unacceptable for any public launch.
 
-- no status set yet
-- empty note
-- long note input
-- rapid updates
-- refresh mid-update
-- weird characters in note
-- user never updating again (stale timestamp)
+**Choose one approach:**
 
----
+### Option A: Automated SQLite backups (faster, good for MVP)
+- Set up a cron job (or Render cron) to dump the database nightly to Supabase Storage or S3
+- Example cron job in `scripts/backup.sh`:
+  ```bash
+  #!/bin/bash
+  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+  cp ./backend/db/database.sqlite ./db_backup_${TIMESTAMP}.sqlite
+  # Upload to S3 or Supabase Storage
+  aws s3 cp ./db_backup_${TIMESTAMP}.sqlite s3://your-bucket/
+  ```
+- Add to `package.json`:
+  ```json
+  "scripts": {
+    "backup": "bash scripts/backup.sh"
+  }
+  ```
+- In Render, set up a cron job (Render Cron Job service) to run `npm run backup` daily
 
-## Special Instruction: Design Around Human Validation
+### Option B: Migrate to Supabase Postgres (better long-term, more work upfront)
+- Use `better-sqlite3` or `pg` to query Supabase Postgres instead of SQLite
+- Schema migration (doable but real work; 4–6 hours)
+- Benefit: scales without rewriting, Supabase handles backups for you
+- **Decision point:** Do this if you have Supabase ready and want to avoid future migration pain
 
-The final build will be tested with the following scenarios:
+**For now, recommend Option A** (backup to S3/Supabase Storage). It's fast, keeps your current codebase unchanged, and buys you time to learn if SQLite is a real bottleneck.
 
-### Validation 1 — Empty State
-App opens with no status set.
+**Success criteria:**
+- Database backups exist and are testable (at least one manual backup restore)
+- Automated backup job runs daily
+- You can restore from a backup in <30 min if needed
 
-Expected:
-- clear message
-- not broken
-- prompts first update
-
----
-
-### Validation 2 — Set Open
-User sets:
-- status: Open
-- note: “Fresh smoothies until 4”
-
-Expected:
-- public view updates immediately
-- timestamp updates
-- no confusion
-
----
-
-### Validation 3 — Change State
-User changes to:
-- Back Soon
-- note: “Back at 2:15”
-
-Expected:
-- previous state replaced cleanly
-- new state obvious
+**Estimated effort:**
+- Option A: 2–4 hours
+- Option B: 6–8 hours (defer to Phase 4 or after first users)
 
 ---
 
-### Validation 4 — No Note
-User sets:
-- Sold Out
-- no note
+## Phase 4: Wrap with Capacitor for Android (Week 3–4)
 
-Expected:
-- still looks clean
-- no empty broken UI
+**Why:** Reuse 90% of your web code, get an APK in 1–2 days, publish to Play Store with minimal extra work.
+
+**Steps:**
+
+1. **Install Capacitor:**
+   ```bash
+   npm install @capacitor/core @capacitor/cli
+   npx cap init abierto-app com.yourcompany.abierto
+   npx cap add android
+   ```
+
+2. **Update `capacitor.json`:**
+   ```json
+   {
+     "appId": "com.yourcompany.abierto",
+     "appName": "Abierto",
+     "webDir": "frontend/build",
+     "server": {
+       "url": "https://yourdomain.com",
+       "cleartext": false
+     }
+   }
+   ```
+
+3. **Build the web app:**
+   ```bash
+   npm run build
+   ```
+
+4. **Copy to Android project:**
+   ```bash
+   npx cap copy android
+   ```
+
+5. **Open Android Studio and build:**
+   ```bash
+   npx cap open android
+   ```
+   - In Android Studio: Build → Generate Signed Bundle/APK
+   - Create a signing key (one-time, keep it safe)
+   - Generate signed APK
+
+6. **Test on emulator or device:**
+   - Install the APK and verify:
+     - Offline detection works (Capacitor handles network state)
+     - Camera/photo upload works (if you use native camera, add the plugin)
+     - Business status toggle works
+
+7. **Submit to Google Play:**
+   - Create a Google Play Developer account ($25 one-time)
+   - Create a new app listing
+   - Upload the signed APK
+   - Fill in metadata (description, screenshots, privacy policy)
+   - Submit for review (24–48 hours typically)
+
+**For Apple later:**
+- Same Capacitor setup, different build artifact
+- Requires macOS to build (or hire someone)
+- App Store review is stricter; expect 1–3 feedback rounds
+- Can defer this 2–4 weeks while you validate with Android users
+
+**Success criteria:**
+- App installs and launches on Android emulator/device
+- All core features work (business lookup, photo upload, status toggle)
+- APK signed and ready for Play Store
+- Play Store listing is complete
+
+**Estimated effort:** 2–4 hours to build and test; 1 hour to submit.
 
 ---
 
-### Validation 5 — Persistence
-Refresh and restart app.
+## Timeline & Dependencies
 
-Expected:
-- last state remains
+```
+Week 1:
+  Mon–Wed: Phase 1 (auth hardening)           → 4–6 hours
+  Thu–Fri: Phase 2 (Render/Railway deploy)    → 2–3 hours
+          Phase 3a (SQLite backups)           → 2–4 hours
+          Testing & smoke test                 → 2 hours
+          [LAUNCH: v1.1 web live]
 
----
+Week 2–3:
+  Mon–Wed: Phase 4 (Capacitor + Android)      → 2–4 hours
+  Thu–Fri: Google Play submission
+          [LAUNCH: v1.1 Android live]
 
-### Validation 6 — Mobile View
-Open in phone size.
-
-Expected:
-- extremely readable
-- no clutter
-- fast interaction
-
----
-
-## Technical Stack Recommendation
-
-Recommend a minimal stack such as:
-
-- React + Vite (frontend)
-- Node + Express (backend)
-- SQLite (persistence)
-
-Or equivalent minimal setup.
-
-Do not over-engineer.
-
----
-
-## Deliverables Required
-
-Your planning output must include:
-
-- Product summary
-- MVP scope
-- User stories
-- Information architecture
-- Data model
-- Status logic
-- UX notes
-- Technical stack recommendation
-- File/folder structure
-- Test plan
-- Acceptance criteria
-- Future ideas
-
----
-
-## Final Instruction
-
-This must be designed as a **tiny, complete, usable product**.
-
-If your plan starts to resemble a platform, you are doing it wrong.
-
-Keep it sharp, minimal, and real.
+Week 4+:
+  iOS (same Capacitor, requires macOS)
+  Monitor, gather user feedback, plan v1.2
 ```
 
 ---
 
-# 2️⃣ Builder Handoff Prompt
+## Risk Register
 
-```markdown
-# BUILD HANDOFF — OPEN RIGHT NOW? (NANO APP)
-
-## Role
-You are building a working nano web app.
-
-Your job is to deliver a **fully working, local MVP** that a human can run and test in minutes.
-
-This is a **single-state app**.
-Do not expand scope.
+| Risk | Severity | Mitigation |
+|------|----------|-----------|
+| Auth still too weak | **HIGH** | Rate limiting + stronger password + token expiry (Phase 1) |
+| Data loss (SQLite disk) | **HIGH** | Automated backups (Phase 3a) or Postgres migration (Phase 3b) |
+| Deployment complexity | **MEDIUM** | Use Render/Railway, not custom infra; one host, known setup |
+| Android build breaks | **MEDIUM** | Test APK on emulator before Play Store submission |
+| Play Store rejection | **LOW** | Check Play Store policies early; most rejections are fixable in <24h |
 
 ---
 
-## Core Requirement
+## Success Criteria for v1.1 Launch
 
-There is only ONE active status at a time.
+**MVP is live when:**
+- ✅ Web app is public at `yourdomain.com` and stable
+- ✅ Any user can create a business (with owner password)
+- ✅ Owner can upload photos and toggle status in real-time
+- ✅ Guest access works (short code, read-only)
+- ✅ Database is backed up nightly
+- ✅ Rate limiting blocks brute force attempts
+- ✅ Tokens expire after 7–30 days
+- ✅ Health check endpoint responds (`/api/health`)
 
-You are not building a list.
-You are not building history.
-You are not building accounts.
-
-You are building a **live status page**.
-
----
-
-## Required Features
-
-### 1. Public View
-Displays:
-- business name
-- current status (large)
-- optional note
-- “last updated X minutes ago”
+**Optional but nice-to-have for first week after launch:**
+- Basic uptime monitoring (UptimeRobot, free tier)
+- Error tracking (Sentry, free tier)
+- Analytics (Plausible, Fathom, or GA)
 
 ---
 
-### 2. Owner View
-Allows:
-- selecting status (buttons preferred)
-- entering optional note
-- saving instantly
+## What's NOT in v1.1 (Defer These)
+
+- Refresh token system (too complex for MVP; expiry + re-login is fine)
+- Email 2FA (nice-to-have; stronger password is enough)
+- Postgres migration (keep SQLite, just back it up)
+- Dark mode, internationalization, PWA offline mode
+- Admin dashboard (you can manage businesses via backend/DB directly)
+- Payment/subscription (validate demand first)
 
 ---
 
-### 3. Status Options
+## Questions Before You Start
 
-- Open
-- Closed
-- Opening Late
-- Back Soon
-- Sold Out
-
----
-
-### 4. Persistence
-Use SQLite or equivalent.
-
-State must survive restart.
+1. **Do you have a domain ready?** (e.g., `abierto.com`, `mybusiness-status.app`)
+2. **Render or Railway?** (Either works; Render is slightly more polished)
+3. **AWS account for backups?** (Or use Supabase Storage if you already have it)
+4. **Apple developer account?** (Not needed for v1.1, but needed for iOS later; $99/year)
 
 ---
 
-### 5. Mobile First
-- big buttons
-- simple layout
-- no clutter
-
----
-
-## Data Model
-
-Single record:
-
-- id (fixed or singleton)
-- business_name
-- status
-- note
-- updated_at
-
----
-
-## Deliverables
-
-### A. Working Code
-### B. README
-### C. HUMAN MVP TEST SCRIPT
-### D. Build Report
-
----
-
-## HUMAN VALIDATION TESTS
-
-### Test 1 — Empty
-Expected:
-- clean “no status yet”
-
----
-
-### Test 2 — Set Open
-Set:
-Open + “Fresh smoothies until 4”
-
-Expected:
-- public page updates
-- timestamp updates
-
----
-
-### Test 3 — Change State
-Set:
-Back Soon + “Back at 2:15”
-
-Expected:
-- replaces previous state cleanly
-
----
-
-### Test 4 — No Note
-Set:
-Sold Out
-
-Expected:
-- still clean UI
-
----
-
-### Test 5 — Restart
-Expected:
-- state persists
-
----
-
-### Test 6 — Mobile
-Expected:
-- readable instantly
-
----
-
-## Final Standard
-
-If the user cannot understand the status in 2 seconds, it fails.
-
-If the update flow takes longer than 10 seconds, it fails.
-
-Keep it tiny.
-Keep it real.
-```
-
----
-
-# 3️⃣ Your “Out of the Oven” Test (Plain English)
-
-When it comes back, here’s how you judge it:
-
-## Step 1 — Load it fresh
-
-You should NOT see:
-
-* broken UI
-* empty weird layout
-
-You SHOULD see:
-
-* a clear “no status yet” message
-
----
-
-## Step 2 — Set Open
-
-Add:
-**Open**
-“Fresh smoothies until 4”
-
-Check:
-
-* page updates instantly
-* timestamp shows
-* looks clean
-
----
-
-## Step 3 — Flip it fast
-
-Change to:
-**Back Soon**
-“Back at 2:15”
-
-Check:
-
-* no lag
-* no leftover state
-* clearly replaced
-
----
-
-## Step 4 — Remove the note
-
-Set:
-**Sold Out**
-
-Check:
-
-* still looks intentional
-* not empty/broken
-
----
-
-## Step 5 — Restart everything
-
-Kill server → restart
-
-Check:
-
-* state still there
-
----
-
-## Step 6 — Phone view
-
-Shrink browser
-
-Check:
-
-* readable in 1–2 seconds
-* no clutter
-* feels like a sign, not an app
-
----
-
-# 🧠 Final Take
-
-This one is deceptively powerful.
-
-If your bridge nails this:
-
-* it can **stay small**
-* it can **ship complete things**
-* it can **avoid overbuilding**
-
-That’s actually harder than building big systems.
+## Next Immediate Actions
+
+1. **Review auth code** in `backend/routes/auth.js` and `backend/middleware/auth.js` — identify exactly what needs to change
+2. **Choose Render vs. Railway** and sign up
+3. **Generate a JWT_SECRET and ADMIN_PASSWORD** for production
+4. **Test the current build locally:**
+   ```bash
+   npm run build && NODE_ENV=production node backend/server.js
+   ```
+5. **Pick a domain** (can use Render's free subdomain for testing)
 
 ── BLUEPRINT (summarized) ──
-# Project Blueprint for "Open Right Now?" Nano App
+# Abierto v1.1 Revised Project Blueprint
 
 ## Overview
-The **"Open Right Now?"** nano app is a simple web application designed to provide real-time status updates for small businesses. The main goal is to allow businesses to communicate their current operational status to customers in a clear and efficient manner. The app will support five statuses: Open, Closed, Opening Late, Back Soon, and Sold Out. It will feature a mobile-first design to ensure ease of use on smartphones.
+Abierto v1.1 is an enhancement of the existing Abierto v1.0 application, designed to strengthen security, enable quick deployment, and prepare for future mobile app development. The application is a monolithic web app built with React for the frontend and Express for the backend. The primary goals for this version are to improve owner authentication, deploy the application to a cloud service, ensure data backup, and prepare for Android deployment using Capacitor. This version addresses critical security and data safety concerns raised in the previous blueprint while avoiding scope creep.
 
 ## Technical Architecture
-The app will be built using the following technology stack:
-- **Frontend**: React with Vite for fast development and a responsive user interface.
-- **Backend**: Node.js with Express for handling API requests.
-- **Database**: SQLite for lightweight data persistence.
+- **Frontend:** React.js
+- **Backend:** Express.js
+- **Database:** SQLite (with a backup plan for Postgres)
+- **Deployment:** Render.com or Railway.app
+- **Mobile Framework:** Capacitor for Android
+- **Authentication:** JSON Web Tokens (JWT) stored in httpOnly cookies
+- **Backup:** Automated SQLite backups to AWS S3 or Supabase Storage
 
-### Architecture Diagram
+### Diagram
 ```
-+----------------+       +----------------+       +----------------+
-|   User Device   | <--> |     Frontend   | <--> |     Backend    |
-| (Browser/Mobile)|       | (React + Vite) |       | (Node + Express)|
-+----------------+       +----------------+       +----------------+
-                                 |
-                                 |
-                             +----------------+
-                             |    SQLite DB   |
-                             +----------------+
++-------------------+       +-------------------+
+|    React Frontend | <--> |    Express Backend |
+|                   |       |                   |
++-------------------+       +-------------------+
+         |                          |
+         |                          |
+         v                          v
+ +-------------------+       +-------------------+
+ |      SQLite DB    |       |  AWS S3 / Supabase|
+ |                   |       |      Storage      |
+ +-------------------+       +-------------------+
 ```
 
 ## MVP Scope
-The Minimum Viable Product (MVP) will include the following features:
-1. **Owner Update View**: A simple interface for business owners to select their current status and enter an optional note.
-2. **Public View**: A display for customers showing the business name, current status, optional note, and last updated timestamp.
-3. **Persistence**: The latest status must persist across page refreshes and server restarts.
-4. **Mobile-First UX**: The app must be optimized for mobile devices with large buttons and a clean layout.
+The Minimum Viable Product (MVP) for Abierto v1.1 includes:
+- Strengthened owner authentication with password requirements, rate limiting, and secure token expiry.
+- Deployment to a cloud service (Render or Railway) for public access.
+- Automated nightly backups of the SQLite database with verification and retention policies.
+- Backup and recovery procedures for uploaded photos.
+- Basic functionality for users to create businesses and upload photos.
+- A health check endpoint to verify the application status.
+- Abuse protection mechanisms to prevent spam and excessive resource usage, including:
+  - Guest codes that expire automatically after 7 days from creation, with a `created_at` timestamp for validation.
+  - Throttling business creation to 1 business per IP per hour.
+  - Limiting uploads to 10 MB per file and a maximum of 5 files per business per 24-hour rolling window.
+  - Validating file types (JPEG, PNG) and request payload sizes (10 MB).
+  - Logging all rejections to `backend/logs/abuse.log` for monitoring, with log rotation implemented.
 
-### Data Model
-The data model for the application will consist of a single record with the following schema:
-```sql
-CREATE TABLE status_record (
-  id INTEGER PRIMARY KEY DEFAULT 1, -- Singleton pattern
-  business_name TEXT DEFAULT 'My Business',
-  status TEXT CHECK(status IN ('Open', 'Closed', 'Opening Late', 'Back Soon', 'Sold Out', NULL)),
-  note TEXT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-- **id**: Fixed as 1 for singleton.
-- **business_name**: Default value is "My Business".
-- **status**: ENUM with possible values as specified.
-- **note**: Optional text field for additional information.
-- **updated_at**: Timestamp of the last update.
+- A password reset procedure will be deferred to v1.2; owners who forget their passwords can use a CLI tool for assistance.
 
 ## Implementation Phases
-The implementation will be divided into the following phases:
-### Phase 1: Setup Project Structure
-- Initialize the project with Vite for the frontend.
-- Set up Node.js and Express for the backend.
-- Configure SQLite for data persistence.
 
-### Phase 2: Build Frontend
-- Create the Owner Update View with buttons for status selection and a text input for notes.
-- Build the Public View to display the current status and last updated timestamp.
-
-### Phase 3:
+### Phase 1: Strengthen Owner Auth & Add Rate Limiting
+- **Tasks:**
+  - **Owner Login Flow Decision:** Owners will log in using `business_code + password` (Option A). This avoids schema changes and is simpler for MVP.
+  
 ... (truncated)
 
 ═══════════════════════════════════════════
   Build orchestrated by The Bridge
-  Codex (OpenAI) + Claude (Anthropic)
+  OpenAI + Anthropic
 ═══════════════════════════════════════════

@@ -5,6 +5,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const db = require('../db/database');
 const { JWT_SECRET } = require('../middleware/auth');
+const { fileUploadRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router({ mergeParams: true });
 
@@ -21,10 +22,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Only JPEG, PNG, and WebP images allowed.'));
+    if (['image/jpeg', 'image/png'].includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Invalid file type. Only JPEG and PNG images allowed.'));
   },
 });
 
@@ -43,7 +44,7 @@ function authCheck(req, res, businessId, next) {
 }
 
 // POST /api/businesses/:id/photos
-router.post('/', (req, res) => {
+router.post('/', fileUploadRateLimiter, (req, res) => {
   authCheck(req, res, req.params.id, async () => {
     const count = await db.get(
       'SELECT COUNT(*) as c FROM business_photos WHERE business_id = ?',

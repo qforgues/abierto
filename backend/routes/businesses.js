@@ -1,6 +1,8 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../db/database');
 const { requireAdmin } = require('../middleware/auth');
+const { businessCreationRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -171,17 +173,20 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/businesses/register — public registration
-router.post('/register', async (req, res) => {
-  const { name, description, category, lat, lon } = req.body;
+router.post('/register', businessCreationRateLimiter, async (req, res) => {
+  const { name, description, category, lat, lon, password } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required.' });
+  if (!password) return res.status(400).json({ error: 'Password required.' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
 
   try {
     const code = await makeUniqueCode();
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const result = await db.run(
-      `INSERT INTO businesses (name, description, category, lat, lon, code)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, description || null, category || null, lat || null, lon || null, code]
+      `INSERT INTO businesses (name, description, category, lat, lon, code, password_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, description || null, category || null, lat || null, lon || null, code, passwordHash]
     );
 
     const businessId = result.lastID;
