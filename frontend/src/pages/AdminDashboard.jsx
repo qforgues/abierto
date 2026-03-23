@@ -688,17 +688,28 @@ export default function AdminDashboard() {
                 </div>
                 {notifications.length === 0 && <p className="text-muted text-center mt-4">No notifications yet.</p>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {notifications.map(n => (
-                    <div key={n.id} className="card card-body" style={{
-                      borderLeft: `4px solid ${n.is_read ? 'var(--border)' : 'var(--turquoise)'}`,
-                      background: n.is_read ? 'var(--white)' : '#f0fbff',
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <p style={{ fontWeight: n.is_read ? 400 : 600 }}>{n.message}</p>
+                  {notifications.map(n => {
+                    const inner = (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <p style={{ fontWeight: n.is_read ? 400 : 600, margin: 0 }}>{n.message}</p>
                         <span className="text-sm text-muted" style={{ flexShrink: 0, marginLeft: 12 }}>{timeAgo(n.created_at)}</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                    const cardStyle = {
+                      borderLeft: `4px solid ${n.is_read ? 'var(--border)' : 'var(--turquoise)'}`,
+                      background: n.is_read ? 'var(--white)' : '#f0fbff',
+                    };
+                    return n.business_id ? (
+                      <a key={n.id} href={`/business/${n.business_id}`} target="_blank" rel="noreferrer"
+                        className="card card-body"
+                        style={{ ...cardStyle, textDecoration: 'none', color: 'inherit', display: 'block', cursor: 'pointer' }}
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div key={n.id} className="card card-body" style={cardStyle}>{inner}</div>
+                    );
+                  })}
                 </div>
               </>
             )}
