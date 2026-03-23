@@ -2,23 +2,35 @@ const express = require('express');
 const router = express.Router();
 
 /**
- * Health check endpoint
- * Returns the application status and current timestamp
- * Used for monitoring and deployment verification
+ * Health Check Endpoint
+ * GET /api/health
+ * 
+ * Returns the operational status of the server.
+ * This endpoint is accessible without authentication and is used for
+ * monitoring and health checks by external services.
+ * 
+ * @returns {Object} JSON object with status field
+ * @returns {string} status - Server status indicator ("OK" when healthy)
+ * @example
+ * GET /api/health
+ * Response: { "status": "OK" }
  */
-router.get('/', (req, res) => {
+router.get('/health', (req, res) => {
   try {
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    });
+    res.status(200).json({ status: 'OK' });
   } catch (error) {
-    // Log the error for debugging purposes
-    console.error('Health check endpoint error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error'
-    });
+    console.error('Health check error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+/**
+ * Error handling middleware for health routes
+ * Catches any unexpected errors and returns a 500 status code
+ */
+router.use((err, req, res, next) => {
+  console.error('Health route error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 module.exports = router;
