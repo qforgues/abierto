@@ -104,8 +104,8 @@ const translations = {
     register: {
       title: 'Add Your Business',
       subtitle: "Get listed on Abierto and let Vieques know when you're open.",
-      accuracyTitle: 'Keep your info accurate.',
-      accuracyBody: "The whole point of Abierto is so people know where you are and — most importantly — when you're open. Visitors and neighbors depend on this. If you're marked open when you're not, customers will notice and report it. Keep your hours current and everyone wins.",
+      accuracyTitle: 'Accuracy is everything.',
+      accuracyBody: "Abierto exists so visitors and neighbors know exactly when you're open — not just that you exist. False hours hurt your customers and your reputation. If your status is wrong, people will report it. Update when things change and this works for everyone.",
       sectionInfo: 'Business Info',
       labelName: 'Business Name',
       placeholderName: 'e.g. Playa Snacks',
@@ -247,8 +247,8 @@ const translations = {
     register: {
       title: 'Añade tu Negocio',
       subtitle: 'Regístrate en Abierto y dile a Vieques cuándo estás abierto.',
-      accuracyTitle: 'Mantén tu información exacta.',
-      accuracyBody: 'El propósito de Abierto es que la gente sepa dónde estás y — lo más importante — cuándo estás abierto. Visitantes y vecinos dependen de esto. Si apareces como abierto cuando no lo estás, los clientes lo reportarán. Mantén tu horario actualizado y todos ganan.',
+      accuracyTitle: 'La exactitud lo es todo.',
+      accuracyBody: 'Abierto existe para que visitantes y vecinos sepan exactamente cuándo estás abierto — no solo que existes. Un horario falso perjudica a tus clientes y a tu reputación. Si tu estado está incorrecto, la gente lo reportará. Actualiza cuando algo cambie y esto funciona para todos.',
       sectionInfo: 'Info del Negocio',
       labelName: 'Nombre del Negocio',
       placeholderName: 'ej. Playa Snacks',
