@@ -265,7 +265,7 @@ app.post('/api/logout', (req, res) => {
 });
 
 // Serve static files from the frontend build
-const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
+const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendBuildPath));
 
 // Fallback to index.html for client-side routing
