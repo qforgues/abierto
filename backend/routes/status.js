@@ -4,7 +4,7 @@ const { requireBusinessAccess } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
-const VALID_STATUSES = ['Open', 'Closed', 'Out to Lunch', 'Closed for the Season', 'Open 24 Hours'];
+const VALID_STATUSES = ['Open', 'Closed', 'Out to Lunch', 'Closed for the Season'];
 
 // GET /api/businesses/:id/status
 router.get('/', async (req, res) => {

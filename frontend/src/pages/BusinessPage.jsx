@@ -110,7 +110,7 @@ export default function BusinessPage() {
           )}
         </div>
 
-        {hours.length > 0 && status !== 'Open 24 Hours' && (
+        {hours.length > 0 && (
           <div className="card card-body mt-4">
             <h2 style={{ marginBottom: 14 }}>{bp.hoursTitle}</h2>
             <HoursDisplay hours={hours} />

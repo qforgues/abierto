@@ -20,9 +20,6 @@ function getViequesNow() {
 function computeStatus(stored, returnTime, todayHours, timeStr) {
   // Permanent overrides — stay until owner changes them
   if (stored === 'Closed for the Season') return stored;
-  // Open 24 Hours only overrides when no hours schedule is configured;
-  // if hours exist, let the schedule take over
-  if (stored === 'Open 24 Hours' && !todayHours) return stored;
 
   // Out to Lunch auto-expires when return_time passes
   if (stored === 'Out to Lunch') {

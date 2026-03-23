@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLang } from '../context/LangContext';
 
-const MANUAL_OPTIONS   = ['Open', 'Open 24 Hours', 'Closed'];
+const MANUAL_OPTIONS   = ['Open', 'Closed'];
 const OVERRIDE_OPTIONS = ['Out to Lunch', 'Closed for the Season'];
 
 // Format "14:30" → "2:30 PM"

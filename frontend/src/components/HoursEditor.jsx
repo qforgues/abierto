@@ -13,7 +13,6 @@ function blankWeek() {
   }));
 }
 
-const IS_24H = (open, close) => open === '00:00' && close === '23:59';
 
 function mergeWithSaved(saved) {
   const week = blankWeek();
@@ -162,66 +161,44 @@ export default function HoursEditor({ businessId, onSaved }) {
               {/* Status label or time pickers */}
               {isOpen ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
-                  {/* 24h toggle */}
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 600, color: 'var(--mid)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
-                      type="checkbox"
-                      checked={IS_24H(day.open_time, day.close_time)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          update(i, 'open_time', '00:00');
-                          update(i, 'close_time', '23:59');
-                        } else {
-                          update(i, 'open_time', '09:00');
-                          update(i, 'close_time', '21:00');
-                        }
+                      type="time"
+                      value={day.open_time}
+                      onChange={e => update(i, 'open_time', e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '0.9rem',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: 8,
+                        background: 'white',
+                        color: 'var(--dark)',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                        width: 118,
                       }}
-                      style={{ accentColor: 'var(--ocean)', width: 14, height: 14 }}
                     />
-                    24 hrs
-                  </label>
-                  {!IS_24H(day.open_time, day.close_time) && (
-                    <>
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <input
-                          type="time"
-                          value={day.open_time}
-                          onChange={e => update(i, 'open_time', e.target.value)}
-                          style={{
-                            padding: '6px 10px',
-                            fontSize: '0.9rem',
-                            border: '1.5px solid var(--border)',
-                            borderRadius: 8,
-                            background: 'white',
-                            color: 'var(--dark)',
-                            fontFamily: 'inherit',
-                            outline: 'none',
-                            width: 118,
-                          }}
-                        />
-                      </div>
-                      <span style={{ color: 'var(--mid)', fontSize: '0.8rem', fontWeight: 600 }}>→</span>
-                      <input
-                        type="time"
-                        value={day.close_time}
-                        onChange={e => update(i, 'close_time', e.target.value)}
-                        style={{
-                          padding: '6px 10px',
-                          fontSize: '0.9rem',
-                          border: '1.5px solid var(--border)',
-                          borderRadius: 8,
-                          background: 'white',
-                          color: 'var(--dark)',
-                          fontFamily: 'inherit',
-                          outline: 'none',
-                          width: 118,
-                        }}
-                      />
-                      <span style={{ color: 'var(--mid)', fontSize: '0.78rem', marginLeft: 2 }}>
-                        {fmt12(day.open_time)} – {fmt12(day.close_time)}
-                      </span>
-                    </>
-                  )}
+                  </div>
+                  <span style={{ color: 'var(--mid)', fontSize: '0.8rem', fontWeight: 600 }}>→</span>
+                  <input
+                    type="time"
+                    value={day.close_time}
+                    onChange={e => update(i, 'close_time', e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '0.9rem',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'white',
+                      color: 'var(--dark)',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                      width: 118,
+                    }}
+                  />
+                  <span style={{ color: 'var(--mid)', fontSize: '0.78rem', marginLeft: 2 }}>
+                    {fmt12(day.open_time)} – {fmt12(day.close_time)}
+                  </span>
                 </div>
               ) : (
                 <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--mid)', fontWeight: 500 }}>

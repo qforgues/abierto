@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 52vh;
-  background: linear-gradient(160deg, #ccfbf1 0%, #99f6e4 50%, #5eead4 100%);
+  background: #99f6e4;
 }
 
 .home-logo-panel {
