@@ -24,6 +24,11 @@ app.use(cookieParser());
 // ── Uploaded files ────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ── Ping (no DB) ─────────────────────────────────────────────────────────────
+app.get('/api/ping', (req, res) => {
+  res.json({ ok: true, ts: Date.now(), node: process.version, env: process.env.NODE_ENV });
+});
+
 // ── Debug endpoint ───────────────────────────────────────────────────────────
 app.get('/api/debug', async (req, res) => {
   const info = {
@@ -170,8 +175,11 @@ async function initAndStart() {
 }
 
 initAndStart().catch(err => {
-  console.error('Failed to start:', err);
-  process.exit(1);
+  console.error('Failed to init DB (server still starting):', err);
+  // Don't exit — let the server start so /api/debug can report the error
+  app.listen(PORT, () => {
+    console.log(`Abierto backend running on port ${PORT} (DB INIT FAILED: ${err.message})`);
+  });
 });
 
 module.exports = app;
