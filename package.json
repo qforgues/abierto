@@ -3,6 +3,6 @@
   "version": "1.1.0",
   "scripts": {
     "build": "npm install --prefix backend && npm install --include=dev --prefix frontend && npm --prefix frontend run build",
-    "start": "node backend/server.js"
+    "start": "node backend/app.js"
   }
 }
