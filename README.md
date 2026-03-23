@@ -1,32 +1,23 @@
-# Abierto v1.4 - Web App with Android TWA Deployment
+# Abierto v1.4
 
-Abierto is a web application designed to facilitate business creation and photo uploads, with support for deployment to the Google Play Store using Trusted Web Activity (TWA).
+Abierto is a web application designed to facilitate the creation and management of businesses with photo uploads. This version includes support for Android deployment via Trusted Web Activity (TWA).
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Technical Architecture](#technical-architecture)
-- [Getting Started](#getting-started)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Development](#development)
 - [Deployment](#deployment)
-- [Backup Strategy](#backup-strategy)
-- [Security](#security)
+- [Android TWA Build and Release Process](#android-twa-build-and-release-process)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## Overview
 
 Abierto v1.4 is designed to facilitate the deployment of the existing Abierto web app to the Google Play Store using a Trusted Web Activity (TWA) approach. The application consists of a React frontend and an Express backend, with existing PWA components.
 
-### Key Features
-
-- Business creation with secure owner authentication
-- Photo upload and management
-- Guest access with time-limited codes
-- Automated database backups with S3 integration
-- Rate limiting and abuse protection
-- Digital Asset Links for TWA verification
-- Health check endpoint for monitoring
-
-## Technical Architecture
+## Tech Stack
 
 - **Frontend:** React.js
 - **Backend:** Express.js
@@ -34,33 +25,16 @@ Abierto v1.4 is designed to facilitate the deployment of the existing Abierto we
 - **Deployment Platform:** Render.com or Railway.app
 - **Mobile Framework:** Trusted Web Activity (TWA) using Bubblewrap
 - **Authentication:** JSON Web Tokens (JWT) stored in httpOnly cookies
-- **Backup Storage:** AWS S3
-- **Digital Asset Links:** Configuration for domain verification
 
-### Environment Configuration
-
-#### Local Development
-- API base URL: `http://localhost:5000/api`
-- Database: SQLite at `/backend/db/database.sqlite`
-
-#### Staging
-- API base URL: `https://staging.abierto.example.com/api`
-
-#### Production
-- API base URL: `https://abierto.example.com/api`
-- Android app configured to point to production domain
-
-## Getting Started
+## Installation
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- SQLite3
-- AWS CLI (for backup operations)
-- Docker (for deployment)
+- Node.js (v16.0.0 or higher)
+- npm (v7.0.0 or higher)
+- Git
 
-### Installation
+### Setup
 
 1. Clone the repository:
    ```bash
@@ -71,14 +45,16 @@ Abierto v1.4 is designed to facilitate the deployment of the existing Abierto we
 2. Install dependencies:
    ```bash
    npm install
-   cd frontend && npm install && cd ..
-   cd backend && npm install && cd ..
    ```
 
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+3. Create a `.env` file in the root directory with the following variables:
+   ```
+   NODE_ENV=development
+   PORT=5000
+   DATABASE_URL=sqlite:./data/abierto.db
+   JWT_SECRET=your_jwt_secret_key_here
+   JWT_EXPIRY=7d
+   GUEST_CODE_EXPIRY=7d
    ```
 
 4. Initialize the database:
@@ -86,266 +62,139 @@ Abierto v1.4 is designed to facilitate the deployment of the existing Abierto we
    npm run db:init
    ```
 
-5. Start the development server:
+## Development
+
+### Running the Application Locally
+
+1. Start the development server:
    ```bash
    npm run dev
    ```
 
+2. The application will be available at `http://localhost:5000`
+
+### Environment Variables
+
+- `NODE_ENV`: Set to `development`, `staging`, or `production`
+- `PORT`: Server port (default: 5000)
+- `DATABASE_URL`: SQLite database path
+- `JWT_SECRET`: Secret key for JWT signing
+- `JWT_EXPIRY`: JWT token expiry duration (default: 7d)
+- `GUEST_CODE_EXPIRY`: Guest code expiry duration (default: 7d)
+- `RATE_LIMIT_WINDOW_MS`: Rate limit window in milliseconds (default: 900000 = 15 minutes)
+- `RATE_LIMIT_MAX_REQUESTS`: Maximum requests per window (default: 5)
+
 ## Deployment
 
-### Docker Deployment
+### Deploying to Render or Railway
 
-The application includes a Dockerfile for containerized deployment:
+1. Create an account on [Render.com](https://render.com) or [Railway.app](https://railway.app)
 
-```bash
-docker build -t abierto:latest .
-docker run -p 5000:5000 -v abierto-db:/backend/db abierto:latest
-```
+2. Connect your GitHub repository
 
-### Render.com Deployment
+3. Set the following environment variables in your deployment platform:
+   - `NODE_ENV=production`
+   - `PORT=5000`
+   - `DATABASE_URL=sqlite:./data/abierto.db`
+   - `JWT_SECRET=your_production_jwt_secret`
+   - `JWT_EXPIRY=7d`
+   - `GUEST_CODE_EXPIRY=7d`
 
-1. Connect your GitHub repository to Render
-2. Create a new Web Service
-3. Set the build command: `npm install && npm run build`
-4. Set the start command: `npm start`
-5. Add environment variables in the Render dashboard
-6. Ensure persistent disk is mounted at `/backend/db` for SQLite
+4. Ensure the SQLite database is mounted on a persistent volume
 
-### Railway.app Deployment
+5. Deploy the application
 
-1. Connect your GitHub repository to Railway
-2. Create a new project
-3. Add environment variables
-4. Configure persistent volume for `/backend/db`
-5. Deploy
+### Health Check
 
-## Backup Strategy
+The application includes a health check endpoint at `/api/health` that returns the application status.
 
-### Automated Backups
+## Android TWA Build and Release Process
 
-The application includes an automated backup strategy for the SQLite database using AWS S3.
+### Prerequisites
 
-### Backup Script
+Before building the Android app, ensure you have the following installed:
 
-The backup script is located at `/scripts/backup.sh` and performs the following:
+- **Node.js:** v16.0.0 or higher
+- **npm:** v7.0.0 or higher
+- **Android SDK:** API level 21 or higher
+- **Java Development Kit (JDK):** Version 11 or higher
+- **Android Studio:** (recommended for emulator and device testing)
 
-1. Creates a backup of the SQLite database
-2. Verifies the backup file exists and is not empty
-3. Uploads the backup to AWS S3
-4. Verifies the S3 upload by checking file existence and size match
-5. Applies retention policy (keeps last 30 backups)
-6. Cleans up local backup files
+### Step 1: Install Bubblewrap
 
-### Configuration
-
-Set the following environment variables to configure backups:
+Bubblewrap is a tool that helps create Trusted Web Activity (TWA) projects for Android.
 
 ```bash
-# Database path (default: /backend/db/database.sqlite)
-DB_PATH=/backend/db/database.sqlite
-
-# Local backup directory (default: /tmp/backups)
-BACKUP_DIR=/tmp/backups
-
-# AWS S3 bucket name
-S3_BUCKET=your-bucket-name
-
-# S3 prefix/folder (default: backups)
-S3_PREFIX=backups
-
-# Number of backups to retain (default: 30)
-RETENTION_COUNT=30
-
-# Log file location (default: /var/log/abierto-backup.log)
-LOG_FILE=/var/log/abierto-backup.log
+npm install -g @bubblewrap/cli
 ```
 
-### AWS S3 Setup
+Verify the installation:
+```bash
+bubblewrap --version
+```
 
-1. Create an S3 bucket:
-   ```bash
-   aws s3 mb s3://your-bucket-name
-   ```
+### Step 2: Initialize the TWA Project
 
-2. Create an IAM user with S3 access:
-   ```bash
-   aws iam create-user --user-name abierto-backup
-   aws iam attach-user-policy --user-name abierto-backup --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
-   ```
-
-3. Generate access keys:
-   ```bash
-   aws iam create-access-key --user-name abierto-backup
-   ```
-
-4. Configure AWS CLI:
-   ```bash
-   aws configure
-   # Enter your access key ID and secret access key
-   ```
-
-### Cron Job Setup
-
-To set up the nightly backup, add the following line to your crontab:
+Create a new TWA project using Bubblewrap:
 
 ```bash
-0 2 * * * /path/to/scripts/backup.sh
+bubblewrap init --manifest=https://abierto.example.com/manifest.json
 ```
 
-This will run the backup script every day at 2 AM.
+This command will prompt you to enter configuration details. Use the following values:
 
-#### Setting up Cron on Linux/macOS
+- **Package Name:** `com.abierto.app`
+- **App Name:** `Abierto`
+- **App Short Name:** `Abierto`
+- **Start URL:** `https://abierto.example.com`
+- **Icon URL:** `https://abierto.example.com/icon.png`
+- **Display Mode:** `standalone`
+- **Theme Color:** `#FFFFFF`
+- **Background Color:** `#FFFFFF`
 
-1. Open crontab editor:
-   ```bash
-   crontab -e
-   ```
+### Step 3: Configure the TWA
 
-2. Add the backup job:
-   ```bash
-   0 2 * * * /path/to/scripts/backup.sh >> /var/log/abierto-backup-cron.log 2>&1
-   ```
+After initialization, a `bubblewrap.config.json` file will be created. Verify the following configuration:
 
-3. Save and exit (Ctrl+X, then Y, then Enter in nano)
-
-4. Verify the cron job:
-   ```bash
-   crontab -l
-   ```
-
-#### Setting up Cron on Docker/Render/Railway
-
-For containerized deployments, use a cron service or scheduled job:
-
-**Option 1: Using a separate cron container**
-
-Create a `docker-compose.yml` with a dedicated cron service:
-
-```yaml
-version: '3.8'
-services:
-  app:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - abierto-db:/backend/db
-    environment:
-      - DB_PATH=/backend/db/database.sqlite
-      - S3_BUCKET=your-bucket-name
-
-  cron:
-    build: .
-    command: /bin/bash -c "while true; do /scripts/backup.sh; sleep 86400; done"
-    volumes:
-      - abierto-db:/backend/db
-      - ./scripts:/scripts
-    environment:
-      - DB_PATH=/backend/db/database.sqlite
-      - S3_BUCKET=your-bucket-name
-
-volumes:
-  abierto-db:
+```json
+{
+  "packageName": "com.abierto.app",
+  "name": "Abierto",
+  "shortName": "Abierto",
+  "startUrl": "https://abierto.example.com",
+  "icon": "https://abierto.example.com/icon.png",
+  "displayMode": "standalone",
+  "themeColor": "#FFFFFF",
+  "backgroundColor": "#FFFFFF"
+}
 ```
 
-**Option 2: Using Render Cron Jobs**
+### Step 4: Generate the Signing Certificate
 
-Render supports background jobs. Create a `render.yaml` file:
+Generate a signing certificate for your app:
 
-```yaml
-services:
-  - type: web
-    name: abierto
-    plan: standard
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: DB_PATH
-        value: /backend/db/database.sqlite
-      - key: S3_BUCKET
-        value: your-bucket-name
-
-  - type: cron
-    name: abierto-backup
-    schedule: "0 2 * * *"
-    command: /scripts/backup.sh
+```bash
+keytool -genkey -v -keystore abierto-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias abierto-key
 ```
 
-### Backup Verification
+This will prompt you to enter details about your certificate. Store the keystore file securely.
 
-To verify that backups are working correctly:
+### Step 5: Generate the SHA-256 Fingerprint
 
-1. Check the backup log:
-   ```bash
-   tail -f /var/log/abierto-backup.log
-   ```
+Generate the SHA-256 fingerprint of your signing certificate:
 
-2. List backups in S3:
-   ```bash
-   aws s3 ls s3://your-bucket-name/backups/
-   ```
+```bash
+keytool -list -v -keystore abierto-release-key.jks -alias abierto-key
+```
 
-3. Download and verify a backup:
-   ```bash
-   aws s3 cp s3://your-bucket-name/backups/database_TIMESTAMP.sqlite ./test-backup.sqlite
-   sqlite3 test-backup.sqlite ".tables"
-   ```
+Copy the SHA-256 fingerprint value. It will look like:
+```
+AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88
+```
 
-### Restore Procedure
+### Step 6: Update the Digital Asset Links File
 
-To restore from a backup:
-
-1. Download the backup from S3:
-   ```bash
-   aws s3 cp s3://your-bucket-name/backups/database_TIMESTAMP.sqlite ./database.sqlite
-   ```
-
-2. Stop the application:
-   ```bash
-   docker stop abierto
-   ```
-
-3. Replace the database:
-   ```bash
-   cp ./database.sqlite /backend/db/database.sqlite
-   ```
-
-4. Restart the application:
-   ```bash
-   docker start abierto
-   ```
-
-5. Verify the restore:
-   ```bash
-   curl http://localhost:5000/api/health
-   ```
-
-## Security
-
-### Authentication
-
-- Owner authentication uses `business_code + password`
-- Passwords are hashed using bcrypt
-- JWT tokens are stored in httpOnly cookies
-- Token expiry: 7 days
-- Guest codes expire 7 days from creation
-
-### Rate Limiting
-
-- Login attempts are rate-limited to prevent brute force attacks
-- Default: 5 attempts per 15 minutes per IP
-- Configurable via environment variables
-
-### Abuse Protection
-
-- Photo upload size limits
-- Request rate limiting
-- CORS configuration
-- Input validation and sanitization
-
-### Digital Asset Links
-
-For TWA deployment, configure Digital Asset Links at `https://abierto.example.com/.well-known/assetlinks.json`:
+Update the `android/app/src/main/assets/assetlinks.json` file with your actual SHA-256 fingerprint:
 
 ```json
 [
@@ -353,27 +202,100 @@ For TWA deployment, configure Digital Asset Links at `https://abierto.example.co
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.example.abierto",
-      "sha256_cert_fingerprints": ["YOUR_SHA256_FINGERPRINT"]
+      "package_name": "com.abierto.app",
+      "sha256_cert_fingerprints": [
+        "YOUR_SHA256_FINGERPRINT_HERE"
+      ]
     }
   }
 ]
 ```
 
+Replace `YOUR_SHA256_FINGERPRINT_HERE` with the actual SHA-256 fingerprint from Step 5.
+
+### Step 7: Deploy the Asset Links File
+
+Host the `assetlinks.json` file at `https://abierto.example.com/.well-known/assetlinks.json`.
+
+To do this:
+
+1. Copy the `assetlinks.json` file to your web server's `.well-known` directory
+2. Ensure the file is accessible via HTTPS
+3. Verify accessibility by visiting the URL in a web browser
+
+Example using Express.js:
+
+```javascript
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.sendFile(path.join(__dirname, 'android/app/src/main/assets/assetlinks.json'));
+});
+```
+
+### Step 8: Build the Android App
+
+Build the release APK/AAB:
+
+```bash
+bubblewrap build
+```
+
+You will be prompted to provide the keystore file path and password. Use the keystore created in Step 4.
+
+The build process will generate:
+- `app-release.aab` (Android App Bundle for Google Play Store)
+- `app-release.apk` (APK for direct installation)
+
+### Step 9: Test the App
+
+1. Install the APK on an Android device:
+   ```bash
+   adb install app-release.apk
+   ```
+
+2. Launch the app and verify:
+   - The app launches without showing the browser chrome (address bar)
+   - The back button navigates correctly within the app
+   - All functionality works as expected
+
+### Step 10: Submit to Google Play Store
+
+1. Create a Google Play Developer account
+2. Create a new app listing
+3. Upload the `app-release.aab` file
+4. Fill in the required metadata (screenshots, description, privacy policy, etc.)
+5. Submit for review
+
+### Troubleshooting
+
+#### Asset Links Not Working
+
+If the TWA shows the browser chrome, the asset links file may not be properly configured:
+
+1. Verify the SHA-256 fingerprint is correct
+2. Ensure the `assetlinks.json` file is accessible at `https://abierto.example.com/.well-known/assetlinks.json`
+3. Check that the package name matches exactly: `com.abierto.app`
+4. Wait up to 24 hours for Google's cache to update
+
+#### Build Failures
+
+If the build fails:
+
+1. Ensure Android SDK is properly installed
+2. Check that the manifest URL is accessible
+3. Verify all configuration values in `bubblewrap.config.json`
+4. Run `bubblewrap validate` to check for configuration issues
+
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -am 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Create a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue on GitHub or contact the development team.
