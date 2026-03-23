@@ -132,8 +132,11 @@ export default function HomePage() {
           )}
         </div>
 
-        <button onClick={() => setFeedbackOpen(true)} className="footer-lang-btn" title="Give Feedback" style={{ fontSize: '1.3rem' }}>
-          💡
+        <button onClick={() => setFeedbackOpen(true)} className="footer-lang-btn" title="Give Feedback" style={{ display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.7)' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.9 10.2 19 8.7 19 7a7 7 0 1 0-13.4 2.8C6.4 11.6 7 12.5 7 14"/>
+            <path d="M9 14h6"/><path d="M9 18h6"/><path d="M10 22h4"/>
+          </svg>
         </button>
 
         <div className="home-footer-brand">
@@ -153,7 +156,7 @@ export default function HomePage() {
       {feedbackOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div className="card card-body" style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h2 style={{ margin: 0 }}>💡 Give Feedback</h2>
+            <h2 style={{ margin: 0 }}>Give Feedback</h2>
             <p className="text-muted text-sm" style={{ margin: 0 }}>Ideas, suggestions, or anything on your mind — it goes straight to the admin.</p>
             <textarea
               rows={4}
