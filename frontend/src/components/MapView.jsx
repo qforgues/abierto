@@ -44,6 +44,10 @@ const MAP_STYLES = [
 
   // Hide transit clutter
   { featureType: 'transit',              stylers: [{ visibility: 'off' }] },
+
+  // Hide Google's own POI labels (hotels, restaurants, etc.)
+  { featureType: 'poi',                  elementType: 'labels',           stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.business',         stylers: [{ visibility: 'off' }] },
 ];
 
 function markerIcon(business) {
