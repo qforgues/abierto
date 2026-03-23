@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
 import { CATEGORY_ICONS } from '../constants/categories';
 
-const CATEGORIES = ['All', 'Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Park', 'Attraction', 'Other', 'Closed'];
+const CATEGORIES = ['All', 'Restaurant', 'Bar', 'Beach', 'Attraction', 'Cafe', 'Food Truck', 'Shop', 'Park', 'Service', 'Other', 'Closed'];
 
 export default function HomePage() {
   const [businesses, setBusinesses] = useState([]);

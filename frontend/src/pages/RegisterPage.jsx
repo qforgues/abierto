@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
+import { CATEGORY_ICONS } from '../constants/categories';
 
-const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Park', 'Attraction', 'Other'];
+const CATEGORIES = ['Attraction', 'Bar', 'Beach', 'Cafe', 'Food Truck', 'Other', 'Park', 'Restaurant', 'Service', 'Shop'];
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '' });
@@ -86,7 +87,7 @@ export default function RegisterPage() {
               <label>{r.labelCategory}</label>
               <select value={form.category} onChange={e => set('category', e.target.value)}>
                 <option value="">{r.placeholderCategory}</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}
+                {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {t.categories[c]}</option>)}
               </select>
             </div>
             <div className="field">
