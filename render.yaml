@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: abierto
+    runtime: node
+    buildCommand: cd backend && npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: FRONTEND_URL
+        value: https://abiertovqs.com
+      - key: DB_PATH
+        value: /var/data/abierto.db
+      - key: JWT_SECRET
+        sync: false
+    plan: free
+    domains:
+      - abiertovqs.com
