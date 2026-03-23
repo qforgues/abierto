@@ -624,13 +624,23 @@ export default function AdminDashboard() {
           <>
             {tab === 'businesses' && (
               <>
-                <input
-                  type="text"
-                  placeholder="Search by name or code…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ marginBottom: 16 }}
-                />
+                <div style={{ position: 'relative', marginBottom: 16 }}>
+                  <input
+                    type="text"
+                    placeholder="Search by name or code…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ width: '100%', paddingRight: search ? 36 : undefined }}
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch('')}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mid)', fontSize: '1.1rem', lineHeight: 1, padding: 0 }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {filtered.length === 0 && <p className="text-muted text-center mt-4">No businesses yet.</p>}
                   {filtered.map(b => (
