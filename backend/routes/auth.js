@@ -1,56 +1,97 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const loginRateLimiter = require('../middleware/rateLimit');
 const db = require('../db/database');
-const { JWT_SECRET } = require('../middleware/auth');
-const { loginRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
-// POST /api/auth/admin/login
-router.post('/admin/login', loginRateLimiter, async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password required.' });
-  }
-  try {
-    const admin = await db.get('SELECT * FROM admin WHERE username = ?', [username]);
-    if (!admin) return res.status(401).json({ error: 'Invalid credentials.' });
+/**
+ * POST /api/auth/login
+ * Authenticates an owner using business code and password
+ * Returns a JWT token in httpOnly cookie on success
+ */
+router.post('/login', loginRateLimiter, async (req, res) => {
+    try {
+        const { businessCode, password } = req.body;
 
-    const valid = await bcrypt.compare(password, admin.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials.' });
+        // Validate input
+        if (!businessCode || !password) {
+            return res.status(400).json({
+                error: 'Business code and password are required.'
+            });
+        }
 
-    const token = jwt.sign({ role: 'admin', sub: admin.id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, role: 'admin' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+        // Trim and validate business code format
+        const trimmedBusinessCode = businessCode.trim().toUpperCase();
+        if (!/^[A-Z0-9]{6,8}$/.test(trimmedBusinessCode)) {
+            return res.status(400).json({
+                error: 'Invalid business code format.'
+            });
+        }
+
+        // Retrieve owner by business code
+        const owner = await db.getOwnerByBusinessCode(trimmedBusinessCode);
+        if (!owner) {
+            return res.status(401).json({
+                error: 'Invalid business code or password.'
+            });
+        }
+
+        // Compare provided password with stored hash
+        const passwordMatch = await bcrypt.compare(password, owner.password_hash);
+        if (!passwordMatch) {
+            return res.status(401).json({
+                error: 'Invalid business code or password.'
+            });
+        }
+
+        // Generate JWT token with 7-day expiry
+        const token = jwt.sign(
+            { id: owner.id, businessCode: owner.business_code },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '7d' }
+        );
+
+        // Set token in httpOnly cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+        });
+
+        return res.status(200).json({
+            message: 'Login successful.',
+            owner: {
+                id: owner.id,
+                businessCode: owner.business_code
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        return res.status(500).json({
+            error: 'Internal server error.'
+        });
+    }
 });
 
-// POST /api/auth/business/login
-router.post('/business/login', loginRateLimiter, async (req, res) => {
-  const { code } = req.body;
-  if (!code) return res.status(400).json({ error: 'Business code required.' });
-  const normalizedCode = String(code).trim().toUpperCase();
-
-  try {
-    const business = await db.get(
-      'SELECT * FROM businesses WHERE code = ? AND is_active = 1',
-      [normalizedCode]
-    );
-    if (!business) return res.status(401).json({ error: 'Invalid business code.' });
-
-    const token = jwt.sign(
-      { role: 'owner', sub: business.id, businessId: business.id, businessName: business.name },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    res.json({ token, role: 'owner', businessId: business.id, businessName: business.name });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error.' });
-  }
+/**
+ * POST /api/auth/logout
+ * Clears the JWT token cookie
+ */
+router.post('/logout', (req, res) => {
+    try {
+        res.clearCookie('token');
+        return res.status(200).json({
+            message: 'Logout successful.'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        return res.status(500).json({
+            error: 'Internal server error.'
+        });
+    }
 });
 
 module.exports = router;

@@ -1,149 +1,211 @@
-const { createClient } = require('@libsql/client');
-const bcrypt = require('bcryptjs');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+const bcrypt = require('bcrypt');
 
-const client = createClient(
-  process.env.TURSO_URL
-    ? { url: process.env.TURSO_URL, authToken: process.env.TURSO_AUTH_TOKEN }
-    : { url: 'file:./db/abierto.db' }
-);
-
-const get = async (sql, params = []) => {
-  const result = await client.execute({ sql, args: params });
-  return result.rows[0] ?? undefined;
-};
-
-const all = async (sql, params = []) => {
-  const result = await client.execute({ sql, args: params });
-  return result.rows;
-};
-
-const run = async (sql, params = []) => {
-  const result = await client.execute({ sql, args: params });
-  return { lastID: Number(result.lastInsertRowid), changes: result.rowsAffected };
-};
-
-const initializeDatabase = async () => {
-  await run(`CREATE TABLE IF NOT EXISTS businesses (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,
-    description TEXT,
-    category    TEXT,
-    lat         REAL,
-    lon         REAL,
-    phone       TEXT,
-    code        TEXT NOT NULL UNIQUE,
-    is_active   INTEGER NOT NULL DEFAULT 1,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  try { await run(`ALTER TABLE businesses ADD COLUMN phone TEXT`); } catch (_) {}
-
-  await run(`CREATE TABLE IF NOT EXISTS business_status (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    status      TEXT NOT NULL DEFAULT 'Closed',
-    note        TEXT,
-    return_time TEXT,
-    return_date TEXT,
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  try { await run(`ALTER TABLE business_status ADD COLUMN return_time TEXT`); } catch (_) {}
-  try { await run(`ALTER TABLE business_status ADD COLUMN return_date TEXT`); } catch (_) {}
-
-  await run(`CREATE TABLE IF NOT EXISTS business_photos (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    filename    TEXT NOT NULL,
-    sort_order  INTEGER NOT NULL DEFAULT 0,
-    uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS notifications (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    type        TEXT NOT NULL,
-    business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
-    message     TEXT NOT NULL,
-    is_read     INTEGER NOT NULL DEFAULT 0,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS business_hours (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id  INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    day_of_week  INTEGER NOT NULL,
-    open_time    TEXT,
-    close_time   TEXT,
-    is_closed    INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(business_id, day_of_week)
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS subscriptions (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id    INTEGER NOT NULL UNIQUE REFERENCES businesses(id) ON DELETE CASCADE,
-    monthly_amount REAL NOT NULL DEFAULT 5.00
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS subscription_payments (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    year        INTEGER NOT NULL,
-    month       INTEGER NOT NULL,
-    amount_paid REAL NOT NULL DEFAULT 0,
-    paid_at     TEXT,
-    note        TEXT,
-    UNIQUE(business_id, year, month)
-  )`);
-
-  try { await run(`ALTER TABLE businesses ADD COLUMN password_hash TEXT`); } catch (_) {}
-  try { await run(`ALTER TABLE subscription_payments ADD COLUMN forgiven INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
-
-  await run(`CREATE TABLE IF NOT EXISTS page_views (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    path       TEXT NOT NULL,
-    ip_hash    TEXT,
-    date       TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS app_settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  )`);
-  await run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pwa_enabled', '1')`);
-
-  await run(`CREATE TABLE IF NOT EXISTS guest_codes (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-    code        TEXT UNIQUE NOT NULL,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-  )`);
-
-  await run(`CREATE TABLE IF NOT EXISTS admin (
-    id            INTEGER PRIMARY KEY DEFAULT 1,
-    username      TEXT NOT NULL DEFAULT 'admin',
-    password_hash TEXT NOT NULL
-  )`);
-
-  const existing = await get('SELECT id FROM admin WHERE id = 1');
-  if (!existing) {
-    const defaultPassword = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === 'production' ? null : 'Abierto1!');
-    if (!defaultPassword) {
-      throw new Error('ADMIN_PASSWORD is required to bootstrap the first admin account in production.');
-    }
-    const hash = await bcrypt.hash(defaultPassword, 10);
-    await run(
-      `INSERT INTO admin (id, username, password_hash) VALUES (1, 'admin', ?)`,
-      [hash]
-    );
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Admin account created from ADMIN_PASSWORD.');
+// Initialize database connection
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'abierto.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error opening database:', err.message);
     } else {
-      console.log('Admin account created — local dev password: Abierto1!');
+        console.log('Connected to SQLite database at:', dbPath);
     }
-  }
+});
 
-  console.log('Database ready.');
+// Enable foreign keys
+db.run('PRAGMA foreign_keys = ON');
+
+/**
+ * Promisified database methods for easier async/await usage
+ */
+const database = {
+    /**
+     * Run a query (INSERT, UPDATE, DELETE)
+     */
+    run: (sql, params = []) => {
+        return new Promise((resolve, reject) => {
+            db.run(sql, params, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ id: this.lastID, changes: this.changes });
+                }
+            });
+        });
+    },
+
+    /**
+     * Get a single row
+     */
+    get: (sql, params = []) => {
+        return new Promise((resolve, reject) => {
+            db.get(sql, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    },
+
+    /**
+     * Get all rows
+     */
+    all: (sql, params = []) => {
+        return new Promise((resolve, reject) => {
+            db.all(sql, params, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows || []);
+                }
+            });
+        });
+    },
+
+    /**
+     * Retrieve owner by business code
+     * @param {string} businessCode - The alphanumeric business code (6-8 characters)
+     * @returns {Promise<Object|null>} Owner object or null if not found
+     */
+    getOwnerByBusinessCode: async (businessCode) => {
+        try {
+            const query = 'SELECT * FROM owners WHERE business_code = ? LIMIT 1';
+            const result = await database.get(query, [businessCode.toUpperCase()]);
+            return result || null;
+        } catch (error) {
+            console.error('Error retrieving owner by business code:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Retrieve owner by ID
+     * @param {number} id - The owner ID
+     * @returns {Promise<Object|null>} Owner object or null if not found
+     */
+    getOwnerById: async (id) => {
+        try {
+            const query = 'SELECT * FROM owners WHERE id = ? LIMIT 1';
+            const result = await database.get(query, [id]);
+            return result || null;
+        } catch (error) {
+            console.error('Error retrieving owner by ID:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Create a new owner with hashed password
+     * @param {string} businessCode - The alphanumeric business code
+     * @param {string} password - The plaintext password to hash
+     * @param {Object} additionalData - Additional owner data
+     * @returns {Promise<Object>} Created owner with ID
+     */
+    createOwner: async (businessCode, password, additionalData = {}) => {
+        try {
+            // Hash the password with bcrypt (10 salt rounds)
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            const query = `
+                INSERT INTO owners (business_code, password_hash, created_at, updated_at)
+                VALUES (?, ?, datetime('now'), datetime('now'))
+            `;
+            const result = await database.run(query, [businessCode.toUpperCase(), passwordHash]);
+            return { id: result.id, businessCode: businessCode.toUpperCase() };
+        } catch (error) {
+            console.error('Error creating owner:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Update owner password
+     * @param {number} ownerId - The owner ID
+     * @param {string} newPassword - The new plaintext password
+     * @returns {Promise<Object>} Update result
+     */
+    updateOwnerPassword: async (ownerId, newPassword) => {
+        try {
+            const passwordHash = await bcrypt.hash(newPassword, 10);
+            const query = 'UPDATE owners SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?';
+            const result = await database.run(query, [passwordHash, ownerId]);
+            return result;
+        } catch (error) {
+            console.error('Error updating owner password:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get all businesses for an owner
+     * @param {number} ownerId - The owner ID
+     * @returns {Promise<Array>} Array of business objects
+     */
+    getBusinessesByOwnerId: async (ownerId) => {
+        try {
+            const query = 'SELECT * FROM businesses WHERE owner_id = ? ORDER BY created_at DESC';
+            const results = await database.all(query, [ownerId]);
+            return results;
+        } catch (error) {
+            console.error('Error retrieving businesses:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Get a business by ID
+     * @param {number} businessId - The business ID
+     * @returns {Promise<Object|null>} Business object or null if not found
+     */
+    getBusinessById: async (businessId) => {
+        try {
+            const query = 'SELECT * FROM businesses WHERE id = ? LIMIT 1';
+            const result = await database.get(query, [businessId]);
+            return result || null;
+        } catch (error) {
+            console.error('Error retrieving business:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Create a new business
+     * @param {number} ownerId - The owner ID
+     * @param {Object} businessData - Business data (name, description, etc.)
+     * @returns {Promise<Object>} Created business with ID
+     */
+    createBusiness: async (ownerId, businessData) => {
+        try {
+            const { name, description, category } = businessData;
+            const query = `
+                INSERT INTO businesses (owner_id, name, description, category, created_at, updated_at)
+                VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            `;
+            const result = await database.run(query, [ownerId, name, description || null, category || null]);
+            return { id: result.id, ...businessData };
+        } catch (error) {
+            console.error('Error creating business:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Close database connection
+     */
+    close: () => {
+        return new Promise((resolve, reject) => {
+            db.close((err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    console.log('Database connection closed.');
+                    resolve();
+                }
+            });
+        });
+    }
 };
 
-module.exports = { initializeDatabase, get, all, run };
+module.exports = database;

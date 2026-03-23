@@ -1,52 +1,61 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const dotenv = require('dotenv');
 const path = require('path');
-const fs = require('fs');
-const { initializeDatabase } = require('./db/database');
-const { abuseLoggingMiddleware } = require('./middleware/abuseLogging');
-const { payloadSizeLimitMiddleware } = require('./middleware/payloadSizeLimit');
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5200' }));
-app.use(payloadSizeLimitMiddleware);
-app.use(abuseLoggingMiddleware);
+// Middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    credentials: true
+}));
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/businesses', require('./routes/businesses'));
-app.use('/api/businesses/:id/status', require('./routes/status'));
-app.use('/api/businesses/:id/photos', require('./routes/photos'));
-app.use('/api/businesses/:id/hours', require('./routes/hours'));
-app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/contact', require('./routes/contact'));
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/settings', require('./routes/settings'));
-app.use('/api/subscriptions', require('./routes/subscriptions'));
-app.use('/api/webhooks', require('./routes/webhooks'));
-app.use('/tiles', require('./routes/tiles'));
+// Import routes
+const authRoutes = require('./routes/auth');
+const verifyToken = require('./middleware/auth');
 
-const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
-if (fs.existsSync(frontendDistPath)) {
-  app.use(express.static(frontendDistPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/tiles')) {
-      return next();
-    }
-    res.sendFile(path.join(frontendDistPath, 'index.html'));
-  });
-}
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Abierto backend running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err);
-    process.exit(1);
-  });
+// Authentication routes (public)
+app.use('/api/auth', authRoutes);
+
+// Protected routes example (requires authentication)
+app.get('/api/protected', verifyToken, (req, res) => {
+    res.status(200).json({
+        message: 'This is a protected route.',
+        user: req.user
+    });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        error: err.message || 'Internal server error.'
+    });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Route not found.' });
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+module.exports = app;

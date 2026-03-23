@@ -1,40 +1,37 @@
 const jwt = require('jsonwebtoken');
-const isProduction = process.env.NODE_ENV === 'production';
-const JWT_SECRET = process.env.JWT_SECRET || (isProduction ? null : 'abierto-dev-secret-local-only');
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is required in production.');
-}
-
+/**
+ * Middleware to verify JWT token from httpOnly cookie
+ * Attaches decoded token data to req.user
+ */
 const verifyToken = (req, res, next) => {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided.' });
-  }
-  try {
-    req.user = jwt.verify(header.slice(7), JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token.' });
-  }
-};
+    try {
+        const token = req.cookies.token;
 
-const requireAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required.' });
+        if (!token) {
+            return res.status(401).json({
+                error: 'No token provided. Please log in.'
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        req.user = decoded;
+        next();
+    } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({
+                error: 'Token has expired. Please log in again.'
+            });
+        }
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({
+                error: 'Invalid token. Please log in again.'
+            });
+        }
+        return res.status(500).json({
+            error: 'Internal server error.'
+        });
     }
-    next();
-  });
 };
 
-const requireOwner = (req, res, next) => {
-  verifyToken(req, res, () => {
-    if (req.user?.role !== 'owner' && req.user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Owner access required.' });
-    }
-    next();
-  });
-};
-
-module.exports = { verifyToken, requireAdmin, requireOwner, JWT_SECRET };
+module.exports = verifyToken;
