@@ -1,31 +1,41 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+
 const router = express.Router();
 
-/**
- * Health Check Route
- * GET /api/health
- * 
- * Returns the health status of the application.
- * This endpoint is used for monitoring and automated health checks.
- */
+// Ensure logs directory exists
+const logsDir = path.join(__dirname, '../logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Health check endpoint
 router.get('/', (req, res) => {
   try {
-    // Log the health check request
-    console.log(`[${new Date().toISOString()}] Health check request received`);
-    
-    // Return healthy status
-    res.status(200).json({ 
-      message: 'Service is healthy',
-      timestamp: new Date().toISOString()
+    // Return successful health status
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    // Log the error
-    console.error(`[${new Date().toISOString()}] Health check error:`, error.message);
+    // Log the error to the logs directory
+    const errorMessage = `[${new Date().toISOString()}] Health check error: ${error.message}\n${error.stack}\n`;
+    const logFilePath = path.join(logsDir, 'health.log');
     
-    // Return unhealthy status
-    res.status(500).json({ 
-      error: 'Service is unhealthy',
-      timestamp: new Date().toISOString()
+    fs.appendFile(logFilePath, errorMessage, (writeErr) => {
+      if (writeErr) {
+        console.error('Failed to write to health.log:', writeErr);
+      }
+    });
+    
+    // Also log to console for immediate visibility
+    console.error('Health check error:', error);
+    
+    // Return error response
+    res.status(500).json({
+      status: 'error',
+      message: 'Service unavailable',
     });
   }
 });
