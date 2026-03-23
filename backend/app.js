@@ -9,6 +9,9 @@ const db = require('./db/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust Render's proxy so express-rate-limit can read the real client IP
+app.set('trust proxy', 1);
+
 // ── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5200',
