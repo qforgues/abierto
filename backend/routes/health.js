@@ -1,16 +1,24 @@
 const express = require('express');
-const rateLimit = require('../middleware/rateLimit');
-
 const router = express.Router();
 
 /**
- * GET /api/health
- * Health check endpoint to verify service status
- * Returns 200 OK with a status message
- * Protected by rate limiting middleware
+ * Health check endpoint
+ * Returns the application status and current timestamp
+ * Used for monitoring and deployment verification
  */
-router.get('/', rateLimit, (req, res) => {
-    res.status(200).json({ message: 'Service is up and running' });
+router.get('/', (req, res) => {
+  try {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    // Log the error for debugging purposes
+    console.error('Health check endpoint error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
+  }
 });
 
 module.exports = router;
