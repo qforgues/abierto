@@ -98,6 +98,14 @@ const initializeDatabase = async () => {
   try { await run(`ALTER TABLE businesses ADD COLUMN password_hash TEXT`); } catch (_) {}
   try { await run(`ALTER TABLE subscription_payments ADD COLUMN forgiven INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
 
+  await run(`CREATE TABLE IF NOT EXISTS page_views (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    path       TEXT NOT NULL,
+    ip_hash    TEXT,
+    date       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
+
   await run(`CREATE TABLE IF NOT EXISTS guest_codes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,

@@ -284,6 +284,118 @@ function BillingTab() {
   );
 }
 
+function TrafficTab() {
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    api.get('/analytics/summary').then(setData).catch(err => setError(err.message));
+  }, []);
+
+  if (error) return <div className="alert alert-error">{error}</div>;
+  if (!data) return <div className="spinner" />;
+
+  const { summary, daily, topPages } = data;
+  const maxVisits = Math.max(...daily.map(d => d.visits), 1);
+
+  const cards = [
+    { label: 'Today',      visits: summary.today.visits,  unique: summary.today.unique },
+    { label: 'This Week',  visits: summary.week.visits,   unique: summary.week.unique },
+    { label: 'This Month', visits: summary.month.visits,  unique: summary.month.unique },
+    { label: 'All Time',   visits: summary.allTime,       unique: null },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+        {cards.map(({ label, visits, unique }) => (
+          <div key={label} className="card card-body" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--ocean)' }}>{visits.toLocaleString()}</div>
+            <div style={{ fontWeight: 600, marginTop: 2, fontSize: '0.85rem' }}>{label}</div>
+            {unique !== null && <div className="text-sm text-muted">{unique} unique</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Homepage vs business page split */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="card card-body" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--ocean)' }}>{summary.homeVisits.toLocaleString()}</div>
+          <div className="text-sm text-muted" style={{ marginTop: 4 }}>Homepage visits (all time)</div>
+        </div>
+        <div className="card card-body" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--ocean)' }}>{(summary.allTime - summary.homeVisits).toLocaleString()}</div>
+          <div className="text-sm text-muted" style={{ marginTop: 4 }}>Business page views (all time)</div>
+        </div>
+      </div>
+
+      {/* Daily bar chart */}
+      {daily.length > 0 && (
+        <div className="card card-body">
+          <h3 style={{ marginBottom: 20 }}>Last 14 Days</h3>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, paddingBottom: 24, position: 'relative' }}>
+            {daily.map(d => (
+              <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+                <div
+                  title={`${d.visits} visits, ${d.unique_visitors} unique`}
+                  style={{
+                    width: '100%',
+                    height: `${Math.max(Math.round((d.visits / maxVisits) * 80), 2)}px`,
+                    background: 'linear-gradient(180deg, var(--turquoise), var(--ocean))',
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'height 0.3s',
+                    cursor: 'default',
+                  }}
+                />
+                <span style={{
+                  position: 'absolute', bottom: -20,
+                  fontSize: '0.6rem', color: 'var(--mid)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {d.date.slice(5)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+            <span className="text-sm text-muted">Peak: {maxVisits} visits/day</span>
+            <span className="text-sm text-muted">Total: {daily.reduce((s, d) => s + d.visits, 0)} over {daily.length} days</span>
+          </div>
+        </div>
+      )}
+
+      {/* Top business pages */}
+      {topPages.length > 0 && (
+        <div className="card card-body">
+          <h3 style={{ marginBottom: 14 }}>Most Viewed Businesses</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {topPages.map((p, i) => {
+              const pct = Math.round((p.visits / topPages[0].visits) * 100);
+              return (
+                <div key={p.path}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <span style={{ width: 20, textAlign: 'right', color: 'var(--mid)', fontSize: '0.8rem', fontWeight: 700 }}>{i + 1}</span>
+                    <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 500 }}>{p.name}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem' }}>{p.visits}</span>
+                  </div>
+                  <div style={{ marginLeft: 30, height: 4, background: '#e2e8f0', borderRadius: 2 }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: 'var(--ocean)', borderRadius: 2 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {daily.length === 0 && topPages.length === 0 && (
+        <p className="text-center text-muted mt-4">No traffic data yet — data appears as visitors use the app.</p>
+      )}
+    </div>
+  );
+}
+
 function timeAgo(ts) {
   if (!ts) return '';
   const diff = Math.floor((Date.now() - new Date(ts + (ts.includes('Z') ? '' : 'Z'))) / 1000);
@@ -355,6 +467,7 @@ export default function AdminDashboard() {
             <button className={`btn btn-sm ${tab === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('notifications')}>
               🔔 Notifications{notifications.filter(n => !n.is_read).length > 0 ? ` (${notifications.filter(n => !n.is_read).length})` : ''}
             </button>
+            <button className={`btn btn-sm ${tab === 'traffic' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('traffic')}>📊 Traffic</button>
           </div>
         </div>
 
@@ -403,6 +516,7 @@ export default function AdminDashboard() {
             )}
 
             {tab === 'billing' && <BillingTab />}
+            {tab === 'traffic' && <TrafficTab />}
 
             {tab === 'notifications' && (
               <>

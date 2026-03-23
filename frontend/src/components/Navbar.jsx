@@ -49,7 +49,7 @@ export default function Navbar() {
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.brand}>
-        <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))' }} />
+        <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
       <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
         {t.navSubtitle}

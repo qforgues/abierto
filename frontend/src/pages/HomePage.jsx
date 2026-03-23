@@ -27,6 +27,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchBusinesses();
+    api.post('/analytics/hit', { path: '/' }).catch(() => {});
     const interval = setInterval(fetchBusinesses, 30000);
     return () => clearInterval(interval);
   }, []);

@@ -38,6 +38,7 @@ export default function BusinessPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    api.post('/analytics/hit', { path: `/business/${id}` }).catch(() => {});
     Promise.all([
       api.get(`/businesses/${id}`),
       api.get(`/businesses/${id}/hours`),
