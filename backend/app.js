@@ -27,6 +27,9 @@ app.use(cookieParser());
 // ── Uploaded files ────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ── Well-known assets (e.g. assetlinks.json for App Links) ──────────────────────
+app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known')));
+
 // ── Ping (no DB) ─────────────────────────────────────────────────────────────
 app.get('/api/ping', (req, res) => {
   res.json({ ok: true, ts: Date.now(), node: process.version, env: process.env.NODE_ENV });
