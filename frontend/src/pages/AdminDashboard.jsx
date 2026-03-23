@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
+import StatusSelector from '../components/StatusSelector';
+import HoursEditor from '../components/HoursEditor';
 import { api } from '../api/client';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -482,6 +484,73 @@ function timeAgo(ts) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function AdminBusinessEditor({ businessId, onStatusSaved }) {
+  const [status, setStatus] = useState('Closed');
+  const [returnTime, setReturnTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [hasHours, setHasHours] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      api.get(`/businesses/${businessId}/status`),
+      api.get(`/businesses/${businessId}/hours`),
+    ]).then(([s, h]) => {
+      setStatus(s.status || 'Closed');
+      setReturnTime(s.return_time || '');
+      setReturnDate(s.return_date || '');
+      setHasHours(h.length > 0);
+    }).catch(() => {});
+  }, [businessId]);
+
+  const saveStatus = async () => {
+    setSaving(true);
+    setMsg('');
+    try {
+      await api.put(`/businesses/${businessId}/status`, {
+        status,
+        return_time: returnTime || undefined,
+        return_date: returnDate || undefined,
+      });
+      setMsg('Saved!');
+      setTimeout(() => setMsg(''), 2000);
+      if (onStatusSaved) onStatusSaved();
+    } catch (err) {
+      setMsg(`Error: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>Status</p>
+        <StatusSelector
+          value={status}
+          onChange={setStatus}
+          returnTime={returnTime}
+          onReturnTimeChange={setReturnTime}
+          returnDate={returnDate}
+          onReturnDateChange={setReturnDate}
+          hasHours={hasHours}
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+          <button className="btn btn-primary btn-sm" onClick={saveStatus} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Status'}
+          </button>
+          {msg && <span className={msg.startsWith('Error') ? 'text-error' : 'text-success'} style={{ fontSize: '0.875rem' }}>{msg}</span>}
+        </div>
+      </div>
+      <div>
+        <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>Hours</p>
+        <HoursEditor businessId={businessId} onSaved={() => setHasHours(true)} />
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') || 'businesses';
@@ -491,6 +560,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => { setTab(tabParam); }, [tabParam]);
 
@@ -581,12 +651,26 @@ export default function AdminDashboard() {
                         </div>
                         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                           <a href={`/business/${b.id}`} target="_blank" className="btn btn-ghost btn-sm">View</a>
+                          {b.is_active && (
+                            <button
+                              className={`btn btn-sm ${editingId === b.id ? 'btn-primary' : 'btn-ghost'}`}
+                              onClick={() => setEditingId(editingId === b.id ? null : b.id)}
+                            >
+                              {editingId === b.id ? 'Done' : 'Edit'}
+                            </button>
+                          )}
                           {b.is_active
                             ? <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Remove</button>
                             : <button className="btn btn-ghost btn-sm" onClick={() => restore(b.id)}>Restore</button>
                           }
                         </div>
                       </div>
+                      {editingId === b.id && (
+                        <AdminBusinessEditor
+                          businessId={b.id}
+                          onStatusSaved={loadBusinesses}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
