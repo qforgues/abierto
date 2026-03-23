@@ -1,7 +1,6 @@
 const express = require('express');
 const db = require('../db/database');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/auth');
+const { requireBusinessAccess } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
@@ -31,14 +30,10 @@ router.put('/', async (req, res) => {
     return res.status(400).json({ error: 'Invalid status.' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Unauthorized.' });
+  const user = requireBusinessAccess(req, res, req.params.id);
+  if (!user) return;
 
   try {
-    const user = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    if (user.role !== 'admin' && user.businessId !== businessId) {
-      return res.status(403).json({ error: 'Forbidden.' });
-    }
 
     // Only keep return_time for Out to Lunch, return_date for Closed for the Season
     const rtVal = status === 'Out to Lunch' ? (return_time || null) : null;
@@ -59,7 +54,6 @@ router.put('/', async (req, res) => {
     );
     res.json(updated);
   } catch (err) {
-    if (err.name === 'JsonWebTokenError') return res.status(401).json({ error: 'Invalid token.' });
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error.' });
   }

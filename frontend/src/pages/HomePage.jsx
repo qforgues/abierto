@@ -51,7 +51,13 @@ export default function HomePage() {
       ? businesses.filter(b => !OPEN_STATUSES.includes(b.status))
       : businesses.filter(b => b.category === filter && OPEN_STATUSES.includes(b.status));
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/');
+    }
+  };
 
   const handleFeedbackSubmit = async () => {
     if (!feedbackMsg.trim()) return;
@@ -121,13 +127,13 @@ export default function HomePage() {
           {user?.role === 'owner' && (
             <>
               <Link to="/owner" className="footer-link-plain">{t.myBusiness}</Link>
-              <button onClick={handleLogout} className="footer-btn-plain">{t.logout}</button>
+              <button onClick={() => { void handleLogout(); }} className="footer-btn-plain">{t.logout}</button>
             </>
           )}
           {user?.role === 'admin' && (
             <>
               <Link to="/admin" className="footer-link-plain">{t.dashboard}</Link>
-              <button onClick={handleLogout} className="footer-btn-plain">{t.logout}</button>
+              <button onClick={() => { void handleLogout(); }} className="footer-btn-plain">{t.logout}</button>
             </>
           )}
         </div>

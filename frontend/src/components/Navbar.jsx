@@ -41,9 +41,12 @@ export default function Navbar() {
   const { lang, t, toggle } = useLang();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/');
+    }
   };
 
   return (
@@ -66,7 +69,7 @@ export default function Navbar() {
         {user?.role === 'owner' && (
           <>
             <Link to="/owner" style={styles.link}>{t.myBusiness}</Link>
-            <button onClick={handleLogout} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
               {t.logout}
             </button>
           </>
@@ -75,7 +78,7 @@ export default function Navbar() {
           <>
             <NotificationBell />
             <Link to="/admin" style={styles.link}>{t.dashboard}</Link>
-            <button onClick={handleLogout} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
               {t.logout}
             </button>
           </>

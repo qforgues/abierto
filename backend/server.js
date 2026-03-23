@@ -1,167 +1,309 @@
-/**
- * backend/server.js
- *
- * Main Express server entry point.
- * Restored from last known good state (pre-cleanup-run).
- *
- * Includes:
- *  - Environment configuration
- *  - Middleware stack (CORS, JSON body parsing, request logging)
- *  - SQLite database connection
- *  - Route registrations (auth, users, items, health)
- *  - Global error handler
- */
-
-'use strict';
-
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
-const Database = require('better-sqlite3');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const rateLimit = require('express-rate-limit');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-// ---------------------------------------------------------------------------
-// App & configuration
-// ---------------------------------------------------------------------------
 const app = express();
 const PORT = process.env.PORT || 5000;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'abierto.sqlite');
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// ---------------------------------------------------------------------------
-// Database connection
-// ---------------------------------------------------------------------------
-let db;
-try {
-  db = new Database(DB_PATH, { verbose: process.env.NODE_ENV === 'development' ? console.log : null });
-  // Enable WAL mode for better concurrent read performance
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  console.log(`[db] Connected to SQLite database at ${DB_PATH}`);
-} catch (err) {
-  console.error('[db] Failed to connect to database:', err.message);
-  process.exit(1);
-}
-
-// Make db available to route handlers via app.locals
-app.locals.db = db;
-
-// ---------------------------------------------------------------------------
-// Middleware stack
-// ---------------------------------------------------------------------------
-
-// CORS — allow requests from the frontend dev server
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true,
-  })
-);
-
-// Parse incoming JSON bodies
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
-
-// Parse URL-encoded bodies (form submissions)
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// Simple request logger
-app.use((req, _res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
+// Rate limiting for login attempts
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per windowMs
+  message: 'Too many login attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// ---------------------------------------------------------------------------
-// Route registrations
-// ---------------------------------------------------------------------------
-
-// Health check — lightweight ping used by load balancers / CI
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Rate limiting for general API requests
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// API base path
-const API = '/api';
+app.use('/api/', apiLimiter);
 
-// Auth routes  (login, register, logout, refresh-token)
-try {
-  const authRouter = require('./routes/auth');
-  app.use(`${API}/auth`, authRouter);
-  console.log('[routes] /api/auth registered');
-} catch (e) {
-  console.warn('[routes] Could not load auth router:', e.message);
-}
+// Database initialization
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'abierto.db');
+let db = null;
+let dbReady = false;
 
-// User routes  (profile, list, update, delete)
-try {
-  const usersRouter = require('./routes/users');
-  app.use(`${API}/users`, usersRouter);
-  console.log('[routes] /api/users registered');
-} catch (e) {
-  console.warn('[routes] Could not load users router:', e.message);
-}
+const dbConnection = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening database:', err);
+    console.log('Database not available, but API will continue with limited functionality');
+  } else {
+    console.log('Connected to SQLite database at:', dbPath);
+    db = dbConnection;
+    dbReady = true;
+    initializeDatabase();
+  }
+});
 
-// Items / listings routes
-try {
-  const itemsRouter = require('./routes/items');
-  app.use(`${API}/items`, itemsRouter);
-  console.log('[routes] /api/items registered');
-} catch (e) {
-  console.warn('[routes] Could not load items router:', e.message);
-}
+// Fallback: set db even if there's an error
+db = dbConnection;
 
-// Categories routes
-try {
-  const categoriesRouter = require('./routes/categories');
-  app.use(`${API}/categories`, categoriesRouter);
-  console.log('[routes] /api/categories registered');
-} catch (e) {
-  console.warn('[routes] Could not load categories router:', e.message);
-}
+// Initialize database schema
+function initializeDatabase() {
+  db.serialize(() => {
+    // Businesses table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS businesses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-// ---------------------------------------------------------------------------
-// 404 handler — must come after all route registrations
-// ---------------------------------------------------------------------------
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Cannot ${req.method} ${req.originalUrl}`,
+    // Guest codes table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS guest_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER NOT NULL,
+        guest_code TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME NOT NULL,
+        FOREIGN KEY (business_id) REFERENCES businesses(id)
+      )
+    `);
+
+    // Photos table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER NOT NULL,
+        file_path TEXT NOT NULL,
+        uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (business_id) REFERENCES businesses(id)
+      )
+    `);
   });
+}
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'UP' });
 });
 
-// ---------------------------------------------------------------------------
-// Global error handler
-// ---------------------------------------------------------------------------
-// eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
-  console.error('[error]', err);
-  const status = err.status || err.statusCode || 500;
-  res.status(status).json({
-    error: err.name || 'InternalServerError',
-    message: err.message || 'An unexpected error occurred.',
-  });
+// Helper function to generate business code
+function generateBusinessCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  const length = Math.floor(Math.random() * 3) + 6; // 6-8 characters
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Helper function to generate guest code
+function generateGuestCode() {
+  const chars = '0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Helper function to verify JWT token
+function verifyToken(req, res, next) {
+  const token = req.cookies.authToken;
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.businessId = decoded.businessId;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+// Create a new business
+app.post('/api/businesses', async (req, res) => {
+  const { name, password } = req.body;
+
+  if (!name || !password) {
+    return res.status(400).json({ error: 'Name and password are required' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  }
+
+  try {
+    const businessCode = generateBusinessCode();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    db.run(
+      'INSERT INTO businesses (business_code, name, password_hash) VALUES (?, ?, ?)',
+      [businessCode, name, passwordHash],
+      function (err) {
+        if (err) {
+          console.error('Error creating business:', err);
+          return res.status(500).json({ error: 'Failed to create business' });
+        }
+
+        const businessId = this.lastID;
+        const token = jwt.sign({ businessId }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        res.status(201).json({
+          businessId,
+          businessCode,
+          name,
+          message: 'Business created successfully',
+        });
+      }
+    );
+  } catch (err) {
+    console.error('Error creating business:', err);
+    res.status(500).json({ error: 'Failed to create business' });
+  }
 });
 
-// ---------------------------------------------------------------------------
-// Start server
-// ---------------------------------------------------------------------------
-const server = app.listen(PORT, () => {
-  console.log(`[server] Abierto API listening on http://localhost:${PORT}`);
-  console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
+// Owner login
+app.post('/api/login', loginLimiter, (req, res) => {
+  const { businessCode, password } = req.body;
+
+  if (!businessCode || !password) {
+    return res.status(400).json({ error: 'Business code and password are required' });
+  }
+
+  db.get(
+    'SELECT id, password_hash, name FROM businesses WHERE business_code = ?',
+    [businessCode],
+    async (err, row) => {
+      if (err) {
+        console.error('Error querying database:', err);
+        return res.status(500).json({ error: 'Failed to authenticate' });
+      }
+
+      if (!row) {
+        return res.status(401).json({ error: 'Invalid business code or password' });
+      }
+
+      try {
+        const passwordMatch = await bcrypt.compare(password, row.password_hash);
+        if (!passwordMatch) {
+          return res.status(401).json({ error: 'Invalid business code or password' });
+        }
+
+        const token = jwt.sign({ businessId: row.id }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        res.status(200).json({
+          businessId: row.id,
+          businessCode,
+          name: row.name,
+          message: 'Login successful',
+        });
+      } catch (err) {
+        console.error('Error during authentication:', err);
+        res.status(500).json({ error: 'Failed to authenticate' });
+      }
+    }
+  );
+});
+
+// Generate guest code
+app.post('/api/guest-codes', verifyToken, (req, res) => {
+  const businessId = req.businessId;
+  const guestCode = generateGuestCode();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+  db.run(
+    'INSERT INTO guest_codes (business_id, guest_code, expires_at) VALUES (?, ?, ?)',
+    [businessId, guestCode, expiresAt.toISOString()],
+    function (err) {
+      if (err) {
+        console.error('Error creating guest code:', err);
+        return res.status(500).json({ error: 'Failed to create guest code' });
+      }
+
+      res.status(201).json({
+        guestCode,
+        expiresAt,
+        message: 'Guest code created successfully',
+      });
+    }
+  );
+});
+
+// Logout
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('authToken');
+  res.status(200).json({ message: 'Logged out successfully' });
+});
+
+// Serve static files from the frontend build
+const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendBuildPath));
+
+// Fallback to index.html for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendBuildPath, 'index.html'));
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${NODE_ENV}`);
 });
 
 // Graceful shutdown
-const shutdown = (signal) => {
-  console.log(`[server] Received ${signal}. Shutting down gracefully…`);
-  server.close(() => {
-    if (db) {
-      db.close();
-      console.log('[db] Database connection closed.');
+process.on('SIGINT', () => {
+  console.log('Shutting down gracefully...');
+  db.close((err) => {
+    if (err) {
+      console.error('Error closing database:', err);
+    } else {
+      console.log('Database connection closed');
     }
-    console.log('[server] HTTP server closed.');
     process.exit(0);
   });
-};
+});
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
-module.exports = { app, db };
+module.exports = app;

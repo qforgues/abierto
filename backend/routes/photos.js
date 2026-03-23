@@ -2,9 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
 const db = require('../db/database');
-const { JWT_SECRET } = require('../middleware/auth');
+const { requireBusinessAccess } = require('../middleware/auth');
 const { fileUploadRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router({ mergeParams: true });
@@ -30,17 +29,9 @@ const upload = multer({
 });
 
 function authCheck(req, res, businessId, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Unauthorized.' });
-  try {
-    const user = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    if (user.role !== 'admin' && user.businessId !== parseInt(businessId)) {
-      return res.status(403).json({ error: 'Forbidden.' });
-    }
-    next(user);
-  } catch {
-    res.status(401).json({ error: 'Invalid token.' });
-  }
+  const user = requireBusinessAccess(req, res, businessId);
+  if (!user) return null;
+  return next(user);
 }
 
 // POST /api/businesses/:id/photos

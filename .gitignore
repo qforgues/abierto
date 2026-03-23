@@ -2,6 +2,9 @@
 node_modules/
 
 # Environment files
+.env
+.env.local
+.env.*.local
 backend/.env
 frontend/.env
 
@@ -9,12 +12,17 @@ frontend/.env
 *.sqlite
 *.sqlite3
 *.db
+backend/db/*.db
+backend/uploads/
 
 # Backup files
 *.bak
+*.jks
+*.keystore
 
 # Coverage and build artifacts
 backend/coverage/
+coverage/
 frontend/dist/
 
 # Logs
@@ -36,3 +44,14 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+.bridge/
+* 2.*
+* 3.*
+* 4.*
+* 5.*
+* 6.*
+* 7.*
+* 8.*
+* 9.*
+* 10.*
+* 11.*

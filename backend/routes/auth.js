@@ -9,7 +9,7 @@ const router = express.Router();
 /**
  * POST /api/auth/login
  * Authenticates an owner using business code and password
- * Returns a JWT token in httpOnly cookie on success
+ * Returns a JWT token in an httpOnly cookie on success
  */
 router.post('/login', loginRateLimiter, async (req, res) => {
     try {
@@ -53,11 +53,11 @@ router.post('/login', loginRateLimiter, async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        // Set token in httpOnly cookie
-        res.cookie('token', token, {
+        // Set auth cookie in httpOnly cookie
+        res.cookie('authToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
         });
 
@@ -82,7 +82,7 @@ router.post('/login', loginRateLimiter, async (req, res) => {
  */
 router.post('/logout', (req, res) => {
     try {
-        res.clearCookie('token');
+        res.clearCookie('authToken');
         return res.status(200).json({
             message: 'Logout successful.'
         });

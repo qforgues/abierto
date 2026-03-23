@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db/database');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requireBusinessAccess } = require('../middleware/auth');
 const { businessCreationRateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -212,17 +212,10 @@ router.patch('/:id', async (req, res) => {
   const { name, description, category, lat, lon, phone } = req.body;
   const { id } = req.params;
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Unauthorized.' });
+  const user = requireBusinessAccess(req, res, id);
+  if (!user) return;
 
   try {
-    const jwt = require('jsonwebtoken');
-    const { JWT_SECRET } = require('../middleware/auth');
-    const user = jwt.verify(authHeader.slice(7), JWT_SECRET);
-
-    if (user.role !== 'admin' && user.businessId !== parseInt(id)) {
-      return res.status(403).json({ error: 'Forbidden.' });
-    }
 
     await db.run(
       `UPDATE businesses SET name = COALESCE(?, name), description = COALESCE(?, description),
@@ -235,7 +228,6 @@ router.patch('/:id', async (req, res) => {
     const updated = await db.get('SELECT * FROM businesses WHERE id = ?', [id]);
     res.json(updated);
   } catch (err) {
-    if (err.name === 'JsonWebTokenError') return res.status(401).json({ error: 'Invalid token.' });
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error.' });
   }

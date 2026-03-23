@@ -1,37 +1,58 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { api } from '../api/client';
 
 const AuthContext = createContext(null);
 
-function decodeToken(token) {
-  try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('abierto_token'));
-  const [user, setUser] = useState(() => {
-    const t = localStorage.getItem('abierto_token');
-    return t ? decodeToken(t) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [ready, setReady] = useState(false);
 
-  const login = (newToken) => {
-    localStorage.setItem('abierto_token', newToken);
-    setToken(newToken);
-    setUser(decodeToken(newToken));
+  const refreshAuth = async () => {
+    try {
+      const data = await api.get('/auth/me');
+      setUser(data.user || null);
+    } catch {
+      setUser(null);
+    } finally {
+      setReady(true);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('abierto_token');
-    setToken(null);
-    setUser(null);
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const data = await api.get('/auth/me');
+        if (active) setUser(data.user || null);
+      } catch {
+        if (active) setUser(null);
+      } finally {
+        if (active) setReady(true);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const login = (sessionUser) => {
+    setUser(sessionUser || null);
+    setReady(true);
+  };
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      setUser(null);
+      setReady(true);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ user, ready, login, logout, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

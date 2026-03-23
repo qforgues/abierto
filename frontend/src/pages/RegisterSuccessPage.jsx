@@ -28,7 +28,7 @@ export default function RegisterSuccessPage() {
     setLoading(true);
     try {
       const data = await api.post('/auth/business/login', { code });
-      login(data.token);
+      login(data.user);
       navigate('/owner');
     } catch {
       navigate('/login');

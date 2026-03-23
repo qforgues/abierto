@@ -1,20 +1,13 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const db = require('../db/database');
-const { JWT_SECRET } = require('../middleware/auth');
+const { requireBusinessAccess } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
 const DAYS = 7;
 
 function authCheck(req, res, businessId) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  try {
-    const user = jwt.verify(header.slice(7), JWT_SECRET);
-    if (user.role !== 'admin' && user.businessId !== parseInt(businessId)) return null;
-    return user;
-  } catch { return null; }
+  return requireBusinessAccess(req, res, businessId);
 }
 
 // GET /api/businesses/:id/hours
@@ -35,7 +28,7 @@ router.get('/', async (req, res) => {
 // Body: array of { day_of_week (0-6), open_time, close_time, is_closed }
 router.put('/', async (req, res) => {
   const user = authCheck(req, res, req.params.id);
-  if (!user) return res.status(401).json({ error: 'Unauthorized.' });
+  if (!user) return;
 
   const { hours } = req.body;
   if (!Array.isArray(hours) || hours.length !== DAYS) {

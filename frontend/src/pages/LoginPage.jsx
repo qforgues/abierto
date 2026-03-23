@@ -18,15 +18,16 @@ export default function LoginPage() {
   const [contactSent, setContactSent] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
 
-  const { login, user } = useAuth();
+  const { login, user, ready } = useAuth();
   const { t } = useLang();
   const lp = t.loginPage;
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!ready) return;
     if (user?.role === 'owner') navigate('/owner');
     if (user?.role === 'admin') navigate('/admin');
-  }, [user]);
+  }, [ready, user, navigate]);
 
   const handleOwnerLogin = async (e) => {
     e.preventDefault();
@@ -34,7 +35,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await api.post('/auth/business/login', { code: code.toUpperCase() });
-      login(data.token);
+      login(data.user);
       navigate('/owner');
     } catch (err) {
       setError(err.message);
@@ -49,7 +50,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await api.post('/auth/admin/login', { username, password });
-      login(data.token);
+      login(data.user);
       navigate('/admin');
     } catch (err) {
       setError(err.message);
