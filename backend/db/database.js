@@ -13,7 +13,7 @@ const httpUrl = TURSO_URL
 function toArg(v) {
   if (v === null || v === undefined) return { type: 'null' };
   if (typeof v === 'boolean') return { type: 'integer', value: v ? '1' : '0' };
-  if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: String(v) };
+  if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: v };
   return { type: 'text', value: String(v) };
 }
 
