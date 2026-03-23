@@ -24,6 +24,29 @@ app.use(cookieParser());
 // ── Uploaded files ────────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ── Debug endpoint ───────────────────────────────────────────────────────────
+app.get('/api/debug', async (req, res) => {
+  const info = {
+    node: process.version,
+    env: process.env.NODE_ENV,
+    turso_url: process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL.replace(/\/\/.*@/, '//***@') : 'NOT SET',
+    turso_token: process.env.TURSO_AUTH_TOKEN ? 'SET' : 'NOT SET',
+    steps: [],
+  };
+  try {
+    info.steps.push('connecting to db...');
+    const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
+    info.steps.push('connected');
+    info.tables = tables.map(t => t.name);
+    const bizCount = await db.get('SELECT COUNT(*) as c FROM businesses');
+    info.business_count = bizCount?.c ?? 0;
+    info.steps.push('queries ok');
+    res.json({ ok: true, ...info });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack, ...info });
+  }
+});
+
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',                  require('./routes/apiAuth'));
 app.use('/api/businesses',            require('./routes/businesses'));
