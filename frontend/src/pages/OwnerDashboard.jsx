@@ -42,7 +42,9 @@ export default function OwnerDashboard() {
     setReturnDate(stored.return_date || '');
     setEditForm({
       name: b.name, description: b.description || '', category: b.category || '',
-      lat: b.lat || '', lon: b.lon || '', phone: (() => {
+      lat: b.lat ? String(b.lat).split('.')[1] || '' : '',
+      lon: b.lon ? String(b.lon).split('.')[1] || '' : '',
+      phone: (() => {
         const d = (b.phone || '').replace(/\D/g, '').slice(-10);
         if (!d) return '';
         if (d.length > 6) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
@@ -82,8 +84,8 @@ export default function OwnerDashboard() {
         name: editForm.name,
         description: editForm.description || null,
         category: editForm.category || null,
-        lat: editForm.lat ? parseFloat(editForm.lat) : null,
-        lon: editForm.lon ? parseFloat(editForm.lon) : null,
+        lat: editForm.lat ? parseFloat('18.' + editForm.lat) : null,
+        lon: editForm.lon ? parseFloat('-65.' + editForm.lon) : null,
         phone: editForm.phone ? `+1${editForm.phone.replace(/\D/g, '')}` : null,
       });
       await load();
@@ -97,7 +99,11 @@ export default function OwnerDashboard() {
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => setEditForm(f => ({ ...f, lat: pos.coords.latitude.toFixed(6), lon: pos.coords.longitude.toFixed(6) })),
+      (pos) => setEditForm(f => ({
+        ...f,
+        lat: pos.coords.latitude.toFixed(6).split('.')[1],
+        lon: pos.coords.longitude.toFixed(6).split('.')[1],
+      })),
       (err) => {
         if (err.code === 1) {
           alert('Location access is blocked. Please enable it in your browser or device settings, then try again.');
@@ -215,8 +221,20 @@ export default function OwnerDashboard() {
               </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>{ow.useLocation}</button>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field"><label>Lat</label><input type="number" step="any" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} /></div>
-                <div className="field"><label>Lon</label><input type="number" step="any" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} /></div>
+                <div className="field">
+                  <label>Lat</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
+                    <input type="number" step="any" min="0" max="999999" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label>Lon</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
+                    <input type="number" step="any" min="0" max="999999" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                  </div>
+                </div>
               </div>
               <button className="btn btn-primary" onClick={saveInfo} disabled={savingInfo}>
                 {savingInfo ? ow.saving : ow.saveChanges}

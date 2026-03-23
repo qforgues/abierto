@@ -31,8 +31,8 @@ export default function RegisterPage() {
     setLocDenied(false);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        set('lat', pos.coords.latitude.toFixed(6));
-        set('lon', pos.coords.longitude.toFixed(6));
+        set('lat', pos.coords.latitude.toFixed(6).split('.')[1]);
+        set('lon', pos.coords.longitude.toFixed(6).split('.')[1]);
         setLocating(false);
       },
       (err) => {
@@ -57,8 +57,8 @@ export default function RegisterPage() {
         description: form.description.trim() || null,
         category: form.category || null,
         phone: form.phone ? `+1${form.phone.replace(/\D/g, '')}` : null,
-        lat: form.lat ? parseFloat(form.lat) : null,
-        lon: form.lon ? parseFloat(form.lon) : null,
+        lat: form.lat ? parseFloat('18.' + form.lat) : null,
+        lon: form.lon ? parseFloat('-65.' + form.lon) : null,
       });
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
     } catch (err) {
@@ -118,11 +118,17 @@ export default function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="field">
                 <label>{r.labelLat}</label>
-                <input type="number" step="any" value={form.lat} onChange={e => set('lat', e.target.value)} placeholder="18.1234" />
+                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                  <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
+                  <input type="number" step="any" min="0" max="999999" value={form.lat} onChange={e => set('lat', e.target.value)} placeholder="12345" style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                </div>
               </div>
               <div className="field">
                 <label>{r.labelLon}</label>
-                <input type="number" step="any" value={form.lon} onChange={e => set('lon', e.target.value)} placeholder="-65.4321" />
+                <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                  <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
+                  <input type="number" step="any" min="0" max="999999" value={form.lon} onChange={e => set('lon', e.target.value)} placeholder="43210" style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                </div>
               </div>
             </div>
           </div>
