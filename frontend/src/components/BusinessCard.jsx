@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
+import { CATEGORY_ICONS } from '../constants/categories';
 
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -23,10 +24,6 @@ function fmtDist(m) {
   return m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`;
 }
 
-const CATEGORY_ICONS = {
-  Restaurant: '🍽️', 'Food Truck': '🚚', Bar: '🍹', Cafe: '☕',
-  Shop: '🛍️', Service: '🔧', Beach: '🏖️', Other: '📍',
-};
 
 function fmt12(t) {
   if (!t) return '';

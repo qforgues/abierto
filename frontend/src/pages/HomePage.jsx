@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
+import { CATEGORY_ICONS } from '../constants/categories';
 
 const CATEGORIES = ['All', 'Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other', 'Closed'];
 
@@ -70,9 +71,9 @@ export default function HomePage() {
             key={cat}
             onClick={() => setFilter(cat)}
             className={`btn btn-sm ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ whiteSpace: 'nowrap' }}
+            style={{ whiteSpace: 'nowrap', gap: 4 }}
           >
-            {t.categories[cat]}
+            <span>{CATEGORY_ICONS[cat]}</span>{t.categories[cat]}
           </button>
         ))}
       </div>
