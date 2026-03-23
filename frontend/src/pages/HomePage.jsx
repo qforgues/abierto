@@ -40,7 +40,7 @@ export default function HomePage() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  const OPEN_STATUSES = ['Open', 'Opening Late', 'Back Soon'];
+  const OPEN_STATUSES = ['Open', 'Open 24 Hours', 'Opening Late', 'Back Soon'];
   const filtered = filter === 'All'
     ? businesses.filter(b => OPEN_STATUSES.includes(b.status))
     : filter === 'Closed'

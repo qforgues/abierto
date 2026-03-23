@@ -5,7 +5,7 @@ const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
-const VALID_STATUSES = ['Open', 'Closed', 'Out to Lunch', 'Closed for the Season'];
+const VALID_STATUSES = ['Open', 'Closed', 'Out to Lunch', 'Closed for the Season', 'Open 24 Hours'];
 
 // GET /api/businesses/:id/status
 router.get('/', async (req, res) => {

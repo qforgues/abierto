@@ -18,8 +18,9 @@ function getViequesNow() {
 // Compute what status to show publicly.
 // todayHours: { open_time, close_time, is_closed } or null if no hours configured
 function computeStatus(stored, returnTime, todayHours, timeStr) {
-  // Season closure is permanent until owner clears it
+  // Permanent overrides — stay until owner changes them
   if (stored === 'Closed for the Season') return stored;
+  if (stored === 'Open 24 Hours') return stored;
 
   // Out to Lunch auto-expires when return_time passes
   if (stored === 'Out to Lunch') {
@@ -36,8 +37,11 @@ function computeStatus(stored, returnTime, todayHours, timeStr) {
   // Hours incomplete — fall back to stored
   if (!todayHours.open_time || !todayHours.close_time) return stored || 'Closed';
 
-  // Time-based
-  return (timeStr >= todayHours.open_time && timeStr < todayHours.close_time) ? 'Open' : 'Closed';
+  // Time-based (handle overnight ranges where close < open)
+  const isOpen = todayHours.close_time <= todayHours.open_time
+    ? (timeStr >= todayHours.open_time || timeStr < todayHours.close_time)  // overnight
+    : (timeStr >= todayHours.open_time && timeStr < todayHours.close_time); // same day
+  return isOpen ? 'Open' : 'Closed';
 }
 
 function generateCode() {

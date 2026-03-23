@@ -168,6 +168,7 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--status-open);
   box-shadow: 0 0 0 3px rgba(22,163,74,0.18), 0 2px 8px rgba(22,163,74,0.30);
 }
+.status-badge.Open-24-Hours         { background: var(--status-open); box-shadow: 0 0 0 3px rgba(22,163,74,0.18), 0 2px 8px rgba(22,163,74,0.30); }
 .status-badge.Closed                { background: var(--status-closed); }
 .status-badge.Out-to-Lunch          { background: var(--status-out-to-lunch); }
 .status-badge.Closed-for-the-Season { background: var(--status-season); }
@@ -335,6 +336,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .status-selector-btn:hover { border-color: #94a3b8; background: var(--light); }
 .status-selector-btn.active-Open                  { border-color: var(--status-open); background: #f0fdf4; color: var(--status-open); box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+.status-selector-btn.active-Open-24-Hours         { border-color: var(--status-open); background: #f0fdf4; color: var(--status-open); box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
 .status-selector-btn.active-Closed                { border-color: var(--status-closed); background: #fef2f2; color: var(--status-closed); }
 .status-selector-btn.active-Out-to-Lunch          { border-color: var(--status-out-to-lunch); background: #fffbeb; color: var(--status-out-to-lunch); }
 .status-selector-btn.active-Closed-for-the-Season { border-color: var(--status-season); background: #f8fafc; color: var(--status-season); }

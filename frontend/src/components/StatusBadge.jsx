@@ -2,6 +2,7 @@ import React from 'react';
 
 const DOT = {
   Open: '🟢',
+  'Open 24 Hours': '🟢',
   Closed: '🔴',
   'Out to Lunch': '🟡',
   'Closed for the Season': '⛔',
