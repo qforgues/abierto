@@ -1,262 +1,379 @@
-# Abierto v1.4
+# Abierto v1.4 - Web App with Android TWA Deployment
 
-Abierto is a web application designed to facilitate the creation and management of businesses with photo uploads. This version includes Docker support for easy deployment to cloud services like Render or Railway.
+Abierto is a web application designed to facilitate business creation and photo uploads, with support for deployment to the Google Play Store using Trusted Web Activity (TWA).
 
-## Prerequisites
+## Table of Contents
 
-- Node.js (v14 or higher)
+- [Overview](#overview)
+- [Technical Architecture](#technical-architecture)
+- [Getting Started](#getting-started)
+- [Deployment](#deployment)
+- [Backup Strategy](#backup-strategy)
+- [Security](#security)
+- [Contributing](#contributing)
+
+## Overview
+
+Abierto v1.4 is designed to facilitate the deployment of the existing Abierto web app to the Google Play Store using a Trusted Web Activity (TWA) approach. The application consists of a React frontend and an Express backend, with existing PWA components.
+
+### Key Features
+
+- Business creation with secure owner authentication
+- Photo upload and management
+- Guest access with time-limited codes
+- Automated database backups with S3 integration
+- Rate limiting and abuse protection
+- Digital Asset Links for TWA verification
+- Health check endpoint for monitoring
+
+## Technical Architecture
+
+- **Frontend:** React.js
+- **Backend:** Express.js
+- **Database:** SQLite (with backup plan for PostgreSQL)
+- **Deployment Platform:** Render.com or Railway.app
+- **Mobile Framework:** Trusted Web Activity (TWA) using Bubblewrap
+- **Authentication:** JSON Web Tokens (JWT) stored in httpOnly cookies
+- **Backup Storage:** AWS S3
+- **Digital Asset Links:** Configuration for domain verification
+
+### Environment Configuration
+
+#### Local Development
+- API base URL: `http://localhost:5000/api`
+- Database: SQLite at `/backend/db/database.sqlite`
+
+#### Staging
+- API base URL: `https://staging.abierto.example.com/api`
+
+#### Production
+- API base URL: `https://abierto.example.com/api`
+- Android app configured to point to production domain
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or higher)
 - npm or yarn
-- Docker (for containerized deployment)
-- Docker Compose (optional, for local development)
+- SQLite3
+- AWS CLI (for backup operations)
+- Docker (for deployment)
 
-## Installation
-
-### Local Development
+### Installation
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/yourusername/abierto.git
    cd abierto
    ```
 
-2. Install backend dependencies:
+2. Install dependencies:
    ```bash
-   cd backend
    npm install
-   cd ..
+   cd frontend && npm install && cd ..
+   cd backend && npm install && cd ..
    ```
 
-3. Install frontend dependencies:
+3. Set up environment variables:
    ```bash
-   cd frontend
-   npm install
-   cd ..
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-4. Create a `.env` file in the backend directory with the following variables:
-   ```
-   NODE_ENV=development
-   PORT=5000
-   JWT_SECRET=your-secret-key-change-in-production
-   API_URL=http://localhost:5000/api
-   FRONTEND_URL=http://localhost:3000
-   DB_PATH=./abierto.db
-   ```
-
-5. Start the backend server:
+4. Initialize the database:
    ```bash
-   cd backend
-   npm start
+   npm run db:init
    ```
 
-6. In a new terminal, start the frontend development server:
+5. Start the development server:
    ```bash
-   cd frontend
-   npm start
+   npm run dev
    ```
 
-7. Open your browser and navigate to `http://localhost:3000`.
+## Deployment
 
-## Docker Deployment
+### Docker Deployment
 
-### Building the Docker Image
+The application includes a Dockerfile for containerized deployment:
 
-1. Ensure you are in the root directory of the project.
+```bash
+docker build -t abierto:latest .
+docker run -p 5000:5000 -v abierto-db:/backend/db abierto:latest
+```
 
-2. Build the Docker image:
+### Render.com Deployment
+
+1. Connect your GitHub repository to Render
+2. Create a new Web Service
+3. Set the build command: `npm install && npm run build`
+4. Set the start command: `npm start`
+5. Add environment variables in the Render dashboard
+6. Ensure persistent disk is mounted at `/backend/db` for SQLite
+
+### Railway.app Deployment
+
+1. Connect your GitHub repository to Railway
+2. Create a new project
+3. Add environment variables
+4. Configure persistent volume for `/backend/db`
+5. Deploy
+
+## Backup Strategy
+
+### Automated Backups
+
+The application includes an automated backup strategy for the SQLite database using AWS S3.
+
+### Backup Script
+
+The backup script is located at `/scripts/backup.sh` and performs the following:
+
+1. Creates a backup of the SQLite database
+2. Verifies the backup file exists and is not empty
+3. Uploads the backup to AWS S3
+4. Verifies the S3 upload by checking file existence and size match
+5. Applies retention policy (keeps last 30 backups)
+6. Cleans up local backup files
+
+### Configuration
+
+Set the following environment variables to configure backups:
+
+```bash
+# Database path (default: /backend/db/database.sqlite)
+DB_PATH=/backend/db/database.sqlite
+
+# Local backup directory (default: /tmp/backups)
+BACKUP_DIR=/tmp/backups
+
+# AWS S3 bucket name
+S3_BUCKET=your-bucket-name
+
+# S3 prefix/folder (default: backups)
+S3_PREFIX=backups
+
+# Number of backups to retain (default: 30)
+RETENTION_COUNT=30
+
+# Log file location (default: /var/log/abierto-backup.log)
+LOG_FILE=/var/log/abierto-backup.log
+```
+
+### AWS S3 Setup
+
+1. Create an S3 bucket:
    ```bash
-   docker build -t abierto .
+   aws s3 mb s3://your-bucket-name
    ```
 
-### Running the Docker Container
-
-1. Run the Docker container:
+2. Create an IAM user with S3 access:
    ```bash
-   docker run -p 5000:5000 \
-     -e NODE_ENV=production \
-     -e JWT_SECRET=your-production-secret-key \
-     -e API_URL=https://abierto.example.com/api \
-     -e FRONTEND_URL=https://abierto.example.com \
-     abierto
+   aws iam create-user --user-name abierto-backup
+   aws iam attach-user-policy --user-name abierto-backup --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
    ```
 
-   **Important:** Replace `your-production-secret-key` with a strong, randomly generated secret key. Do NOT use the default value in production.
+3. Generate access keys:
+   ```bash
+   aws iam create-access-key --user-name abierto-backup
+   ```
 
-2. Verify the application is running by accessing the health check endpoint:
+4. Configure AWS CLI:
+   ```bash
+   aws configure
+   # Enter your access key ID and secret access key
+   ```
+
+### Cron Job Setup
+
+To set up the nightly backup, add the following line to your crontab:
+
+```bash
+0 2 * * * /path/to/scripts/backup.sh
+```
+
+This will run the backup script every day at 2 AM.
+
+#### Setting up Cron on Linux/macOS
+
+1. Open crontab editor:
+   ```bash
+   crontab -e
+   ```
+
+2. Add the backup job:
+   ```bash
+   0 2 * * * /path/to/scripts/backup.sh >> /var/log/abierto-backup-cron.log 2>&1
+   ```
+
+3. Save and exit (Ctrl+X, then Y, then Enter in nano)
+
+4. Verify the cron job:
+   ```bash
+   crontab -l
+   ```
+
+#### Setting up Cron on Docker/Render/Railway
+
+For containerized deployments, use a cron service or scheduled job:
+
+**Option 1: Using a separate cron container**
+
+Create a `docker-compose.yml` with a dedicated cron service:
+
+```yaml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - abierto-db:/backend/db
+    environment:
+      - DB_PATH=/backend/db/database.sqlite
+      - S3_BUCKET=your-bucket-name
+
+  cron:
+    build: .
+    command: /bin/bash -c "while true; do /scripts/backup.sh; sleep 86400; done"
+    volumes:
+      - abierto-db:/backend/db
+      - ./scripts:/scripts
+    environment:
+      - DB_PATH=/backend/db/database.sqlite
+      - S3_BUCKET=your-bucket-name
+
+volumes:
+  abierto-db:
+```
+
+**Option 2: Using Render Cron Jobs**
+
+Render supports background jobs. Create a `render.yaml` file:
+
+```yaml
+services:
+  - type: web
+    name: abierto
+    plan: standard
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DB_PATH
+        value: /backend/db/database.sqlite
+      - key: S3_BUCKET
+        value: your-bucket-name
+
+  - type: cron
+    name: abierto-backup
+    schedule: "0 2 * * *"
+    command: /scripts/backup.sh
+```
+
+### Backup Verification
+
+To verify that backups are working correctly:
+
+1. Check the backup log:
+   ```bash
+   tail -f /var/log/abierto-backup.log
+   ```
+
+2. List backups in S3:
+   ```bash
+   aws s3 ls s3://your-bucket-name/backups/
+   ```
+
+3. Download and verify a backup:
+   ```bash
+   aws s3 cp s3://your-bucket-name/backups/database_TIMESTAMP.sqlite ./test-backup.sqlite
+   sqlite3 test-backup.sqlite ".tables"
+   ```
+
+### Restore Procedure
+
+To restore from a backup:
+
+1. Download the backup from S3:
+   ```bash
+   aws s3 cp s3://your-bucket-name/backups/database_TIMESTAMP.sqlite ./database.sqlite
+   ```
+
+2. Stop the application:
+   ```bash
+   docker stop abierto
+   ```
+
+3. Replace the database:
+   ```bash
+   cp ./database.sqlite /backend/db/database.sqlite
+   ```
+
+4. Restart the application:
+   ```bash
+   docker start abierto
+   ```
+
+5. Verify the restore:
    ```bash
    curl http://localhost:5000/api/health
    ```
 
-   You should receive a response:
-   ```json
-   {"status": "UP"}
-   ```
+## Security
 
-### Environment Variables
+### Authentication
 
-The following environment variables should be set when running the Docker container:
+- Owner authentication uses `business_code + password`
+- Passwords are hashed using bcrypt
+- JWT tokens are stored in httpOnly cookies
+- Token expiry: 7 days
+- Guest codes expire 7 days from creation
 
-- **NODE_ENV**: Set to `production` for production deployments.
-- **JWT_SECRET**: A strong, randomly generated secret key for signing JWT tokens. **This must be set securely and never hardcoded.**
-- **API_URL**: The base URL for the API (e.g., `https://abierto.example.com/api`).
-- **FRONTEND_URL**: The URL where the frontend is hosted (e.g., `https://abierto.example.com`).
-- **PORT**: The port on which the application runs (default: 5000).
-- **DB_PATH**: The path to the SQLite database file (default: `./abierto.db`).
+### Rate Limiting
 
-### Deploying to Render or Railway
+- Login attempts are rate-limited to prevent brute force attacks
+- Default: 5 attempts per 15 minutes per IP
+- Configurable via environment variables
 
-#### Render.com
+### Abuse Protection
 
-1. Connect your GitHub repository to Render.
-2. Create a new Web Service.
-3. Set the build command to: `npm install && cd frontend && npm run build && cd ..`
-4. Set the start command to: `node backend/server.js`
-5. Add the following environment variables in the Render dashboard:
-   - `NODE_ENV=production`
-   - `JWT_SECRET=<your-strong-secret-key>`
-   - `API_URL=https://<your-render-url>/api`
-   - `FRONTEND_URL=https://<your-render-url>`
-6. Deploy the service.
+- Photo upload size limits
+- Request rate limiting
+- CORS configuration
+- Input validation and sanitization
 
-#### Railway.app
+### Digital Asset Links
 
-1. Connect your GitHub repository to Railway.
-2. Create a new project.
-3. Add a service and select your repository.
-4. Set the start command to: `node backend/server.js`
-5. Add the following environment variables in the Railway dashboard:
-   - `NODE_ENV=production`
-   - `JWT_SECRET=<your-strong-secret-key>`
-   - `API_URL=https://<your-railway-url>/api`
-   - `FRONTEND_URL=https://<your-railway-url>`
-6. Deploy the service.
+For TWA deployment, configure Digital Asset Links at `https://abierto.example.com/.well-known/assetlinks.json`:
 
-## API Endpoints
-
-### Health Check
-
-- **GET** `/api/health`
-  - Returns the health status of the application.
-  - Response: `{"status": "UP"}`
-
-### Create Business
-
-- **POST** `/api/businesses`
-  - Creates a new business.
-  - Request body:
-    ```json
-    {
-      "name": "Business Name",
-      "password": "secure-password"
+```json
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.abierto",
+      "sha256_cert_fingerprints": ["YOUR_SHA256_FINGERPRINT"]
     }
-    ```
-  - Response:
-    ```json
-    {
-      "businessId": 1,
-      "businessCode": "ABC123",
-      "name": "Business Name",
-      "message": "Business created successfully"
-    }
-    ```
-
-### Owner Login
-
-- **POST** `/api/login`
-  - Authenticates an owner and returns a JWT token.
-  - Request body:
-    ```json
-    {
-      "businessCode": "ABC123",
-      "password": "secure-password"
-    }
-    ```
-  - Response:
-    ```json
-    {
-      "businessId": 1,
-      "businessCode": "ABC123",
-      "name": "Business Name",
-      "message": "Login successful"
-    }
-    ```
-
-### Generate Guest Code
-
-- **POST** `/api/guest-codes`
-  - Generates a guest code for a business (requires authentication).
-  - Response:
-    ```json
-    {
-      "guestCode": "123456",
-      "expiresAt": "2024-12-31T23:59:59.000Z",
-      "message": "Guest code created successfully"
-    }
-    ```
-
-### Logout
-
-- **POST** `/api/logout`
-  - Logs out the current user by clearing the authentication token.
-  - Response:
-    ```json
-    {
-      "message": "Logged out successfully"
-    }
-    ```
-
-## Security Considerations
-
-1. **JWT Secret**: Always use a strong, randomly generated secret key for `JWT_SECRET` in production. Never commit this to version control.
-2. **HTTPS**: Ensure your application is served over HTTPS in production.
-3. **Rate Limiting**: The application includes rate limiting on login attempts (5 attempts per 15 minutes) and general API requests (100 requests per minute).
-4. **Password Requirements**: Passwords must be at least 8 characters long.
-5. **Token Expiry**: JWT tokens expire after 7 days.
-6. **Guest Code Expiry**: Guest codes expire 7 days from creation.
-
-## Database
-
-The application uses SQLite for data storage. The database file is created automatically when the application starts.
-
-### Database Schema
-
-- **businesses**: Stores business information including business code, name, and password hash.
-- **guest_codes**: Stores guest codes and their expiration dates.
-- **photos**: Stores information about uploaded photos.
-
-## Troubleshooting
-
-### Health Check Fails
-
-If the health check endpoint returns an error, ensure that:
-1. The application is running on the correct port (default: 5000).
-2. The `curl` command is available in the Docker container.
-3. The application has started successfully.
-
-### Database Connection Issues
-
-If the application fails to connect to the database:
-1. Ensure the database file path is correct.
-2. Check that the application has write permissions to the database directory.
-3. Verify that the database file is not corrupted.
-
-### Port Already in Use
-
-If port 5000 is already in use, you can specify a different port:
-```bash
-docker run -p 8000:5000 \
-  -e PORT=5000 \
-  -e NODE_ENV=production \
-  -e JWT_SECRET=your-production-secret-key \
-  abierto
+  }
+]
 ```
-
-Then access the application on `http://localhost:8000`.
 
 ## Contributing
 
-Contributions are welcome! Please follow the existing code style and include tests for new features.
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support, please open an issue on GitHub or contact the development team.
