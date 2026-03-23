@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl --fail http://localhost:5000/api/health || exit 1
 
 # Start the application
-CMD ["node", "backend/server.js"]
+CMD ["node", "backend/app.js"]
