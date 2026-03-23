@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLang } from '../context/LangContext';
 
 const MANUAL_OPTIONS   = ['Open', 'Closed'];
 const OVERRIDE_OPTIONS = ['Out to Lunch', 'Closed for the Season'];
@@ -18,6 +19,8 @@ export default function StatusSelector({
   returnDate, onReturnDateChange,
   hasHours,
 }) {
+  const { t } = useLang();
+  const ow = t.owner;
   const options = hasHours ? OVERRIDE_OPTIONS : [...MANUAL_OPTIONS, ...OVERRIDE_OPTIONS];
 
   return (
@@ -37,13 +40,13 @@ export default function StatusSelector({
 
       {hasHours && (
         <p className="text-sm text-muted" style={{ marginTop: 8 }}>
-          Open/Closed is set automatically from your hours.
+          {ow.autoHours}
         </p>
       )}
 
       {value === 'Out to Lunch' && (
         <div className="field" style={{ marginTop: 12 }}>
-          <label>Back at</label>
+          <label>{ow.backAt}</label>
           <input
             type="time"
             value={returnTime || ''}
@@ -51,7 +54,7 @@ export default function StatusSelector({
           />
           {returnTime && (
             <p className="text-sm text-muted" style={{ marginTop: 4 }}>
-              Shown as: "Back at {fmt12(returnTime)}" — auto-clears when time passes
+              {ow.shownAs.replace('{time}', fmt12(returnTime))}
             </p>
           )}
         </div>
@@ -59,7 +62,7 @@ export default function StatusSelector({
 
       {value === 'Closed for the Season' && (
         <div className="field" style={{ marginTop: 12 }}>
-          <label>Reopening</label>
+          <label>{ow.reopening}</label>
           <input
             type="date"
             value={returnDate || ''}

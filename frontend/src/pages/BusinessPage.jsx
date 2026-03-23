@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import HoursDisplay from '../components/HoursDisplay';
 import { api, uploadUrl } from '../api/client';
+import { useLang } from '../context/LangContext';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -30,6 +31,8 @@ function fmtDate(d) {
 
 export default function BusinessPage() {
   const { id } = useParams();
+  const { t } = useLang();
+  const bp = t.businessPage;
   const [business, setBusiness] = useState(null);
   const [hours, setHours] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function BusinessPage() {
   }, [id]);
 
   if (loading) return <><Navbar /><div className="spinner" /></>;
-  if (!business) return <><Navbar /><div className="page text-center mt-6"><p>Business not found.</p><Link to="/">← Back</Link></div></>;
+  if (!business) return <><Navbar /><div className="page text-center mt-6"><p>{bp.notFound}</p><Link to="/">{bp.back}</Link></div></>;
 
   const { status, return_time, return_date, note } = business;
 
@@ -77,12 +80,12 @@ export default function BusinessPage() {
 
           {status === 'Out to Lunch' && return_time && (
             <div className="alert alert-info mt-4" style={{ color: 'var(--status-out-to-lunch)', fontWeight: 500 }}>
-              Back at {fmt12(return_time)}
+              {bp.backAt} {fmt12(return_time)}
             </div>
           )}
           {status === 'Closed for the Season' && return_date && (
             <div className="alert alert-info mt-4" style={{ color: 'var(--status-season)', fontWeight: 500 }}>
-              Reopening {fmtDate(return_date)}
+              {bp.reopening} {fmtDate(return_date)}
             </div>
           )}
           {note && status !== 'Out to Lunch' && status !== 'Closed for the Season' && (
@@ -90,7 +93,7 @@ export default function BusinessPage() {
           )}
 
           {business.status_updated_at && (
-            <p className="text-sm text-muted mt-4">Updated {timeAgo(business.status_updated_at)}</p>
+            <p className="text-sm text-muted mt-4">{bp.updated} {timeAgo(business.status_updated_at)}</p>
           )}
           {business.lat && business.lon && (
             <p className="text-sm text-muted mt-2">📍 {Number(business.lat).toFixed(5)}, {Number(business.lon).toFixed(5)}</p>
@@ -99,13 +102,13 @@ export default function BusinessPage() {
 
         {hours.length > 0 && (
           <div className="card card-body mt-4">
-            <h2 style={{ marginBottom: 14 }}>Hours</h2>
+            <h2 style={{ marginBottom: 14 }}>{bp.hoursTitle}</h2>
             <HoursDisplay hours={hours} />
           </div>
         )}
 
         <div className="mt-4">
-          <Link to="/" className="btn btn-ghost btn-sm">← All Businesses</Link>
+          <Link to="/" className="btn btn-ghost btn-sm">{bp.backAll}</Link>
         </div>
       </div>
     </>
