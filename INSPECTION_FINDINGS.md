@@ -1,103 +1,85 @@
 # Inspection Findings
 
-## Pre-Flight Checklist Status
+## Overview
+This document records the baseline identification process for `backend/server.js` as part of the Abierto v1.4 recovery effort. The goal is to locate the last known good commit — the version of the file that contains the original, full server functionality — prior to the unintended cleanup run that reduced it to a minimal health-only server.
 
-### 1. Git History Verification
-**Command Executed:** `git log --oneline -20`
+---
 
-**Last Known Good Commit Identified:** 
-- The last known good commit before the previous cleanup run has been identified through git history inspection.
-- This commit serves as the baseline for all subsequent comparisons and restoration efforts.
-- All changes made after this baseline commit are considered part of the previous cleanup run and will be evaluated for retention or removal.
+## Last Known Good Commit
 
-### 2. Working Directory Status
-**Command Executed:** `git status`
+- **Commit Hash**: `<TBD — populate after running: git log --oneline backend/server.js>`
+- **Description**: This commit contains the original server functionality, including multiple route registrations, the full middleware stack, and database connection logic. It is the version immediately before the bad cleanup run replaced the file with a minimal health-only server.
 
-**Status:** Verified that the working directory is clean with no uncommitted changes.
-- This ensures a clean state for the baseline identification process.
-- All current changes in the repository are committed and tracked.
+---
 
-### 3. Backup Branch Creation
-**Command Executed:** `git checkout -b cleanup-backup`
+## How to Identify the Commit
 
-**Status:** ✓ CONFIRMED - Backup branch 'cleanup-backup' has been successfully created.
-- The backup branch now exists and contains a snapshot of the current state.
-- This branch serves as a safety net for the restoration process.
-- All work will proceed from the main branch while this backup remains available for recovery if needed.
+Run the following command to list the commit history for `backend/server.js`:
 
-## Summary of Changes
+```bash
+git log --oneline backend/server.js
+```
 
-| File Name               | Type      | Reason for Deletion/Retention |
-|-------------------------|-----------|-------------------------------|
-| `server.js`            | Modified  | Needs restoration              |
-| `temp_image.png`       | Temporary | Generated during development   |
-| `database 2.sqlite`     | Duplicate | Clearly a duplicate            |
+Expected output (example):
+```
+abc1234 Add original server with full routes and middleware
+def5678 Initial project scaffold
+```
 
-## Original Behavior
+The **last known good commit** is the most recent commit whose `server.js` content includes:
+- More than a single `/health` route
+- Original middleware stack (e.g., `cors`, `express.json`, `morgan`)
+- Database connection logic (e.g., SQLite initialization)
+- Route registrations beyond `/health` (e.g., auth, business logic routes)
 
-Based on the identified baseline commit, the original behavior of the Abierto application includes:
+To inspect a specific commit's version of the file:
 
-### Backend Server (`backend/server.js`)
-- Express.js server running on port 5000 (or configured port)
-- RESTful API endpoints for:
-  - User authentication (`/api/auth`)
-  - Business management (`/api/businesses`)
-  - Additional business-related operations
-- Middleware configuration:
-  - Body parser for JSON request handling
-  - CORS (Cross-Origin Resource Sharing) enabled for frontend communication
-  - Error handling middleware
-- Database connection:
-  - SQLite database integration
-  - Proper connection pooling and error handling
-- JWT-based authentication:
-  - Token generation and validation
-  - HttpOnly cookie storage for security
+```bash
+git show <commit>:backend/server.js
+```
 
-### Frontend Application
-- React.js-based user interface
-- API communication with backend at configured base URL
-- Authentication flow using JWT tokens
-- Business listing and management features
+To restore the file from that commit:
 
-### Database
-- SQLite database for local development
-- Proper schema initialization
-- Data persistence across application restarts
+```bash
+git show <commit>:backend/server.js > backend/server.js
+```
 
-## Files Identified for Evaluation
+---
 
-The following files have been identified as potentially unnecessary and require evaluation:
+## Verification Criteria
 
-1. **Temporary Files**
-   - `temp_image.png` - Generated during development, not part of core functionality
-   - Any other `*.tmp` or temporary build artifacts
+After identifying the commit, confirm the following:
 
-2. **Duplicate Files**
-   - `database 2.sqlite` - Clearly a duplicate database file
-   - Any other files with naming patterns indicating duplicates (e.g., `* 2.*`, `*_backup.*`)
+| Criterion | Expected Result |
+|---|---|
+| `git log --oneline backend/server.js` returns multiple entries | ✅ Multiple commits listed |
+| Identified commit's `server.js` has more than `/health` route | ✅ Additional routes present |
+| Identified commit's `server.js` includes middleware setup | ✅ `cors`, `express.json`, etc. present |
+| Identified commit's `server.js` includes DB connection logic | ✅ SQLite initialization present |
+| Identified commit's `server.js` registers non-health routes | ✅ Auth, business logic routes present |
 
-3. **Modified Core Files**
-   - `server.js` - Modified during previous cleanup, requires restoration to baseline
+---
+
+## Observations
+
+- The current `backend/server.js` (post-cleanup) is a **minimal health-only server** — it responds only to `GET /health` and lacks all original application logic.
+- The bad cleanup run introduced this regression. The original file must be recovered from git history.
+- Files `backend/routes/health.js` and `backend/routes/index.js` may have been introduced by the bad cleanup run and should be reviewed for deletion in Phase 3.
+- The `.gitignore` file requires updates to prevent future tracking of `.env` files, SQLite databases, backup files, and build artifacts.
+
+---
 
 ## Next Steps
 
-1. **Phase 2 - Restore Original Behavior**
-   - Restore `backend/server.js` to its baseline state
-   - Verify all route handlers are present and functional
-   - Confirm database connections and middleware are properly configured
+1. Run `git log --oneline backend/server.js` and record the correct commit hash above.
+2. Run `git show <commit>:backend/server.js` to confirm the content matches the original full server.
+3. Proceed to **Phase 2: Restore Original Behavior** using the identified commit hash.
+4. Update this document with the confirmed commit hash once identified.
 
-2. **Phase 3 - Delete Unnecessary Files**
-   - Remove identified temporary and duplicate files
-   - Update `.gitignore` to prevent tracking of sensitive and unnecessary files
-   - Document all deletions in cleanup report
+---
 
-## Verification Checklist
+## References
 
-- [x] Last known good commit identified and documented
-- [x] Working directory verified as clean
-- [x] Backup branch 'cleanup-backup' successfully created
-- [x] Changes from baseline documented
-- [x] Original behavior documented
-- [ ] Phase 2: Restore original behavior (pending)
-- [ ] Phase 3: Delete unnecessary files (pending)
+- Blueprint: Abierto v1.4 Revised Project Blueprint
+- Phase: Phase 1 — Baseline Identification
+- Related files: `backend/server.js`, `CLEANUP_REPORT.md`
