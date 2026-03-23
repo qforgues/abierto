@@ -1,22 +1,38 @@
-FROM node:18-alpine
+# Use the official Node.js image as the base image
+FROM node:14
+
+# Set the working directory
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+# Copy package.json and package-lock.json for backend
+COPY backend/package*.json ./backend/
+# Install backend dependencies
+RUN cd backend && npm install
 
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
+# Copy package.json and package-lock.json for frontend
+COPY frontend/package*.json ./frontend/
+# Install frontend dependencies
+RUN cd frontend && npm install
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+# Copy the entire backend and frontend code into the container
+COPY backend ./backend
+COPY frontend ./frontend
 
-USER nodejs
+# Build the frontend
+RUN cd frontend && npm run build
 
-EXPOSE 3000
-VOLUME ["/app/backend/db"]
-VOLUME ["/app/backend/uploads"]
+# Expose the application on port 5000
+EXPOSE 5000
+
+# Set environment variables for production
+# Note: Sensitive values like JWT_SECRET should be provided at runtime via environment variables
+# or a secure vault, not hardcoded in the Dockerfile
+ENV NODE_ENV=production
+ENV API_URL=https://abierto.example.com/api
+
+# Health check command
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl --fail http://localhost:5000/api/health || exit 1
+
+# Start the application
 CMD ["node", "backend/server.js"]
