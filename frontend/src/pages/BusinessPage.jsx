@@ -36,6 +36,10 @@ export default function BusinessPage() {
   const [business, setBusiness] = useState(null);
   const [hours, setHours] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportIssue, setReportIssue] = useState('');
+  const [reportNote, setReportNote] = useState('');
+  const [reportStatus, setReportStatus] = useState(null); // null | 'sending' | 'done'
 
   useEffect(() => {
     api.post('/analytics/hit', { path: `/business/${id}` }).catch(() => {});
@@ -113,10 +117,62 @@ export default function BusinessPage() {
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <Link to="/" className="btn btn-ghost btn-sm">{bp.backAll}</Link>
+          <button
+            onClick={() => { setReportOpen(true); setReportIssue(''); setReportNote(''); setReportStatus(null); }}
+            style={{ background: 'none', border: 'none', color: 'var(--mid)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline', padding: '4px 0' }}
+          >
+            ⚑ {bp.reportBtn}
+          </button>
         </div>
       </div>
+
+      {reportOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div className="card card-body" style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2 style={{ margin: 0 }}>{bp.reportTitle}</h2>
+            <p className="text-sm text-muted" style={{ margin: 0 }}>{bp.reportSubtitle}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[bp.reportIssue1, bp.reportIssue2, bp.reportIssue3, bp.reportIssue4].map(issue => (
+                <label key={issue} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', borderRadius: 8, border: `1.5px solid ${reportIssue === issue ? 'var(--ocean)' : 'var(--border)'}`, background: reportIssue === issue ? '#f0fbff' : 'white' }}>
+                  <input type="radio" name="issue" value={issue} checked={reportIssue === issue} onChange={() => setReportIssue(issue)} style={{ accentColor: 'var(--ocean)' }} />
+                  <span style={{ fontSize: '0.9rem' }}>{issue}</span>
+                </label>
+              ))}
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '0.85rem' }}>{bp.reportNote}</label>
+              <textarea rows={2} value={reportNote} onChange={e => setReportNote(e.target.value)} placeholder={bp.reportNotePlaceholder} style={{ resize: 'none' }} />
+            </div>
+            {reportStatus === 'done' && <p style={{ color: 'var(--teal)', margin: 0, fontWeight: 600 }}>✓ {bp.reportDone}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setReportOpen(false)}>{bp.reportCancel}</button>
+              <button
+                className="btn btn-primary"
+                disabled={!reportIssue || reportStatus === 'sending' || reportStatus === 'done'}
+                onClick={async () => {
+                  setReportStatus('sending');
+                  try {
+                    await api.post('/notifications/report', {
+                      business_id: business.id,
+                      business_name: business.name,
+                      issue: reportIssue,
+                      note: reportNote,
+                    });
+                    setReportStatus('done');
+                    setTimeout(() => setReportOpen(false), 2000);
+                  } catch {
+                    setReportStatus(null);
+                  }
+                }}
+              >
+                {reportStatus === 'sending' ? bp.reportSending : bp.reportSend}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

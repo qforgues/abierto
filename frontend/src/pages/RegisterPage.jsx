@@ -76,6 +76,11 @@ export default function RegisterPage() {
 
         {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
 
+        <div className="card card-body" style={{ borderLeft: '4px solid var(--ocean)', background: '#f0fbff', marginBottom: 4 }}>
+          <p style={{ fontWeight: 700, marginBottom: 6 }}>📍 {r.accuracyTitle}</p>
+          <p className="text-sm" style={{ lineHeight: 1.6, color: 'var(--dark)' }}>{r.accuracyBody}</p>
+        </div>
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <h2>{r.sectionInfo}</h2>
