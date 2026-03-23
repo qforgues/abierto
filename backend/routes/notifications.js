@@ -4,6 +4,22 @@ const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// POST /api/notifications/feedback — public, no auth
+router.post('/feedback', async (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message required.' });
+  try {
+    await db.run(
+      `INSERT INTO notifications (type, message) VALUES ('feedback', ?)`,
+      [message.trim().slice(0, 1000)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 // GET /api/notifications
 router.get('/', requireAdmin, async (req, res) => {
   try {

@@ -15,6 +15,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [userLocation, setUserLocation] = useState(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [feedbackStatus, setFeedbackStatus] = useState(null); // 'sending' | 'done' | 'error'
   const { t, lang, toggle } = useLang();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -49,6 +52,18 @@ export default function HomePage() {
       : businesses.filter(b => b.category === filter && OPEN_STATUSES.includes(b.status));
 
   const handleLogout = () => { logout(); navigate('/'); };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMsg.trim()) return;
+    setFeedbackStatus('sending');
+    try {
+      await api.post('/notifications/feedback', { message: feedbackMsg });
+      setFeedbackStatus('done');
+      setTimeout(() => { setFeedbackOpen(false); setFeedbackMsg(''); setFeedbackStatus(null); }, 1500);
+    } catch {
+      setFeedbackStatus('error');
+    }
+  };
 
   return (
     <div className="home-wrapper">
@@ -117,6 +132,10 @@ export default function HomePage() {
           )}
         </div>
 
+        <button onClick={() => setFeedbackOpen(true)} className="footer-lang-btn" title="Give Feedback" style={{ fontSize: '1.3rem' }}>
+          💡
+        </button>
+
         <div className="home-footer-brand">
           <span className="footer-copy">© 2025 Abierto?</span>
           <span className="footer-version">v{__APP_VERSION__}</span>
@@ -129,6 +148,32 @@ export default function HomePage() {
           </button>
         </div>
       </footer>
+
+      {/* ── Feedback modal ── */}
+      {feedbackOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div className="card card-body" style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2 style={{ margin: 0 }}>💡 Give Feedback</h2>
+            <p className="text-muted text-sm" style={{ margin: 0 }}>Ideas, suggestions, or anything on your mind — it goes straight to the admin.</p>
+            <textarea
+              rows={4}
+              value={feedbackMsg}
+              onChange={e => setFeedbackMsg(e.target.value)}
+              placeholder="Your feedback..."
+              style={{ resize: 'vertical' }}
+              autoFocus
+            />
+            {feedbackStatus === 'done' && <p style={{ color: 'var(--teal)', margin: 0 }}>✓ Sent! Thanks.</p>}
+            {feedbackStatus === 'error' && <p style={{ color: 'var(--danger)', margin: 0 }}>Something went wrong. Try again.</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => { setFeedbackOpen(false); setFeedbackMsg(''); setFeedbackStatus(null); }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleFeedbackSubmit} disabled={feedbackStatus === 'sending' || !feedbackMsg.trim()}>
+                {feedbackStatus === 'sending' ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
