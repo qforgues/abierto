@@ -284,6 +284,83 @@ function BillingTab() {
   );
 }
 
+function ToggleSwitch({ checked, onChange, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      style={{
+        position: 'relative', width: 52, height: 28,
+        borderRadius: 999, border: 'none', cursor: disabled ? 'default' : 'pointer',
+        background: checked ? 'var(--ocean)' : '#cbd5e1',
+        transition: 'background 0.2s', flexShrink: 0, padding: 0,
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 4, left: checked ? 28 : 4,
+        width: 20, height: 20, borderRadius: '50%', background: 'white',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'left 0.2s', display: 'block',
+      }} />
+    </button>
+  );
+}
+
+function SettingsTab() {
+  const [settings, setSettings] = React.useState(null);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    api.get('/settings').then(setSettings).catch(() => {});
+  }, []);
+
+  const toggle = async (key) => {
+    if (saving) return;
+    setSaving(true);
+    setSaved(false);
+    const updated = { ...settings, [key]: !settings[key] };
+    setSettings(updated);
+    try {
+      await api.patch('/settings', { [key]: updated[key] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSettings(settings); // revert
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!settings) return <div className="spinner" />;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 600 }}>
+      <div className="card card-body" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: '1rem' }}>📲 PWA Install Banner</div>
+          <div className="text-sm text-muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+            Shows "Add to Home Screen" prompt on mobile devices. Visitors can install Abierto? like an app — no App Store required.
+          </div>
+          <div className="text-sm" style={{ marginTop: 6, color: settings.pwa_enabled ? 'var(--ocean)' : 'var(--mid)', fontWeight: 600 }}>
+            {settings.pwa_enabled ? '✓ Enabled — banner is live' : '✕ Disabled — banner is hidden'}
+          </div>
+          {saved && <div className="text-sm" style={{ color: '#22c55e', marginTop: 4 }}>Saved!</div>}
+        </div>
+        <ToggleSwitch
+          checked={settings.pwa_enabled}
+          onChange={() => toggle('pwa_enabled')}
+          disabled={saving}
+        />
+      </div>
+      <p className="text-sm text-muted" style={{ paddingLeft: 4 }}>
+        Turn this off when preparing to publish to the Play Store.
+      </p>
+    </div>
+  );
+}
+
 function TrafficTab() {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState('');
@@ -468,6 +545,7 @@ export default function AdminDashboard() {
               🔔 Notifications{notifications.filter(n => !n.is_read).length > 0 ? ` (${notifications.filter(n => !n.is_read).length})` : ''}
             </button>
             <button className={`btn btn-sm ${tab === 'traffic' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('traffic')}>📊 Traffic</button>
+            <button className={`btn btn-sm ${tab === 'settings' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('settings')}>⚙️ Settings</button>
           </div>
         </div>
 
@@ -517,6 +595,7 @@ export default function AdminDashboard() {
 
             {tab === 'billing' && <BillingTab />}
             {tab === 'traffic' && <TrafficTab />}
+            {tab === 'settings' && <SettingsTab />}
 
             {tab === 'notifications' && (
               <>

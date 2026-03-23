@@ -106,6 +106,12 @@ const initializeDatabase = async () => {
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`);
+  await run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('pwa_enabled', '1')`);
+
   await run(`CREATE TABLE IF NOT EXISTS guest_codes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
