@@ -10,6 +10,8 @@ function fmt(t) {
   return m === 0 ? `${hr}${ampm}` : `${hr}:${m.toString().padStart(2, '0')}${ampm}`;
 }
 
+const is24h = (row) => row?.open_time === '00:00' && row?.close_time === '23:59';
+
 function getStatus(hours) {
   if (!hours?.length) return { open: null, todayRow: null, nextOpen: null };
   const now = new Date();
@@ -19,9 +21,13 @@ function getStatus(hours) {
 
   let open = null;
   if (todayRow && !todayRow.is_closed && todayRow.open_time && todayRow.close_time) {
-    const [oh, om] = todayRow.open_time.split(':').map(Number);
-    const [ch, cm] = todayRow.close_time.split(':').map(Number);
-    open = cur >= oh * 60 + om && cur < ch * 60 + cm;
+    if (is24h(todayRow)) {
+      open = true;
+    } else {
+      const [oh, om] = todayRow.open_time.split(':').map(Number);
+      const [ch, cm] = todayRow.close_time.split(':').map(Number);
+      open = cur >= oh * 60 + om && cur < ch * 60 + cm;
+    }
   } else if (todayRow?.is_closed) {
     open = false;
   }
@@ -81,7 +87,7 @@ export default function HoursDisplay({ hours }) {
             </p>
             {open && todayRow && (
               <p style={{ fontSize: '0.82rem', color: '#15803d', marginTop: 1 }}>
-                Closes at {fmt(todayRow.close_time)}
+                {is24h(todayRow) ? 'Open 24 hours' : `Closes at ${fmt(todayRow.close_time)}`}
               </p>
             )}
             {!open && nextOpen && (
@@ -127,6 +133,7 @@ export default function HoursDisplay({ hours }) {
                 color: isClosed ? '#94a3b8' : isToday ? 'var(--ocean)' : 'var(--mid)',
               }}>
                 {isClosed ? 'Closed'
+                  : is24h(day) ? 'Open 24 hours'
                   : (day.open_time && day.close_time)
                   ? `${fmt(day.open_time)} – ${fmt(day.close_time)}`
                   : '—'}

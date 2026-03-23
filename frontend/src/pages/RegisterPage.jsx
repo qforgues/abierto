@@ -7,8 +7,9 @@ import { useLang } from '../context/LangContext';
 const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Park', 'Attraction', 'Other'];
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '' });
   const [locating, setLocating] = useState(false);
+  const [locDenied, setLocDenied] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,13 +20,21 @@ export default function RegisterPage() {
 
   const getLocation = () => {
     setLocating(true);
+    setLocDenied(false);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         set('lat', pos.coords.latitude.toFixed(6));
         set('lon', pos.coords.longitude.toFixed(6));
         setLocating(false);
       },
-      () => { alert(r.errLocation); setLocating(false); }
+      (err) => {
+        if (err.code === 1) {
+          setLocDenied(true);
+        } else {
+          setError(r.errLocation);
+        }
+        setLocating(false);
+      }
     );
   };
 
@@ -39,6 +48,7 @@ export default function RegisterPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         category: form.category || null,
+        phone: form.phone.trim() || null,
         lat: form.lat ? parseFloat(form.lat) : null,
         lon: form.lon ? parseFloat(form.lon) : null,
       });
@@ -76,6 +86,10 @@ export default function RegisterPage() {
               <label>{r.labelDescription}</label>
               <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder={r.placeholderDescription} rows={3} />
             </div>
+            <div className="field">
+              <label>{r.labelPhone} <span className="text-muted" style={{ fontWeight: 400 }}>{r.phoneOptional}</span></label>
+              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder={r.placeholderPhone} />
+            </div>
           </div>
 
           <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -84,6 +98,15 @@ export default function RegisterPage() {
             <button type="button" className="btn btn-ghost" onClick={getLocation} disabled={locating}>
               {locating ? r.btnLocating : r.btnLocate}
             </button>
+            {locDenied && (
+              <div className="alert alert-error" style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <strong>{r.errLocationDenied}</strong>
+                <span>{r.errLocationDeniedHint}</span>
+                <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start', marginTop: 4 }} onClick={getLocation}>
+                  {r.btnTryAgain}
+                </button>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="field">
                 <label>{r.labelLat}</label>

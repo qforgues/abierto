@@ -92,7 +92,13 @@ export default function OwnerDashboard() {
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => setEditForm(f => ({ ...f, lat: pos.coords.latitude.toFixed(6), lon: pos.coords.longitude.toFixed(6) })),
-      () => alert('Could not get location.')
+      (err) => {
+        if (err.code === 1) {
+          alert('Location access is blocked. Please enable it in your browser or device settings, then try again.');
+        } else {
+          alert('Could not get location.');
+        }
+      }
     );
   };
 
