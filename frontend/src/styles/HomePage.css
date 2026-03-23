@@ -50,10 +50,19 @@
   padding: 10px 16px;
   display: flex;
   justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  column-gap: 6px;
+  row-gap: 8px;
 }
 .home-filters::-webkit-scrollbar { display: none; }
+
+/* Filter buttons — consistent height so rows align cleanly */
+.home-filters .btn-sm {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+}
 
 /* Business list */
 .home-list {
