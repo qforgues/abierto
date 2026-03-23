@@ -21,7 +21,6 @@
   "author": "Abierto Team",
   "license": "MIT",
   "dependencies": {
-    "@libsql/client": "^0.17.2",
     "aws-sdk": "^2.1400.0",
     "bcrypt": "^5.1.0",
     "bcryptjs": "^3.0.3",
@@ -42,7 +41,7 @@
     "supertest": "^6.3.3"
   },
   "engines": {
-    "node": ">=14.0.0",
+    "node": ">=18.0.0",
     "npm": ">=6.0.0"
   }
 }
