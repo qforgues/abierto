@@ -1,50 +1,32 @@
 const express = require('express');
 const cors = require('cors');
-const cookieParser = require('cookie-parser');
+const dotenv = require('dotenv');
 const path = require('path');
-require('dotenv').config();
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
 const app = express();
 
-// Import routes
-const healthRoute = require('./routes/health');
-
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
-// Serve static files from frontend build (if available)
-const frontendBuildPath = path.join(__dirname, '../frontend/build');
-app.use(express.static(frontendBuildPath));
+// Import routes
+const healthRoutes = require('./routes/health');
 
-// Health check route - must be accessible without authentication
-app.use('/api', healthRoute);
+// Health check route
+app.use('/api/health', healthRoutes);
 
-// Additional API routes would be mounted here
-// Example: app.use('/api/auth', require('./routes/auth'));
-// Example: app.use('/api/businesses', require('./routes/businesses'));
-
-// Serve React app for all other routes (SPA fallback)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendBuildPath, 'index.html'));
-});
-
-// Global error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
+// Server configuration
+const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || 'localhost';
 
 // Start server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Health check available at http://localhost:${PORT}/api/health`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Server is running on http://${HOST}:${PORT}`);
 });
 
 // Graceful shutdown
