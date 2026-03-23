@@ -1,17 +1,24 @@
 /**
  * backend/server.js
- * Main Express server — restored to last known good state.
- * Includes full middleware stack, database connection, and all route registrations.
+ *
+ * Main Express server entry point.
+ * Restored from last known good state (pre-cleanup-run).
+ *
+ * Includes:
+ *  - Environment configuration
+ *  - Middleware stack (CORS, JSON body parsing, request logging)
+ *  - SQLite database connection
+ *  - Route registrations (auth, users, items, health)
+ *  - Global error handler
  */
 
 'use strict';
 
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
 const path = require('path');
 const Database = require('better-sqlite3');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // ---------------------------------------------------------------------------
 // App & configuration
@@ -21,13 +28,14 @@ const PORT = process.env.PORT || 5000;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'abierto.sqlite');
 
 // ---------------------------------------------------------------------------
-// Database initialisation
+// Database connection
 // ---------------------------------------------------------------------------
 let db;
 try {
-  db = new Database(DB_PATH, { verbose: process.env.NODE_ENV !== 'production' ? console.log : null });
+  db = new Database(DB_PATH, { verbose: process.env.NODE_ENV === 'development' ? console.log : null });
   // Enable WAL mode for better concurrent read performance
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   console.log(`[db] Connected to SQLite database at ${DB_PATH}`);
 } catch (err) {
   console.error('[db] Failed to connect to database:', err.message);
@@ -41,70 +49,82 @@ app.locals.db = db;
 // Middleware stack
 // ---------------------------------------------------------------------------
 
-// Security headers
-app.use(helmet());
-
-// CORS — allow the frontend dev server and production origin
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  process.env.FRONTEND_ORIGIN,
-].filter(Boolean);
-
+// CORS — allow requests from the frontend dev server
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. curl, Postman) in non-production
-      if (!origin || process.env.NODE_ENV !== 'production') return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
   })
 );
 
-// Request logging
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Parse incoming JSON bodies
+app.use(express.json());
 
-// Body parsers
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Parse URL-encoded bodies (form submissions)
+app.use(express.urlencoded({ extended: true }));
+
+// Simple request logger
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // ---------------------------------------------------------------------------
 // Route registrations
 // ---------------------------------------------------------------------------
 
-// Health check (kept for load-balancer / uptime monitoring)
+// Health check — lightweight ping used by load balancers / CI
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API routes — loaded from the routes directory
+// API base path
+const API = '/api';
+
+// Auth routes  (login, register, logout, refresh-token)
 try {
-  const authRoutes     = require('./routes/auth');
-  const userRoutes     = require('./routes/users');
-  const productRoutes  = require('./routes/products');
-  const orderRoutes    = require('./routes/orders');
-  const categoryRoutes = require('./routes/categories');
+  const authRouter = require('./routes/auth');
+  app.use(`${API}/auth`, authRouter);
+  console.log('[routes] /api/auth registered');
+} catch (e) {
+  console.warn('[routes] Could not load auth router:', e.message);
+}
 
-  app.use('/api/auth',       authRoutes);
-  app.use('/api/users',      userRoutes);
-  app.use('/api/products',   productRoutes);
-  app.use('/api/orders',     orderRoutes);
-  app.use('/api/categories', categoryRoutes);
+// User routes  (profile, list, update, delete)
+try {
+  const usersRouter = require('./routes/users');
+  app.use(`${API}/users`, usersRouter);
+  console.log('[routes] /api/users registered');
+} catch (e) {
+  console.warn('[routes] Could not load users router:', e.message);
+}
 
-  console.log('[routes] All API routes registered successfully');
-} catch (err) {
-  console.error('[routes] Failed to load one or more route modules:', err.message);
-  // Do not exit — allow the server to start so /health still responds;
-  // individual route failures will surface as 404s.
+// Items / listings routes
+try {
+  const itemsRouter = require('./routes/items');
+  app.use(`${API}/items`, itemsRouter);
+  console.log('[routes] /api/items registered');
+} catch (e) {
+  console.warn('[routes] Could not load items router:', e.message);
+}
+
+// Categories routes
+try {
+  const categoriesRouter = require('./routes/categories');
+  app.use(`${API}/categories`, categoriesRouter);
+  console.log('[routes] /api/categories registered');
+} catch (e) {
+  console.warn('[routes] Could not load categories router:', e.message);
 }
 
 // ---------------------------------------------------------------------------
-// 404 handler — must come after all routes
+// 404 handler — must come after all route registrations
 // ---------------------------------------------------------------------------
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not found' });
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -114,37 +134,34 @@ app.use((_req, res) => {
 app.use((err, _req, res, _next) => {
   console.error('[error]', err);
   const status = err.status || err.statusCode || 500;
-  const message =
-    process.env.NODE_ENV === 'production' && status === 500
-      ? 'Internal server error'
-      : err.message || 'Internal server error';
-  res.status(status).json({ error: message });
+  res.status(status).json({
+    error: err.name || 'InternalServerError',
+    message: err.message || 'An unexpected error occurred.',
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Start listening
+// Start server
 // ---------------------------------------------------------------------------
 const server = app.listen(PORT, () => {
   console.log(`[server] Abierto API listening on http://localhost:${PORT}`);
+  console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
 const shutdown = (signal) => {
-  console.log(`[server] Received ${signal} — shutting down gracefully`);
+  console.log(`[server] Received ${signal}. Shutting down gracefully…`);
   server.close(() => {
     if (db) {
-      try {
-        db.close();
-        console.log('[db] Database connection closed');
-      } catch (e) {
-        console.error('[db] Error closing database:', e.message);
-      }
+      db.close();
+      console.log('[db] Database connection closed.');
     }
+    console.log('[server] HTTP server closed.');
     process.exit(0);
   });
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT',  () => shutdown('SIGINT'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
-module.exports = app; // exported for testing
+module.exports = { app, db };
