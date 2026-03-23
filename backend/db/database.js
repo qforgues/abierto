@@ -1,211 +1,84 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+require('dotenv').config();
+const { createClient } = require('@libsql/client');
 const bcrypt = require('bcrypt');
+const path = require('path');
 
-// Initialize database connection
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'abierto.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to SQLite database at:', dbPath);
-    }
-});
+// Use Turso in production, local SQLite file in dev
+const url = process.env.TURSO_DATABASE_URL
+  || `file:${path.join(__dirname, 'abierto.db')}`;
+const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
 
-// Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+const client = createClient({ url, authToken });
 
-/**
- * Promisified database methods for easier async/await usage
- */
+console.log('DB:', url.startsWith('file:') ? 'local SQLite' : 'Turso cloud');
+
+// Convert a libsql Row (array-like) to a plain JS object
+function toObj(row, columns) {
+  const obj = {};
+  for (let i = 0; i < columns.length; i++) {
+    obj[columns[i]] = row[i];
+  }
+  return obj;
+}
+
 const database = {
-    /**
-     * Run a query (INSERT, UPDATE, DELETE)
-     */
-    run: (sql, params = []) => {
-        return new Promise((resolve, reject) => {
-            db.run(sql, params, function(err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve({ id: this.lastID, changes: this.changes });
-                }
-            });
-        });
-    },
+  run: async (sql, params = []) => {
+    const result = await client.execute({ sql, args: params });
+    return {
+      id:      Number(result.lastInsertRowid ?? 0),
+      lastID:  Number(result.lastInsertRowid ?? 0),
+      changes: result.rowsAffected ?? 0,
+    };
+  },
 
-    /**
-     * Get a single row
-     */
-    get: (sql, params = []) => {
-        return new Promise((resolve, reject) => {
-            db.get(sql, params, (err, row) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
-            });
-        });
-    },
+  get: async (sql, params = []) => {
+    const result = await client.execute({ sql, args: params });
+    if (!result.rows || result.rows.length === 0) return null;
+    return toObj(result.rows[0], result.columns);
+  },
 
-    /**
-     * Get all rows
-     */
-    all: (sql, params = []) => {
-        return new Promise((resolve, reject) => {
-            db.all(sql, params, (err, rows) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(rows || []);
-                }
-            });
-        });
-    },
+  all: async (sql, params = []) => {
+    const result = await client.execute({ sql, args: params });
+    if (!result.rows) return [];
+    return result.rows.map(row => toObj(row, result.columns));
+  },
 
-    /**
-     * Retrieve owner by business code
-     * @param {string} businessCode - The alphanumeric business code (6-8 characters)
-     * @returns {Promise<Object|null>} Owner object or null if not found
-     */
-    getOwnerByBusinessCode: async (businessCode) => {
-        try {
-            const query = 'SELECT * FROM owners WHERE business_code = ? LIMIT 1';
-            const result = await database.get(query, [businessCode.toUpperCase()]);
-            return result || null;
-        } catch (error) {
-            console.error('Error retrieving owner by business code:', error);
-            throw error;
-        }
-    },
+  getOwnerByBusinessCode: async (businessCode) =>
+    database.get('SELECT * FROM owners WHERE business_code = ? LIMIT 1', [businessCode.toUpperCase()]),
 
-    /**
-     * Retrieve owner by ID
-     * @param {number} id - The owner ID
-     * @returns {Promise<Object|null>} Owner object or null if not found
-     */
-    getOwnerById: async (id) => {
-        try {
-            const query = 'SELECT * FROM owners WHERE id = ? LIMIT 1';
-            const result = await database.get(query, [id]);
-            return result || null;
-        } catch (error) {
-            console.error('Error retrieving owner by ID:', error);
-            throw error;
-        }
-    },
+  getOwnerById: async (id) =>
+    database.get('SELECT * FROM owners WHERE id = ? LIMIT 1', [id]),
 
-    /**
-     * Create a new owner with hashed password
-     * @param {string} businessCode - The alphanumeric business code
-     * @param {string} password - The plaintext password to hash
-     * @param {Object} additionalData - Additional owner data
-     * @returns {Promise<Object>} Created owner with ID
-     */
-    createOwner: async (businessCode, password, additionalData = {}) => {
-        try {
-            // Hash the password with bcrypt (10 salt rounds)
-            const passwordHash = await bcrypt.hash(password, 10);
+  createOwner: async (businessCode, password) => {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await database.run(
+      `INSERT INTO owners (business_code, password_hash, created_at, updated_at) VALUES (?, ?, datetime('now'), datetime('now'))`,
+      [businessCode.toUpperCase(), passwordHash]
+    );
+    return { id: result.id, businessCode: businessCode.toUpperCase() };
+  },
 
-            const query = `
-                INSERT INTO owners (business_code, password_hash, created_at, updated_at)
-                VALUES (?, ?, datetime('now'), datetime('now'))
-            `;
-            const result = await database.run(query, [businessCode.toUpperCase(), passwordHash]);
-            return { id: result.id, businessCode: businessCode.toUpperCase() };
-        } catch (error) {
-            console.error('Error creating owner:', error);
-            throw error;
-        }
-    },
+  updateOwnerPassword: async (ownerId, newPassword) => {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    return database.run(`UPDATE owners SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`, [passwordHash, ownerId]);
+  },
 
-    /**
-     * Update owner password
-     * @param {number} ownerId - The owner ID
-     * @param {string} newPassword - The new plaintext password
-     * @returns {Promise<Object>} Update result
-     */
-    updateOwnerPassword: async (ownerId, newPassword) => {
-        try {
-            const passwordHash = await bcrypt.hash(newPassword, 10);
-            const query = 'UPDATE owners SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?';
-            const result = await database.run(query, [passwordHash, ownerId]);
-            return result;
-        } catch (error) {
-            console.error('Error updating owner password:', error);
-            throw error;
-        }
-    },
+  getBusinessesByOwnerId: async (ownerId) =>
+    database.all('SELECT * FROM businesses WHERE owner_id = ? ORDER BY created_at DESC', [ownerId]),
 
-    /**
-     * Get all businesses for an owner
-     * @param {number} ownerId - The owner ID
-     * @returns {Promise<Array>} Array of business objects
-     */
-    getBusinessesByOwnerId: async (ownerId) => {
-        try {
-            const query = 'SELECT * FROM businesses WHERE owner_id = ? ORDER BY created_at DESC';
-            const results = await database.all(query, [ownerId]);
-            return results;
-        } catch (error) {
-            console.error('Error retrieving businesses:', error);
-            throw error;
-        }
-    },
+  getBusinessById: async (businessId) =>
+    database.get('SELECT * FROM businesses WHERE id = ? LIMIT 1', [businessId]),
 
-    /**
-     * Get a business by ID
-     * @param {number} businessId - The business ID
-     * @returns {Promise<Object|null>} Business object or null if not found
-     */
-    getBusinessById: async (businessId) => {
-        try {
-            const query = 'SELECT * FROM businesses WHERE id = ? LIMIT 1';
-            const result = await database.get(query, [businessId]);
-            return result || null;
-        } catch (error) {
-            console.error('Error retrieving business:', error);
-            throw error;
-        }
-    },
+  createBusiness: async (ownerId, businessData) => {
+    const { name, description, category } = businessData;
+    const result = await database.run(
+      `INSERT INTO businesses (owner_id, name, description, category, created_at, updated_at) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [ownerId, name, description || null, category || null]
+    );
+    return { id: result.id, ...businessData };
+  },
 
-    /**
-     * Create a new business
-     * @param {number} ownerId - The owner ID
-     * @param {Object} businessData - Business data (name, description, etc.)
-     * @returns {Promise<Object>} Created business with ID
-     */
-    createBusiness: async (ownerId, businessData) => {
-        try {
-            const { name, description, category } = businessData;
-            const query = `
-                INSERT INTO businesses (owner_id, name, description, category, created_at, updated_at)
-                VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-            `;
-            const result = await database.run(query, [ownerId, name, description || null, category || null]);
-            return { id: result.id, ...businessData };
-        } catch (error) {
-            console.error('Error creating business:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Close database connection
-     */
-    close: () => {
-        return new Promise((resolve, reject) => {
-            db.close((err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    console.log('Database connection closed.');
-                    resolve();
-                }
-            });
-        });
-    }
+  close: async () => client.close(),
 };
 
 module.exports = database;
