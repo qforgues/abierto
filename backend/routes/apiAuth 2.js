@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db/database');
 const loginRateLimiter = require('../middleware/rateLimit');
@@ -33,7 +33,7 @@ router.post('/business/login', loginRateLimiter, async (req, res) => {
     return res.json({ token });
   } catch (err) {
     console.error('Business login error:', err);
-    return res.status(500).json({ error: err.message || 'Server error.' });
+    return res.status(500).json({ error: 'Server error.' });
   }
 });
 
@@ -64,7 +64,7 @@ router.post('/admin/login', loginRateLimiter, async (req, res) => {
     return res.json({ token });
   } catch (err) {
     console.error('Admin login error:', err);
-    return res.status(500).json({ error: err.message || 'Server error.' });
+    return res.status(500).json({ error: 'Server error.' });
   }
 });
 

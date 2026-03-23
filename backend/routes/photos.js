@@ -88,7 +88,7 @@ router.patch('/:photoId/main', (req, res) => {
       res.json({ success: true });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Server error.' });
+      res.status(500).json({ error: err.message || 'Server error.' });
     }
   });
 });
@@ -110,7 +110,7 @@ router.delete('/:photoId', (req, res) => {
       res.json({ success: true });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Server error.' });
+      res.status(500).json({ error: err.message || 'Server error.' });
     }
   });
 });

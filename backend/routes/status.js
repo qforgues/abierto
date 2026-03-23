@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
     res.json(status);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -61,7 +61,7 @@ router.put('/', async (req, res) => {
   } catch (err) {
     if (err.name === 'JsonWebTokenError') return res.status(401).json({ error: 'Invalid token.' });
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 

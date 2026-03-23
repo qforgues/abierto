@@ -82,7 +82,7 @@ router.get('/', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -98,7 +98,7 @@ router.get('/:businessId/history', requireAdmin, async (req, res) => {
     res.json(payments);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -117,7 +117,7 @@ router.patch('/:businessId/amount', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -140,7 +140,7 @@ router.post('/:businessId/payment', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -164,7 +164,7 @@ router.post('/:businessId/forgive', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 

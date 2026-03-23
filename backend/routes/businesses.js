@@ -94,7 +94,7 @@ router.get('/', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -129,7 +129,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -169,7 +169,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -203,7 +203,7 @@ router.post('/register', businessCreationRateLimiter, async (req, res) => {
     res.status(201).json({ business, code });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -237,7 +237,7 @@ router.patch('/:id', async (req, res) => {
   } catch (err) {
     if (err.name === 'JsonWebTokenError') return res.status(401).json({ error: 'Invalid token.' });
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -248,7 +248,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -259,7 +259,7 @@ router.patch('/:id/restore', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 

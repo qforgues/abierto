@@ -13,7 +13,7 @@ router.get('/', requireAdmin, async (req, res) => {
     res.json(notifications);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -23,7 +23,7 @@ router.get('/unread-count', requireAdmin, async (req, res) => {
     const row = await db.get('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0');
     res.json({ count: row.count });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -33,7 +33,7 @@ router.patch('/read-all', requireAdmin, async (req, res) => {
     await db.run('UPDATE notifications SET is_read = 1');
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -43,7 +43,7 @@ router.patch('/:id/read', requireAdmin, async (req, res) => {
     await db.run('UPDATE notifications SET is_read = 1 WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 

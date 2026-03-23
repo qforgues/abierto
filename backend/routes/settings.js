@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     res.json({ pwa_enabled: true, ...settings });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
@@ -35,7 +35,7 @@ router.patch('/', requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: err.message || 'Server error.' });
   }
 });
 
