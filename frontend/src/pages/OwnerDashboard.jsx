@@ -183,7 +183,7 @@ export default function OwnerDashboard() {
                 <label>{ow.categoryLabel}</label>
                 <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
                   <option value="">None</option>
-                  {['Restaurant','Food Truck','Bar','Cafe','Shop','Service','Beach','Other'].map(c => <option key={c}>{c}</option>)}
+                  {['Restaurant','Food Truck','Bar','Cafe','Shop','Service','Beach','Park','Attraction','Other'].map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div className="field">

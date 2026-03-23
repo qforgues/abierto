@@ -7,6 +7,8 @@ export const CATEGORY_ICONS = {
   Shop:         '🛍️',
   Service:      '🔧',
   Beach:        '🏖️',
+  Park:         '🌳',
+  Attraction:   '🏰',
   Other:        '📍',
   Closed:       '🔒',
 };

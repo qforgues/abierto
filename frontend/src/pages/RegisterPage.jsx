@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
 
-const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Other'];
+const CATEGORIES = ['Restaurant', 'Food Truck', 'Bar', 'Cafe', 'Shop', 'Service', 'Beach', 'Park', 'Attraction', 'Other'];
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', description: '', category: '', lat: '', lon: '' });
