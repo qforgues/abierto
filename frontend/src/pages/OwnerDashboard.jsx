@@ -42,7 +42,13 @@ export default function OwnerDashboard() {
     setReturnDate(stored.return_date || '');
     setEditForm({
       name: b.name, description: b.description || '', category: b.category || '',
-      lat: b.lat || '', lon: b.lon || '', phone: b.phone || '',
+      lat: b.lat || '', lon: b.lon || '', phone: (() => {
+        const d = (b.phone || '').replace(/\D/g, '').slice(-10);
+        if (!d) return '';
+        if (d.length > 6) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+        if (d.length > 3) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+        return d;
+      })(),
     });
   };
 
@@ -78,7 +84,7 @@ export default function OwnerDashboard() {
         category: editForm.category || null,
         lat: editForm.lat ? parseFloat(editForm.lat) : null,
         lon: editForm.lon ? parseFloat(editForm.lon) : null,
-        phone: editForm.phone || null,
+        phone: editForm.phone ? `+1${editForm.phone.replace(/\D/g, '')}` : null,
       });
       await load();
       setEditMode(false);
@@ -198,7 +204,13 @@ export default function OwnerDashboard() {
               </div>
               <div className="field">
                 <label>{ow.phoneLabel}</label>
-                <input type="tel" placeholder="+1787XXXXXXX" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                <input type="text" inputMode="numeric" placeholder="(787) 000-0000" value={editForm.phone} onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  let fmt = digits;
+                  if (digits.length > 6) fmt = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+                  else if (digits.length > 3) fmt = `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+                  setEditForm(f => ({ ...f, phone: fmt }));
+                }} />
                 <p className="text-sm text-muted" style={{ marginTop: 4 }}>{ow.phoneHint}</p>
               </div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>{ow.useLocation}</button>

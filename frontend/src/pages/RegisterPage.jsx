@@ -18,6 +18,13 @@ export default function RegisterPage() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const formatPhone = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
   const getLocation = () => {
     setLocating(true);
     setLocDenied(false);
@@ -48,7 +55,7 @@ export default function RegisterPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         category: form.category || null,
-        phone: form.phone.trim() || null,
+        phone: form.phone ? `+1${form.phone.replace(/\D/g, '')}` : null,
         lat: form.lat ? parseFloat(form.lat) : null,
         lon: form.lon ? parseFloat(form.lon) : null,
       });
@@ -88,7 +95,7 @@ export default function RegisterPage() {
             </div>
             <div className="field">
               <label>{r.labelPhone} <span className="text-muted" style={{ fontWeight: 400 }}>{r.phoneOptional}</span></label>
-              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder={r.placeholderPhone} />
+              <input type="text" inputMode="numeric" value={form.phone} onChange={e => set('phone', formatPhone(e.target.value))} placeholder={r.placeholderPhone} />
             </div>
           </div>
 
