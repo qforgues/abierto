@@ -20,7 +20,9 @@ function getViequesNow() {
 function computeStatus(stored, returnTime, todayHours, timeStr) {
   // Permanent overrides — stay until owner changes them
   if (stored === 'Closed for the Season') return stored;
-  if (stored === 'Open 24 Hours') return stored;
+  // Open 24 Hours only overrides when no hours schedule is configured;
+  // if hours exist, let the schedule take over
+  if (stored === 'Open 24 Hours' && !todayHours) return stored;
 
   // Out to Lunch auto-expires when return_time passes
   if (stored === 'Out to Lunch') {
@@ -175,16 +177,16 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/businesses/register — public registration
 router.post('/register', businessCreationRateLimiter, async (req, res) => {
-  const { name, description, category, lat, lon } = req.body;
+  const { name, description, category, lat, lon, phone } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required.' });
 
   try {
     const code = await makeUniqueCode();
 
     const result = await db.run(
-      `INSERT INTO businesses (name, description, category, lat, lon, code)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, description || null, category || null, lat || null, lon || null, code]
+      `INSERT INTO businesses (name, description, category, lat, lon, phone, code)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, description || null, category || null, lat || null, lon || null, phone || null, code]
     );
 
     const businessId = result.lastID;
