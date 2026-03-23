@@ -97,7 +97,9 @@ export default function BusinessPage() {
             <p className="text-sm text-muted mt-4">{bp.updated} {timeAgo(business.status_updated_at)}</p>
           )}
           {business.phone && (
-            <p className="text-sm mt-2">📱 {business.phone}</p>
+            <p className="text-sm mt-2">
+              📱 <a href={`tel:${business.phone}`} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 500 }}>{business.phone}</a>
+            </p>
           )}
           {business.lat && business.lon && (
             <p className="text-sm text-muted mt-2">📍 {Number(business.lat).toFixed(5)}, {Number(business.lon).toFixed(5)}</p>
