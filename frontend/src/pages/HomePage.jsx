@@ -146,7 +146,7 @@ export default function HomePage() {
         </button>
 
         <div className="home-footer-brand">
-          <span className="footer-copy">© 2025 Abierto?</span>
+          <span className="footer-copy">© 2026 Abierto?</span>
           <span className="footer-version">v{__APP_VERSION__}</span>
           <button
             onClick={toggle}
