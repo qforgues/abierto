@@ -174,7 +174,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/businesses/register — public registration
 router.post('/register', businessCreationRateLimiter, async (req, res) => {
-  const { name, description, category, lat, lon, phone } = req.body;
+  const { name, description, category, lat, lon, phone, hours } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required.' });
 
   try {
@@ -192,6 +192,17 @@ router.post('/register', businessCreationRateLimiter, async (req, res) => {
       `INSERT INTO business_status (business_id, status) VALUES (?, 'Closed')`,
       [businessId]
     );
+
+    // Save hours if provided
+    if (Array.isArray(hours) && hours.length === 7) {
+      for (const day of hours) {
+        await db.run(
+          `INSERT INTO business_hours (business_id, day_of_week, open_time, close_time, is_closed)
+           VALUES (?, ?, ?, ?, ?)`,
+          [businessId, day.day_of_week, day.open_time || null, day.close_time || null, day.is_closed ? 1 : 0]
+        );
+      }
+    }
 
     await db.run(
       `INSERT INTO notifications (type, business_id, message) VALUES ('new_registration', ?, ?)`,

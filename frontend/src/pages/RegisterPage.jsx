@@ -71,12 +71,8 @@ export default function RegisterPage() {
         phone: form.phone ? `+1${form.phone.replace(/\D/g, '')}` : null,
         lat: form.lat ? parseFloat('18.' + form.lat) : null,
         lon: form.lon ? parseFloat('-65.' + form.lon) : null,
+        hours: showHours ? hours : undefined,
       });
-      if (showHours) {
-        // Auto-login to get a session, then save hours
-        await api.post('/auth/business/login', { code: data.code });
-        await api.put(`/businesses/${data.business.id}/hours`, { hours });
-      }
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
     } catch (err) {
       setError(err.message);
