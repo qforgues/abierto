@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
 import { CATEGORY_ICONS } from '../constants/categories';
+import { useLang } from '../context/LangContext';
 
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -40,8 +41,12 @@ function fmtDate(d) {
 }
 
 export default function BusinessCard({ business, userLocation }) {
+  const { lang, t } = useLang();
   const icon = CATEGORY_ICONS[business.category] || '📍';
   const { status, return_time, return_date, note } = business;
+  const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
+  const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
+  const displayCategory = business.category ? (t.categories[business.category] || business.category) : null;
 
   const hasGeo = business.lat && business.lon && userLocation;
   const distance = hasGeo ? getDistance(userLocation.lat, userLocation.lon, business.lat, business.lon) : null;
@@ -50,18 +55,18 @@ export default function BusinessCard({ business, userLocation }) {
   return (
     <Link to={`/business/${business.id}`} className="card business-card" style={{ display: 'flex' }}>
       {business.cover_photo ? (
-        <img src={uploadUrl(business.cover_photo)} alt={business.name} className="business-card-cover" />
+        <img src={uploadUrl(business.cover_photo)} alt={displayName} className="business-card-cover" />
       ) : (
         <div className="business-card-cover-placeholder">{icon}</div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-          <h3 style={{ margin: 0, lineHeight: 1.3 }}>{business.name}</h3>
+          <h3 style={{ margin: 0, lineHeight: 1.3 }}>{displayName}</h3>
           <StatusBadge status={status} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-          {business.category && (
-            <span className="text-sm text-muted">{icon} {business.category}</span>
+          {displayCategory && (
+            <span className="text-sm text-muted">{icon} {displayCategory}</span>
           )}
           {hasGeo && (
             <span className="text-sm" style={{ color: 'var(--ocean)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -70,8 +75,8 @@ export default function BusinessCard({ business, userLocation }) {
             </span>
           )}
         </div>
-        {business.description && (
-          <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.7, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{business.description}</p>
+        {displayDesc && (
+          <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.7, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{displayDesc}</p>
         )}
         {status === 'Out to Lunch' && return_time && (
           <p className="text-sm mt-2" style={{ color: 'var(--status-out-to-lunch)', fontWeight: 500 }}>

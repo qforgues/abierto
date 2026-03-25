@@ -41,7 +41,7 @@ export default function OwnerDashboard() {
     setReturnTime(stored.return_time || '');
     setReturnDate(stored.return_date || '');
     setEditForm({
-      name: b.name, description: b.description || '', category: b.category || '',
+      name: b.name, name_es: b.name_es || '', description: b.description || '', description_es: b.description_es || '', category: b.category || '',
       lat: b.lat ? String(b.lat).split('.')[1] || '' : '',
       lon: b.lon ? String(b.lon).split('.')[1] || '' : '',
       phone: (() => {
@@ -82,7 +82,9 @@ export default function OwnerDashboard() {
     try {
       await api.patch(`/businesses/${businessId}`, {
         name: editForm.name,
+        name_es: editForm.name_es || null,
         description: editForm.description || null,
+        description_es: editForm.description_es || null,
         category: editForm.category || null,
         lat: editForm.lat ? parseFloat('18.' + editForm.lat) : null,
         lon: editForm.lon ? parseFloat('-65.' + editForm.lon) : null,
@@ -198,6 +200,10 @@ export default function OwnerDashboard() {
                 <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div className="field">
+                <label>{ow.nameEsLabel}</label>
+                <input value={editForm.name_es} onChange={e => setEditForm(f => ({ ...f, name_es: e.target.value }))} placeholder={ow.nameEsPlaceholder} />
+              </div>
+              <div className="field">
                 <label>{ow.categoryLabel}</label>
                 <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
                   <option value="">None</option>
@@ -207,6 +213,10 @@ export default function OwnerDashboard() {
               <div className="field">
                 <label>{ow.descLabel}</label>
                 <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+              </div>
+              <div className="field">
+                <label>{ow.descEsLabel}</label>
+                <textarea value={editForm.description_es} onChange={e => setEditForm(f => ({ ...f, description_es: e.target.value }))} rows={3} placeholder={ow.descEsPlaceholder} />
               </div>
               <div className="field">
                 <label>{ow.phoneLabel}</label>

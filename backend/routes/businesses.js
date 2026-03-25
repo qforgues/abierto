@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
     const { dayOfWeek, timeStr } = getViequesNow();
 
     const businesses = await db.all(`
-      SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.created_at,
+      SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.created_at,
              s.status AS stored_status, s.note, s.return_time, s.return_date,
              s.updated_at AS status_updated_at,
              (SELECT filename FROM business_photos WHERE business_id = b.id ORDER BY sort_order ASC LIMIT 1) AS cover_photo
@@ -136,7 +136,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const business = await db.get(`
-      SELECT b.id, b.name, b.description, b.category, b.lat, b.lon, b.phone, b.created_at,
+      SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.phone, b.created_at,
              s.status AS stored_status, s.note, s.return_time, s.return_date,
              s.updated_at AS status_updated_at
       FROM businesses b
@@ -208,7 +208,7 @@ router.post('/register', businessCreationRateLimiter, async (req, res) => {
 
 // PATCH /api/businesses/:id — update business info (owner or admin)
 router.patch('/:id', async (req, res) => {
-  const { name, description, category, lat, lon, phone } = req.body;
+  const { name, name_es, description, description_es, category, lat, lon, phone } = req.body;
   const { id } = req.params;
 
   const user = requireBusinessAccess(req, res, id);
@@ -217,11 +217,13 @@ router.patch('/:id', async (req, res) => {
   try {
 
     await db.run(
-      `UPDATE businesses SET name = COALESCE(?, name), description = COALESCE(?, description),
+      `UPDATE businesses SET name = COALESCE(?, name), name_es = ?,
+       description = COALESCE(?, description), description_es = ?,
        category = COALESCE(?, category), lat = COALESCE(?, lat), lon = COALESCE(?, lon),
        phone = COALESCE(?, phone)
        WHERE id = ?`,
-      [name || null, description || null, category || null, lat || null, lon || null, phone || null, id]
+      [name || null, name_es || null, description || null, description_es || null,
+       category || null, lat || null, lon || null, phone || null, id]
     );
 
     const updated = await db.get('SELECT * FROM businesses WHERE id = ?', [id]);

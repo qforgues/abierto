@@ -166,6 +166,10 @@ async function initAndStart() {
     await db.run(sql);
   }
 
+  // Migrations — silently ignored if column already exists
+  try { await db.run('ALTER TABLE businesses ADD COLUMN name_es TEXT'); } catch (e) {}
+  try { await db.run('ALTER TABLE businesses ADD COLUMN description_es TEXT'); } catch (e) {}
+
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');
   if (adminRow.count === 0) {
