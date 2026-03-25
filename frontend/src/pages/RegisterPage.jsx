@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import HoursEditor from '../components/HoursEditor';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
 import { CATEGORY_ICONS } from '../constants/categories';
 
 const CATEGORIES = ['Attraction', 'Bar', 'Beach', 'Cafe', 'Food Truck', 'Other', 'Park', 'Restaurant', 'Service', 'Shop', 'Transportation'];
 
+function blankWeek() {
+  return Array.from({ length: 7 }, (_, i) => ({
+    day_of_week: i,
+    open_time: '09:00',
+    close_time: '21:00',
+    is_closed: i === 0,
+  }));
+}
+
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '' });
+  const [showHours, setShowHours] = useState(false);
+  const [hours, setHours] = useState(blankWeek());
   const [locating, setLocating] = useState(false);
   const [locDenied, setLocDenied] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +72,11 @@ export default function RegisterPage() {
         lat: form.lat ? parseFloat('18.' + form.lat) : null,
         lon: form.lon ? parseFloat('-65.' + form.lon) : null,
       });
+      if (showHours) {
+        // Auto-login to get a session, then save hours
+        await api.post('/auth/business/login', { code: data.code });
+        await api.put(`/businesses/${data.business.id}/hours`, { hours });
+      }
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
     } catch (err) {
       setError(err.message);
@@ -136,6 +153,25 @@ export default function RegisterPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ margin: 0 }}>{r.sectionHours}</h2>
+                <p className="text-sm text-muted" style={{ margin: '4px 0 0' }}>{r.hoursOptional}</p>
+              </div>
+              <button
+                type="button"
+                className={`btn btn-sm ${showHours ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setShowHours(v => !v)}
+              >
+                {showHours ? r.hoursHide : r.hoursAdd}
+              </button>
+            </div>
+            {showHours && (
+              <HoursEditor value={hours} onChange={setHours} />
+            )}
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ padding: '16px' }}>

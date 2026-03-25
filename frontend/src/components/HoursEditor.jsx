@@ -71,34 +71,38 @@ function Toggle({ checked, onChange }) {
   );
 }
 
-export default function HoursEditor({ businessId, onSaved }) {
-  const [hours, setHours] = useState(blankWeek());
+// Controlled mode: pass value + onChange (no businessId needed, no save button)
+// Standalone mode: pass businessId (loads/saves to API, has its own save button)
+export default function HoursEditor({ businessId, onSaved, value, onChange }) {
+  const controlled = !!onChange;
+  const [hours, setHours] = useState(value || blankWeek());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (controlled) return;
     api.get(`/businesses/${businessId}/hours`)
       .then(data => { if (data.length) setHours(mergeWithSaved(data)); })
       .catch(() => {});
   }, [businessId]);
 
-  const update = (i, field, value) =>
-    setHours(h => h.map((d, idx) => idx === i ? { ...d, [field]: value } : d));
+  const update = (i, field, val) => {
+    const next = hours.map((d, idx) => idx === i ? { ...d, [field]: val } : d);
+    setHours(next);
+    if (controlled) onChange(next);
+  };
+
+  const setAndNotify = (next) => { setHours(next); if (controlled) onChange(next); };
 
   const copyToAll = (i) => {
     const src = hours[i];
-    setHours(h => h.map(d => ({
-      ...d,
-      open_time: src.open_time,
-      close_time: src.close_time,
-      is_closed: src.is_closed,
-    })));
+    setAndNotify(hours.map(d => ({ ...d, open_time: src.open_time, close_time: src.close_time, is_closed: src.is_closed })));
   };
 
   const copyToWeekdays = (i) => {
     const src = hours[i];
-    setHours(h => h.map(d =>
+    setAndNotify(hours.map(d =>
       d.day_of_week >= 1 && d.day_of_week <= 5
         ? { ...d, open_time: src.open_time, close_time: src.close_time, is_closed: src.is_closed }
         : d
@@ -108,7 +112,7 @@ export default function HoursEditor({ businessId, onSaved }) {
   const toggle24h = (i) => {
     const day = hours[i];
     const currently24h = !day.is_closed && day.open_time === '00:00' && day.close_time === '00:00';
-    setHours(h => h.map((d, idx) => idx !== i ? d : currently24h
+    setAndNotify(hours.map((d, idx) => idx !== i ? d : currently24h
       ? { ...d, open_time: '09:00', close_time: '21:00' }
       : { ...d, open_time: '00:00', close_time: '00:00', is_closed: false }
     ));
@@ -301,21 +305,23 @@ export default function HoursEditor({ businessId, onSaved }) {
         })}
       </div>
 
-      {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
-        <div>
-          {error && <p className="text-error">{error}</p>}
-          {saved && <p className="text-success">✓ Hours saved</p>}
+      {/* Footer — only shown in standalone (non-controlled) mode */}
+      {!controlled && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
+          <div>
+            {error && <p className="text-error">{error}</p>}
+            {saved && <p className="text-success">✓ Hours saved</p>}
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+            style={{ minWidth: 120 }}
+          >
+            {saving ? 'Saving…' : 'Save Hours'}
+          </button>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleSave}
-          disabled={saving}
-          style={{ minWidth: 120 }}
-        >
-          {saving ? 'Saving…' : 'Save Hours'}
-        </button>
-      </div>
+      )}
     </div>
   );
 }

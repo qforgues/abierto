@@ -133,6 +133,10 @@ const translations = {
       errLocation: 'Could not get location. Enter manually.',
       errLocationDenied: 'Location access is blocked.',
       errLocationDeniedHint: 'To use this feature, enable location in your browser or device settings, then tap Try Again.',
+      sectionHours: 'Business Hours',
+      hoursOptional: 'Optional — you can always set these later from your dashboard.',
+      hoursAdd: '+ Add Hours',
+      hoursHide: 'Hide',
     },
 
     success: {
@@ -280,6 +284,10 @@ const translations = {
       errLocation: 'No se pudo obtener la ubicación. Ingrésala manualmente.',
       errLocationDenied: 'El acceso a la ubicación está bloqueado.',
       errLocationDeniedHint: 'Para usar esta función, habilita la ubicación en la configuración de tu navegador o dispositivo, y luego toca Intentar de Nuevo.',
+      sectionHours: 'Horario de Negocio',
+      hoursOptional: 'Opcional — puedes configurarlo más tarde desde tu panel.',
+      hoursAdd: '+ Agregar Horario',
+      hoursHide: 'Ocultar',
     },
 
     success: {
