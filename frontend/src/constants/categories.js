@@ -9,6 +9,7 @@ export const CATEGORY_ICONS = {
   Beach:        '🏖️',
   Park:         '🌳',
   Attraction:   '🏰',
+  Transportation: '🚌',
   Other:        '📍',
   Closed:       '🔒',
 };

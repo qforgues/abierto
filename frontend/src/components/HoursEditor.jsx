@@ -105,6 +105,15 @@ export default function HoursEditor({ businessId, onSaved }) {
     ));
   };
 
+  const toggle24h = (i) => {
+    const day = hours[i];
+    const currently24h = !day.is_closed && day.open_time === '00:00' && day.close_time === '00:00';
+    setHours(h => h.map((d, idx) => idx !== i ? d : currently24h
+      ? { ...d, open_time: '09:00', close_time: '21:00' }
+      : { ...d, open_time: '00:00', close_time: '00:00', is_closed: false }
+    ));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
@@ -159,48 +168,73 @@ export default function HoursEditor({ businessId, onSaved }) {
               <Toggle checked={isOpen} onChange={val => update(i, 'is_closed', !val)} />
 
               {/* Status label or time pickers */}
-              {isOpen ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="time"
-                      value={day.open_time}
-                      onChange={e => update(i, 'open_time', e.target.value)}
+              {isOpen ? (() => {
+                const is24h = day.open_time === '00:00' && day.close_time === '00:00';
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
+                    {is24h ? (
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ocean)' }}>Open 24 Hours</span>
+                    ) : (
+                      <>
+                        <input
+                          type="time"
+                          value={day.open_time}
+                          onChange={e => update(i, 'open_time', e.target.value)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '0.9rem',
+                            border: '1.5px solid var(--border)',
+                            borderRadius: 8,
+                            background: 'white',
+                            color: 'var(--dark)',
+                            fontFamily: 'inherit',
+                            outline: 'none',
+                            width: 118,
+                          }}
+                        />
+                        <span style={{ color: 'var(--mid)', fontSize: '0.8rem', fontWeight: 600 }}>→</span>
+                        <input
+                          type="time"
+                          value={day.close_time}
+                          onChange={e => update(i, 'close_time', e.target.value)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '0.9rem',
+                            border: '1.5px solid var(--border)',
+                            borderRadius: 8,
+                            background: 'white',
+                            color: 'var(--dark)',
+                            fontFamily: 'inherit',
+                            outline: 'none',
+                            width: 118,
+                          }}
+                        />
+                        <span style={{ color: 'var(--mid)', fontSize: '0.78rem', marginLeft: 2 }}>
+                          {fmt12(day.open_time)} – {fmt12(day.close_time)}
+                        </span>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggle24h(i)}
                       style={{
-                        padding: '6px 10px',
-                        fontSize: '0.9rem',
-                        border: '1.5px solid var(--border)',
-                        borderRadius: 8,
-                        background: 'white',
-                        color: 'var(--dark)',
+                        fontSize: '0.72rem',
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: `1.5px solid ${is24h ? 'var(--ocean)' : 'var(--border)'}`,
+                        background: is24h ? 'var(--ocean)' : 'white',
+                        color: is24h ? 'white' : 'var(--mid)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
                         fontFamily: 'inherit',
-                        outline: 'none',
-                        width: 118,
+                        flexShrink: 0,
                       }}
-                    />
+                    >
+                      24h
+                    </button>
                   </div>
-                  <span style={{ color: 'var(--mid)', fontSize: '0.8rem', fontWeight: 600 }}>→</span>
-                  <input
-                    type="time"
-                    value={day.close_time}
-                    onChange={e => update(i, 'close_time', e.target.value)}
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '0.9rem',
-                      border: '1.5px solid var(--border)',
-                      borderRadius: 8,
-                      background: 'white',
-                      color: 'var(--dark)',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                      width: 118,
-                    }}
-                  />
-                  <span style={{ color: 'var(--mid)', fontSize: '0.78rem', marginLeft: 2 }}>
-                    {fmt12(day.open_time)} – {fmt12(day.close_time)}
-                  </span>
-                </div>
-              ) : (
+                );
+              })() : (
                 <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--mid)', fontWeight: 500 }}>
                   Closed
                 </span>

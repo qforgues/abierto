@@ -5,7 +5,7 @@ import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
 import { CATEGORY_ICONS } from '../constants/categories';
 
-const CATEGORIES = ['Attraction', 'Bar', 'Beach', 'Cafe', 'Food Truck', 'Other', 'Park', 'Restaurant', 'Service', 'Shop'];
+const CATEGORIES = ['Attraction', 'Bar', 'Beach', 'Cafe', 'Food Truck', 'Other', 'Park', 'Restaurant', 'Service', 'Shop', 'Transportation'];
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '' });

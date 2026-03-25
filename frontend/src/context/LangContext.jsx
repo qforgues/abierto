@@ -5,7 +5,7 @@ const translations = {
     categories: {
       All: 'All', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Cafe', Shop: 'Shop', Service: 'Service',
-      Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Other: 'Other', Closed: 'Closed',
+      Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Transportation: 'Transportation', Other: 'Other', Closed: 'Closed',
     },
     noBusinesses: 'No businesses yet.',
     addYours: 'Add yours!',
@@ -148,7 +148,7 @@ const translations = {
     categories: {
       All: 'Todo', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Café', Shop: 'Tienda', Service: 'Servicio',
-      Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Other: 'Otro', Closed: 'Cerrado',
+      Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Transportation: 'Transporte', Other: 'Otro', Closed: 'Cerrado',
     },
     noBusinesses: 'No hay negocios todavía.',
     addYours: '¡Añade el tuyo!',

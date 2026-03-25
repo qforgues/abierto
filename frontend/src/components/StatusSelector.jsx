@@ -47,11 +47,19 @@ export default function StatusSelector({
       {value === 'Out to Lunch' && (
         <div className="field" style={{ marginTop: 12 }}>
           <label>{ow.backAt}</label>
-          <input
-            type="time"
-            value={returnTime || ''}
-            onChange={e => onReturnTimeChange(e.target.value)}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="time"
+              value={returnTime || ''}
+              onChange={e => onReturnTimeChange(e.target.value)}
+              style={{ flex: 1, maxWidth: 160 }}
+            />
+            {returnTime && (
+              <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--ocean)' }}>
+                {fmt12(returnTime)}
+              </span>
+            )}
+          </div>
           {returnTime && (
             <p className="text-sm text-muted" style={{ marginTop: 4 }}>
               {ow.shownAs.replace('{time}', fmt12(returnTime))}

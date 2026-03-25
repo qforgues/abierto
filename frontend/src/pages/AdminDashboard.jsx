@@ -545,7 +545,7 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
       </div>
       <div>
         <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>Hours</p>
-        <HoursEditor businessId={businessId} onSaved={() => setHasHours(true)} />
+        <HoursEditor businessId={businessId} onSaved={() => { setHasHours(true); onStatusSaved(); }} />
       </div>
     </div>
   );
