@@ -188,29 +188,23 @@ router.post('/register', businessCreationRateLimiter, async (req, res) => {
 
     const businessId = result.lastID;
 
-    await db.run(
-      `INSERT INTO business_status (business_id, status) VALUES (?, 'Closed')`,
-      [businessId]
-    );
+    // Build hours insert as a single batched statement
+    const hoursInsert = (Array.isArray(hours) && hours.length === 7)
+      ? db.run(
+          `INSERT INTO business_hours (business_id, day_of_week, open_time, close_time, is_closed) VALUES ${hours.map(() => '(?,?,?,?,?)').join(',')}`,
+          hours.flatMap(d => [businessId, d.day_of_week, d.open_time || null, d.close_time || null, d.is_closed ? 1 : 0])
+        )
+      : Promise.resolve();
 
-    // Save hours if provided
-    if (Array.isArray(hours) && hours.length === 7) {
-      for (const day of hours) {
-        await db.run(
-          `INSERT INTO business_hours (business_id, day_of_week, open_time, close_time, is_closed)
-           VALUES (?, ?, ?, ?, ?)`,
-          [businessId, day.day_of_week, day.open_time || null, day.close_time || null, day.is_closed ? 1 : 0]
-        );
-      }
-    }
+    // Run all post-insert writes in parallel
+    await Promise.all([
+      db.run(`INSERT INTO business_status (business_id, status) VALUES (?, 'Closed')`, [businessId]),
+      hoursInsert,
+      db.run(`INSERT INTO notifications (type, business_id, message) VALUES ('new_registration', ?, ?)`,
+        [businessId, `New business registered: "${name}" (code: ${code})`]),
+    ]);
 
-    await db.run(
-      `INSERT INTO notifications (type, business_id, message) VALUES ('new_registration', ?, ?)`,
-      [businessId, `New business registered: "${name}" (code: ${code})`]
-    );
-
-    const business = await db.get('SELECT * FROM businesses WHERE id = ?', [businessId]);
-    res.status(201).json({ business, code });
+    res.status(201).json({ business: { id: businessId, name, description: description || null, category: category || null, lat: lat || null, lon: lon || null, phone: phone || null, code, is_active: 1 }, code });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error.' });
