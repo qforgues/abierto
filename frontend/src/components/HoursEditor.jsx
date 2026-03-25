@@ -279,7 +279,7 @@ export default function HoursEditor({ businessId, onSaved, value, onChange }) {
                       <button
                         key={label}
                         type="button"
-                        onClick={action}
+                        onClick={e => { action(); e.currentTarget.closest('details').removeAttribute('open'); }}
                         style={{
                           display: 'block',
                           width: '100%',
