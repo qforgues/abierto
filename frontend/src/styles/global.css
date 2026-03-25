@@ -372,3 +372,7 @@ textarea { resize: vertical; min-height: 80px; }
   .status-selector { grid-template-columns: 1fr; }
   .code-display { font-size: 2.8rem; padding: 20px; }
 }
+
+@media (max-width: 768px) {
+  .nav-hide-mobile { display: none !important; }
+}

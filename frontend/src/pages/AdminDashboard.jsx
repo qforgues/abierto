@@ -582,7 +582,7 @@ export default function AdminDashboard() {
   }, []);
 
   const remove = async (id) => {
-    if (!confirm('Remove this business?')) return;
+    if (!confirm('Archive this business? It will be hidden from the public listing.')) return;
     await api.delete(`/businesses/${id}`);
     loadBusinesses();
   };
@@ -597,10 +597,14 @@ export default function AdminDashboard() {
     loadNotifications();
   };
 
-  const filtered = businesses.filter(b =>
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.code?.toLowerCase().includes(search.toLowerCase())
-  );
+  const [showArchived, setShowArchived] = useState(false);
+
+  const filtered = businesses.filter(b => {
+    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
+      b.code?.toLowerCase().includes(search.toLowerCase());
+    const matchesActive = showArchived ? !b.is_active : b.is_active;
+    return matchesSearch && matchesActive;
+  });
 
   return (
     <>
@@ -624,22 +628,30 @@ export default function AdminDashboard() {
           <>
             {tab === 'businesses' && (
               <>
-                <div style={{ position: 'relative', marginBottom: 16 }}>
-                  <input
-                    type="text"
-                    placeholder="Search by name or code…"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    style={{ width: '100%', paddingRight: search ? 36 : undefined }}
-                  />
-                  {search && (
-                    <button
-                      onClick={() => setSearch('')}
-                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mid)', fontSize: '1.1rem', lineHeight: 1, padding: 0 }}
-                    >
-                      ×
-                    </button>
-                  )}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="text"
+                      placeholder="Search by name or code…"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      style={{ width: '100%', paddingRight: search ? 36 : undefined }}
+                    />
+                    {search && (
+                      <button
+                        onClick={() => setSearch('')}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mid)', fontSize: '1.1rem', lineHeight: 1, padding: 0 }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setShowArchived(v => !v)}
+                  >
+                    🗄 Archived{showArchived ? '' : ` (${businesses.filter(b => !b.is_active).length})`}
+                  </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {filtered.length === 0 && <p className="text-muted text-center mt-4">No businesses yet.</p>}
@@ -650,7 +662,7 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                             <strong>{b.name}</strong>
                             <StatusBadge status={b.status} />
-                            {!b.is_active && <span style={{ fontSize: '0.75rem', background: '#e5e7eb', color: '#6b7280', padding: '2px 8px', borderRadius: 999 }}>Removed</span>}
+                            {!b.is_active && <span style={{ fontSize: '0.75rem', background: '#e5e7eb', color: '#6b7280', padding: '2px 8px', borderRadius: 999 }}>Archived</span>}
                           </div>
                           <p className="text-sm text-muted mt-2">
                             Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em', color: 'var(--ocean)' }}>{b.code}</strong>
@@ -670,7 +682,7 @@ export default function AdminDashboard() {
                             </button>
                           )}
                           {b.is_active
-                            ? <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Remove</button>
+                            ? <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Archive</button>
                             : <button className="btn btn-ghost btn-sm" onClick={() => restore(b.id)}>Restore</button>
                           }
                         </div>

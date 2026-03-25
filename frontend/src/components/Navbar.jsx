@@ -54,13 +54,13 @@ export default function Navbar() {
       <Link to="/" style={styles.brand}>
         <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
-      <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+      <span className={user?.role === 'admin' ? 'nav-hide-mobile' : undefined} style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
         {t.navSubtitle}
       </span>
       <div style={styles.actions}>
         {!user && (
           <>
-            <Link to="/register" style={styles.link}>{t.addBusiness}</Link>
+            <Link to="/register" className="nav-hide-mobile" style={styles.link}>{t.addBusiness}</Link>
             <Link to="/login" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>
               {t.login}
             </Link>
@@ -68,8 +68,8 @@ export default function Navbar() {
         )}
         {user?.role === 'owner' && (
           <>
-            <Link to="/owner" style={styles.link}>{t.myBusiness}</Link>
-            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <Link to="/owner" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>{t.myBusiness}</Link>
+            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}>
               {t.logout}
             </button>
           </>
@@ -77,8 +77,8 @@ export default function Navbar() {
         {user?.role === 'admin' && (
           <>
             <NotificationBell />
-            <Link to="/admin" style={styles.link}>{t.dashboard}</Link>
-            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'none', border: 'none', cursor: 'pointer' }}>
+            <Link to="/admin" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>{t.dashboard}</Link>
+            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}>
               {t.logout}
             </button>
           </>
