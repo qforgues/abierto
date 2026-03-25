@@ -136,7 +136,7 @@ const translations = {
       sectionHours: 'Business Hours',
       hoursOptional: 'Optional — you can always set these later from your dashboard.',
       hoursAdd: '+ Add Hours',
-      hoursHide: 'Hide',
+      hoursHide: "Don't enter hours now (will show as closed)",
     },
 
     success: {
