@@ -491,16 +491,23 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
   const [hasHours, setHasHours] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [nameEs, setNameEs] = useState('');
+  const [descEs, setDescEs] = useState('');
+  const [savingEs, setSavingEs] = useState(false);
+  const [msgEs, setMsgEs] = useState('');
 
   useEffect(() => {
     Promise.all([
       api.get(`/businesses/${businessId}/status`),
       api.get(`/businesses/${businessId}/hours`),
-    ]).then(([s, h]) => {
+      api.get(`/businesses/${businessId}`),
+    ]).then(([s, h, b]) => {
       setStatus(s.status || 'Closed');
       setReturnTime(s.return_time || '');
       setReturnDate(s.return_date || '');
       setHasHours(h.length > 0);
+      setNameEs(b.name_es || '');
+      setDescEs(b.description_es || '');
     }).catch(() => {});
   }, [businessId]);
 
@@ -523,10 +530,32 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
     }
   };
 
+  const saveSpanish = async () => {
+    setSavingEs(true);
+    setMsgEs('');
+    try {
+      await api.patch(`/businesses/${businessId}`, {
+        name_es: nameEs || null,
+        description_es: descEs || null,
+      });
+      setMsgEs('Saved!');
+      setTimeout(() => setMsgEs(''), 2000);
+      if (onStatusSaved) onStatusSaved();
+    } catch (err) {
+      setMsgEs(`Error: ${err.message}`);
+    } finally {
+      setSavingEs(false);
+    }
+  };
+
+  const sectionLabel = (text) => (
+    <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>{text}</p>
+  );
+
   return (
     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>Status</p>
+        {sectionLabel('Status')}
         <StatusSelector
           value={status}
           onChange={setStatus}
@@ -543,8 +572,29 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
           {msg && <span className={msg.startsWith('Error') ? 'text-error' : 'text-success'} style={{ fontSize: '0.875rem' }}>{msg}</span>}
         </div>
       </div>
+
       <div>
-        <p style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mid)' }}>Hours</p>
+        {sectionLabel('🇵🇷 Spanish Content')}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.8rem' }}>Name (Spanish)</label>
+            <input value={nameEs} onChange={e => setNameEs(e.target.value)} placeholder="Optional Spanish name…" />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.8rem' }}>Description (Spanish)</label>
+            <textarea value={descEs} onChange={e => setDescEs(e.target.value)} rows={3} placeholder="Optional Spanish description…" style={{ resize: 'vertical' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn-primary btn-sm" onClick={saveSpanish} disabled={savingEs}>
+              {savingEs ? 'Saving…' : 'Save Spanish'}
+            </button>
+            {msgEs && <span className={msgEs.startsWith('Error') ? 'text-error' : 'text-success'} style={{ fontSize: '0.875rem' }}>{msgEs}</span>}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {sectionLabel('Hours')}
         <HoursEditor businessId={businessId} onSaved={() => { setHasHours(true); onStatusSaved(); }} />
       </div>
     </div>
