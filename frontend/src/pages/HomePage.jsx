@@ -81,7 +81,7 @@ export default function HomePage() {
         </div>
         <div className="home-map-panel">
           <div className="map-wrap">
-            <MapView businesses={businesses} userLocation={userLocation} />
+            <MapView businesses={filtered} userLocation={userLocation} />
           </div>
         </div>
       </div>
