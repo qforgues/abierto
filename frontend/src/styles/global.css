@@ -343,9 +343,11 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Code display ── */
 .code-display {
-  font-family: 'Outfit', monospace;
+  font-family: 'Source Code Pro', monospace;
   font-size: 3.5rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-variant-numeric: slashed-zero;
+  font-feature-settings: "zero" 1;
   letter-spacing: 0.15em;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: var(--turquoise);
