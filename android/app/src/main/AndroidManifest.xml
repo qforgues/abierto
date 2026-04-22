@@ -32,7 +32,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="abiertovqs.com"
+                    android:host="www.abiertovqs.com"
                     android:pathPrefix="/" />
             </intent-filter>
 
@@ -55,7 +55,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="abiertovqs.com"
+                    android:host="www.abiertovqs.com"
                     android:pathPrefix="/.well-known/assetlinks.json" />
             </intent-filter>
         </activity>

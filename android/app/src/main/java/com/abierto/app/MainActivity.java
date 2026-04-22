@@ -14,7 +14,7 @@ import androidx.browser.customtabs.CustomTabsIntent;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String APP_URL = "https://abiertovqs.com";
+    private static final String APP_URL = "https://www.abiertovqs.com";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

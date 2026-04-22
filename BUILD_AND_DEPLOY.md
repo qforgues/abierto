@@ -104,7 +104,7 @@ Should return:
       "namespace": "android_app",
       "package_name": "com.abierto.app",
       "sha256_cert_fingerprints": [
-        "DD:F0:86:86:33:5C:25:59:0D:4D:D9:2E:45:B7:9E:20:49:09:9E:21:6D:70:7B:6C:3F:40:84:05:9E:F5:E8:EF"
+        "9C:03:FB:FE:21:F2:CC:34:62:FA:3A:FE:DD:FF:6D:41:DD:DE:1C:81:91:C1:23:2C:33:08:01:7B:C1:40:9F:45"
       ]
     }
   }
@@ -141,7 +141,7 @@ Should return:
 | **Target SDK** | 34 (Android 14) |
 | **Keystore Password** | Stored securely in password manager |
 | **Key Password** | Stored securely in password manager |
-| **SHA256 Fingerprint** | `DD:F0:86:86:33:5C:25:59:0D:4D:D9:2E:45:B7:9E:20:49:09:9E:21:6D:70:7B:6C:3F:40:84:05:9E:F5:E8:EF` |
+| **SHA256 Fingerprint** | `9C:03:FB:FE:21:F2:CC:34:62:FA:3A:FE:DD:FF:6D:41:DD:DE:1C:81:91:C1:23:2C:33:08:01:7B:C1:40:9F:45` |
 
 ---
 
