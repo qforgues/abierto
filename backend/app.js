@@ -30,6 +30,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ── Well-known assets (e.g. assetlinks.json for App Links) ──────────────────────
 app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known')));
 
+// ── Privacy policy ───────────────────────────────────────────────────────────
+app.get('/privacy', (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy – Abierto</title><style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#333;line-height:1.6}h1{color:#1a1a1a}</style></head><body><h1>Privacy Policy</h1><p><strong>Last updated: April 2026</strong></p><p>Abierto ("the app") is a business directory for Vieques, Puerto Rico. This policy explains how we handle your information.</p><h2>Information We Collect</h2><ul><li><strong>Camera:</strong> Used only to let business owners upload photos. Photos are uploaded to our server and stored securely. We do not access your camera without your action.</li><li><strong>Location:</strong> Used to show nearby businesses on the map. Location is not stored or shared.</li><li><strong>Account info:</strong> Email and password (hashed) for business owner accounts.</li></ul><h2>How We Use Your Information</h2><p>We use collected information solely to operate the Abierto directory. We do not sell, share, or use your data for advertising.</p><h2>Data Storage</h2><p>Data is stored on secure servers. Photos uploaded by business owners are stored and displayed publicly in the app.</p><h2>Contact</h2><p>Questions? Email us at <a href="mailto:hello@abiertovqs.com">hello@abiertovqs.com</a>.</p></body></html>`);
+});
+
 // ── Ping (no DB) ─────────────────────────────────────────────────────────────
 app.get('/api/ping', (req, res) => {
   res.json({ ok: true, ts: Date.now(), node: process.version, env: process.env.NODE_ENV });
