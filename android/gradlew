@@ -1,19 +1,10 @@
 #!/bin/sh
-
-# Gradle wrapper for Linux/macOS
-
-DIR="$( cd "$( dirname "$0" )" && pwd )"
-GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"
-GRADLE_VERSION="8.1.2"
-GRADLE_HOME="$GRADLE_USER_HOME/wrapper/dists/gradle-$GRADLE_VERSION"
-
-if [ ! -d "$GRADLE_HOME" ]; then
-  mkdir -p "$GRADLE_USER_HOME/wrapper/dists"
-  echo "Downloading Gradle $GRADLE_VERSION..."
-  GRADLE_ZIP="$GRADLE_USER_HOME/wrapper/gradle-$GRADLE_VERSION-bin.zip"
-  curl -L -o "$GRADLE_ZIP" "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"
-  unzip -q -d "$GRADLE_USER_HOME/wrapper/dists" "$GRADLE_ZIP"
+set -e
+APP_HOME="$(cd "$(dirname "$0")" && pwd)"
+CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ -n "$JAVA_HOME" ]; then
+    JAVA_CMD="$JAVA_HOME/bin/java"
+else
+    JAVA_CMD="java"
 fi
-
-export GRADLE_HOME
-exec "$GRADLE_HOME/gradle-$GRADLE_VERSION/bin/gradle" "$@"
+exec "$JAVA_CMD" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
