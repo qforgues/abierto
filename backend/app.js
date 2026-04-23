@@ -68,6 +68,25 @@ app.get('/api/debug', async (req, res) => {
   }
 });
 
+// ── Cron: clear manual status overrides ──────────────────────────────────────
+// Call this on a schedule (e.g. every hour via Render cron or external service).
+// Clearing quick_override lets hours-based status resume on the next request.
+app.post('/api/cron/status-reset', async (req, res) => {
+  const secret = req.headers['x-cron-secret'] || req.body?.secret;
+  if (!secret || secret !== (process.env.CRON_SECRET || 'abierto-cron')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const result = await db.run(
+      'UPDATE business_status SET quick_override = 0 WHERE quick_override = 1'
+    );
+    res.json({ ok: true, cleared: result.changes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',                  require('./routes/apiAuth'));
 app.use('/api/businesses',            require('./routes/businesses'));
@@ -80,6 +99,7 @@ app.use('/api/contact',               require('./routes/contact'));
 app.use('/api/settings',              require('./routes/settings'));
 app.use('/api/subscriptions',         require('./routes/subscriptions'));
 app.use('/api/webhooks',              require('./routes/webhooks'));
+app.use('/api/messages',              require('./routes/messages'));
 
 // ── Serve frontend build ──────────────────────────────────────────────────────
 const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
@@ -170,6 +190,14 @@ async function initAndStart() {
       code        TEXT UNIQUE NOT NULL,
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
+    `CREATE TABLE IF NOT EXISTS messages (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+      from_admin  INTEGER NOT NULL DEFAULT 0,
+      body        TEXT NOT NULL,
+      is_read     INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
   ];
 
   for (const sql of schema) {
@@ -179,6 +207,7 @@ async function initAndStart() {
   // Migrations — silently ignored if column already exists
   try { await db.run('ALTER TABLE businesses ADD COLUMN name_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE businesses ADD COLUMN description_es TEXT'); } catch (e) {}
+  try { await db.run('ALTER TABLE business_status ADD COLUMN quick_override INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');

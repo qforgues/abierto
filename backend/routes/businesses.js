@@ -17,7 +17,10 @@ function getViequesNow() {
 
 // Compute what status to show publicly.
 // todayHours: { open_time, close_time, is_closed } or null if no hours configured
-function computeStatus(stored, returnTime, todayHours, timeStr) {
+function computeStatus(stored, returnTime, todayHours, timeStr, quickOverride) {
+  // Quick manual override — bypass hours until next scheduled reset
+  if (quickOverride) return stored || 'Closed';
+
   // Permanent overrides — stay until owner changes them
   if (stored === 'Closed for the Season') return stored;
 
@@ -66,7 +69,7 @@ router.get('/', async (req, res) => {
     const businesses = await db.all(`
       SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.created_at,
              s.status AS stored_status, s.note, s.return_time, s.return_date,
-             s.updated_at AS status_updated_at,
+             s.updated_at AS status_updated_at, s.quick_override,
              (SELECT filename FROM business_photos WHERE business_id = b.id ORDER BY sort_order ASC LIMIT 1) AS cover_photo
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
@@ -83,10 +86,10 @@ router.get('/', async (req, res) => {
     for (const row of todayHoursRows) hoursMap[row.business_id] = row;
 
     const result = businesses.map(b => {
-      const { stored_status, ...rest } = b;
+      const { stored_status, quick_override, ...rest } = b;
       return {
         ...rest,
-        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr),
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override),
       };
     });
 
@@ -104,7 +107,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
 
     const businesses = await db.all(`
       SELECT b.*, s.status AS stored_status, s.note, s.return_time, s.return_date,
-             s.updated_at AS status_updated_at
+             s.updated_at AS status_updated_at, s.quick_override
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
       ORDER BY b.created_at DESC
@@ -118,10 +121,10 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
     for (const row of todayHoursRows) hoursMap[row.business_id] = row;
 
     const result = businesses.map(b => {
-      const { stored_status, ...rest } = b;
+      const { stored_status, quick_override, ...rest } = b;
       return {
         ...rest,
-        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr),
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override),
       };
     });
 
@@ -138,7 +141,7 @@ router.get('/:id', async (req, res) => {
     const business = await db.get(`
       SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.phone, b.created_at,
              s.status AS stored_status, s.note, s.return_time, s.return_date,
-             s.updated_at AS status_updated_at
+             s.updated_at AS status_updated_at, s.quick_override
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
       WHERE b.id = ? AND b.is_active = 1
@@ -159,10 +162,10 @@ router.get('/:id', async (req, res) => {
     const { dayOfWeek, timeStr } = getViequesNow();
     const todayHours = hours.find(h => h.day_of_week === dayOfWeek) || null;
 
-    const { stored_status, ...rest } = business;
+    const { stored_status, quick_override, ...rest } = business;
     res.json({
       ...rest,
-      status: computeStatus(stored_status, business.return_time, todayHours, timeStr),
+      status: computeStatus(stored_status, business.return_time, todayHours, timeStr, quick_override),
       has_hours: hours.length > 0,
       photos,
     });

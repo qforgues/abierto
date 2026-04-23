@@ -21,6 +21,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/businesses/:id/status/quick-toggle
+router.post('/quick-toggle', async (req, res) => {
+  const businessId = parseInt(req.params.id);
+  const user = requireBusinessAccess(req, res, req.params.id);
+  if (!user) return;
+
+  try {
+    const current = await db.get(
+      'SELECT status FROM business_status WHERE business_id = ?',
+      [businessId]
+    );
+    const isOpen = current && ['Open', 'Open 24 Hours'].includes(current.status);
+    const newStatus = isOpen ? 'Closed' : 'Open';
+
+    await db.run(
+      `UPDATE business_status
+       SET status = ?, quick_override = 1, note = NULL, return_time = NULL, return_date = NULL, updated_at = datetime('now')
+       WHERE business_id = ?`,
+      [newStatus, businessId]
+    );
+
+    const updated = await db.get(
+      'SELECT * FROM business_status WHERE business_id = ?',
+      [businessId]
+    );
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 // PUT /api/businesses/:id/status
 router.put('/', async (req, res) => {
   const { status, note, return_time, return_date } = req.body;
@@ -43,7 +75,7 @@ router.put('/', async (req, res) => {
 
     await db.run(
       `UPDATE business_status
-       SET status = ?, note = ?, return_time = ?, return_date = ?, updated_at = datetime('now')
+       SET status = ?, note = ?, return_time = ?, return_date = ?, quick_override = 0, updated_at = datetime('now')
        WHERE business_id = ?`,
       [status, noteVal, rtVal, rdVal, businessId]
     );

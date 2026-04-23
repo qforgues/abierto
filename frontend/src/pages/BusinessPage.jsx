@@ -69,6 +69,16 @@ export default function BusinessPage() {
     <>
       <Navbar />
       <div className="page page-narrow">
+        {business.lat && business.lon && (
+          <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', background: '#e2e8f0' }}>
+            <img
+              src={`https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${business.lat},${business.lon}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&return_error_codes=true`}
+              alt={`Street view of ${displayName}`}
+              style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+              onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+            />
+          </div>
+        )}
         {business.photos?.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(business.photos.length, 3)}, 1fr)`, gap: 8, marginBottom: 20 }}>
             {business.photos.map(p => (

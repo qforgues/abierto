@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import StatusSelector from '../components/StatusSelector';
 import PhotoUploader from '../components/PhotoUploader';
@@ -22,7 +22,15 @@ export default function OwnerDashboard() {
   const [returnTime, setReturnTime] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [quickToggling, setQuickToggling] = useState(false);
+  const [quickOverride, setQuickOverride] = useState(false);
   const [msg, setMsg] = useState('');
+  const [showMessages, setShowMessages] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [msgUnread, setMsgUnread] = useState(0);
+  const [newMsg, setNewMsg] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatBottomRef = useRef(null);
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingInfo, setSavingInfo] = useState(false);
@@ -40,6 +48,7 @@ export default function OwnerDashboard() {
     setNote(stored.note || '');
     setReturnTime(stored.return_time || '');
     setReturnDate(stored.return_date || '');
+    setQuickOverride(!!stored.quick_override);
     setEditForm({
       name: b.name, name_es: b.name_es || '', description: b.description || '', description_es: b.description_es || '', category: b.category || '',
       lat: b.lat ? String(b.lat).split('.')[1] || '' : '',
@@ -55,6 +64,44 @@ export default function OwnerDashboard() {
   };
 
   useEffect(() => { load(); }, [businessId]);
+
+  useEffect(() => {
+    api.get('/messages/unread').then(r => setMsgUnread(r.count)).catch(() => {});
+  }, [businessId]);
+
+  const loadMessages = async () => {
+    const msgs = await api.get('/messages');
+    setMessages(msgs);
+    setMsgUnread(0);
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMsg.trim() || sending) return;
+    setSending(true);
+    try {
+      const msgs = await api.post('/messages', { body: newMsg.trim() });
+      setMessages(msgs);
+      setNewMsg('');
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleQuickToggle = async () => {
+    setQuickToggling(true);
+    try {
+      await api.post(`/businesses/${businessId}/status/quick-toggle`, {});
+      await load();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setQuickToggling(false);
+    }
+  };
 
   const saveStatus = async () => {
     setSaving(true);
@@ -118,6 +165,15 @@ export default function OwnerDashboard() {
 
   if (!business) return <><Navbar /><div className="spinner" /></>;
 
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = Math.floor((Date.now() - new Date(ts + (ts.includes('Z') ? '' : 'Z'))) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
+
   const showNote = !['Out to Lunch', 'Closed for the Season'].includes(status);
 
   return (
@@ -131,6 +187,37 @@ export default function OwnerDashboard() {
           </div>
           <StatusBadge status={business.status} />
         </div>
+
+        {/* Quick open/close toggle */}
+        {(() => {
+          const isLiveOpen = ['Open', 'Open 24 Hours'].includes(business.status);
+          return (
+            <div className="card card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, background: isLiveOpen ? '#f0fdf4' : '#fef2f2' }}>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>{isLiveOpen ? 'Currently Open' : 'Currently Closed'}</p>
+                {quickOverride && <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Manual override — resets at next scheduled check</p>}
+              </div>
+              <button
+                onClick={handleQuickToggle}
+                disabled={quickToggling}
+                style={{
+                  padding: '12px 22px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: quickToggling ? 'not-allowed' : 'pointer',
+                  background: isLiveOpen ? '#ef4444' : '#16a34a',
+                  color: 'white',
+                  whiteSpace: 'nowrap',
+                  opacity: quickToggling ? 0.7 : 1,
+                }}
+              >
+                {quickToggling ? 'Saving…' : isLiveOpen ? '🔴 Close Now' : '🟢 Open Now'}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Status update */}
         <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -252,6 +339,75 @@ export default function OwnerDashboard() {
             </div>
           )}
         </div>
+        {/* Ask Austin — messaging */}
+        <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            onClick={() => {
+              if (!showMessages) loadMessages();
+              setShowMessages(v => !v);
+            }}
+          >
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              ✉️ Ask Austin
+              {msgUnread > 0 && (
+                <span style={{ background: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>
+                  {msgUnread}
+                </span>
+              )}
+            </h2>
+            <span style={{ color: 'var(--mid)' }}>{showMessages ? '▲' : '▼'}</span>
+          </div>
+
+          {showMessages && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingBottom: 4 }}>
+                {messages.length === 0 && (
+                  <p className="text-sm text-muted" style={{ textAlign: 'center', padding: '16px 0' }}>
+                    No messages yet — send Austin a question below!
+                  </p>
+                )}
+                {messages.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: m.from_admin ? 'flex-start' : 'flex-end' }}>
+                    <div style={{
+                      maxWidth: '80%',
+                      padding: '8px 12px',
+                      borderRadius: m.from_admin ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
+                      background: m.from_admin ? '#f0fbff' : '#0d9488',
+                      color: m.from_admin ? '#1a3c2a' : 'white',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5,
+                    }}>
+                      {m.from_admin && <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, color: '#0d9488' }}>Austin</p>}
+                      <p style={{ margin: 0 }}>{m.body}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.65rem', opacity: 0.6, textAlign: m.from_admin ? 'left' : 'right' }}>{timeAgo(m.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatBottomRef} />
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <textarea
+                  value={newMsg}
+                  onChange={e => setNewMsg(e.target.value)}
+                  placeholder="Ask Austin anything…"
+                  rows={2}
+                  style={{ flex: 1, resize: 'none' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSendMessage}
+                  disabled={!newMsg.trim() || sending}
+                  style={{ alignSelf: 'flex-end', padding: '8px 16px' }}
+                >
+                  {sending ? '…' : 'Send'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </>
   );

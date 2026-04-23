@@ -601,6 +601,121 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
   );
 }
 
+function MessagesTab() {
+  const [threads, setThreads] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const [threadMessages, setThreadMessages] = useState([]);
+  const [replyBody, setReplyBody] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const loadThreads = () =>
+    api.get('/messages/admin').then(setThreads).catch(() => setThreads([]));
+
+  useEffect(() => { loadThreads(); }, []);
+
+  const openThread = async (id) => {
+    if (activeId === id) { setActiveId(null); return; }
+    setActiveId(id);
+    setReplyBody('');
+    const msgs = await api.get(`/messages/admin/${id}`);
+    setThreadMessages(msgs);
+    loadThreads();
+  };
+
+  const reply = async (businessId) => {
+    if (!replyBody.trim() || sending) return;
+    setSending(true);
+    try {
+      const msgs = await api.post(`/messages/admin/${businessId}`, { body: replyBody.trim() });
+      setThreadMessages(msgs);
+      setReplyBody('');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!threads) return <div className="spinner" />;
+  if (threads.length === 0) return <p className="text-muted text-center mt-4">No messages from businesses yet.</p>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {threads.map(t => (
+        <div
+          key={t.id}
+          className="card card-body"
+          style={t.unread > 0 ? { borderLeft: '4px solid var(--turquoise)', background: '#f0fbff' } : {}}
+        >
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            onClick={() => openThread(t.id)}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <strong>{t.name}</strong>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--ocean)' }}>{t.code}</span>
+                {t.unread > 0 && (
+                  <span style={{ background: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>
+                    {t.unread} new
+                  </span>
+                )}
+              </div>
+              {t.last_body && (
+                <p className="text-sm text-muted" style={{ margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.last_body}
+                </p>
+              )}
+            </div>
+            <span className="text-sm text-muted" style={{ flexShrink: 0, marginLeft: 12 }}>{timeAgo(t.last_message_at)}</span>
+          </div>
+
+          {activeId === t.id && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', marginBottom: 12 }}>
+                {threadMessages.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: m.from_admin ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '75%',
+                      padding: '8px 12px',
+                      borderRadius: m.from_admin ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
+                      background: m.from_admin ? '#0d9488' : '#f1f5f9',
+                      color: m.from_admin ? 'white' : '#1a3c2a',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5,
+                    }}>
+                      {!m.from_admin && <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--ocean)' }}>{t.name}</p>}
+                      {m.from_admin && <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, opacity: 0.75 }}>Austin (you)</p>}
+                      <p style={{ margin: 0 }}>{m.body}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.65rem', opacity: 0.6 }}>{timeAgo(m.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <textarea
+                  value={replyBody}
+                  onChange={e => setReplyBody(e.target.value)}
+                  placeholder="Reply as Austin…"
+                  rows={2}
+                  style={{ flex: 1, resize: 'none' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); reply(t.id); } }}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={() => reply(t.id)}
+                  disabled={!replyBody.trim() || sending}
+                  style={{ alignSelf: 'flex-end', padding: '8px 16px' }}
+                >
+                  {sending ? '…' : 'Reply'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') || 'businesses';
@@ -611,6 +726,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [msgUnread, setMsgUnread] = useState(0);
 
   useEffect(() => { setTab(tabParam); }, [tabParam]);
 
@@ -629,6 +745,7 @@ export default function AdminDashboard() {
     Promise.all([loadBusinesses(), loadNotifications()])
       .catch(err => setLoadError(err.message))
       .finally(() => setLoading(false));
+    api.get('/messages/admin/unread').then(r => setMsgUnread(r.count)).catch(() => {});
   }, []);
 
   const remove = async (id) => {
@@ -667,6 +784,9 @@ export default function AdminDashboard() {
             <button className={`btn btn-sm ${tab === 'billing' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('billing')}>💳 Billing</button>
             <button className={`btn btn-sm ${tab === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('notifications')}>
               🔔 Notifications{notifications.filter(n => !n.is_read).length > 0 ? ` (${notifications.filter(n => !n.is_read).length})` : ''}
+            </button>
+            <button className={`btn btn-sm ${tab === 'messages' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { switchTab('messages'); setMsgUnread(0); }}>
+              ✉️ Messages{msgUnread > 0 ? ` (${msgUnread})` : ''}
             </button>
             <button className={`btn btn-sm ${tab === 'traffic' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('traffic')}>📊 Traffic</button>
             <button className={`btn btn-sm ${tab === 'settings' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('settings')}>⚙️ Settings</button>
@@ -750,6 +870,7 @@ export default function AdminDashboard() {
             )}
 
             {tab === 'billing' && <BillingTab />}
+            {tab === 'messages' && <MessagesTab />}
             {tab === 'traffic' && <TrafficTab />}
             {tab === 'settings' && <SettingsTab />}
 

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { CATEGORY_ICONS } from '../constants/categories';
 
 const VIEQUES_CENTER = { lat: 18.12, lng: -65.44 };
-const DEFAULT_ZOOM = 13;
+const DEFAULT_ZOOM = 11;
 
 const STATUS_COLORS = {
   Open: '#16a34a',
@@ -55,19 +55,19 @@ function markerIcon(business) {
   const emoji = CATEGORY_ICONS[business.category] || '📍';
   const isOpen = business.status === 'Open' || business.status === 'Open 24 Hours';
   const glow = isOpen
-    ? `<circle cx="18" cy="18" r="17" fill="${color}" opacity="0.18"/>`
+    ? `<circle cx="22" cy="22" r="21" fill="${color}" opacity="0.18"/>`
     : '';
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
     ${glow}
-    <circle cx="18" cy="18" r="14" fill="white" stroke="${color}" stroke-width="3"/>
-    <text x="18" y="23" text-anchor="middle" font-size="14" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text>
+    <circle cx="22" cy="22" r="18" fill="white" stroke="${color}" stroke-width="3"/>
+    <text x="22" y="29" text-anchor="middle" font-size="18" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text>
   </svg>`;
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(36, 36),
-    anchor: new window.google.maps.Point(18, 18),
+    scaledSize: new window.google.maps.Size(44, 44),
+    anchor: new window.google.maps.Point(22, 22),
   };
 }
 
@@ -89,6 +89,7 @@ export default function MapView({ businesses, userLocation }) {
 
   const mapRef = useRef(null);
   const [selected, setSelected] = useState(null);
+  const [locating, setLocating] = useState(false);
   const located = (businesses || []).filter(b => b.lat && b.lon);
 
   const onLoad = useCallback(map => { mapRef.current = map; }, []);
@@ -97,7 +98,21 @@ export default function MapView({ businesses, userLocation }) {
     if (userLocation && mapRef.current) {
       mapRef.current.panTo({ lat: userLocation.lat, lng: userLocation.lon });
       mapRef.current.setZoom(16);
+      return;
     }
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocating(false);
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          mapRef.current.setZoom(16);
+        }
+      },
+      () => setLocating(false),
+      { timeout: 8000 }
+    );
   };
 
   if (!isLoaded) {
@@ -164,23 +179,28 @@ export default function MapView({ businesses, userLocation }) {
         title="Find my location"
         style={{
           position: 'absolute',
-          top: 10,
-          left: 10,
+          bottom: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 1000,
           background: 'white',
-          border: '2px solid rgba(0,0,0,0.2)',
-          borderRadius: 6,
-          width: 36,
-          height: 36,
+          border: '2px solid rgba(0,0,0,0.15)',
+          borderRadius: 24,
+          padding: '8px 18px',
           cursor: 'pointer',
-          fontSize: '1.1rem',
+          fontSize: '0.9rem',
+          fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 1px 5px rgba(0,0,0,0.2)',
+          gap: 6,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+          whiteSpace: 'nowrap',
+          color: '#1a3c2a',
+          opacity: locating ? 0.7 : 1,
         }}
       >
-        {userLocation ? '🎯' : '📍'}
+        <span>{locating ? '⏳' : '📍'}</span>
+        {locating ? 'Locating…' : 'Where Am I?'}
       </button>
     </div>
   );
