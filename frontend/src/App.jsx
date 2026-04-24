@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import BusinessPage from './pages/BusinessPage';
@@ -11,6 +11,25 @@ import ProtectedRoute from './components/ProtectedRoute';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const piToken = params.get('pi_token');
+    if (!piToken) return;
+
+    // Strip the token from the URL immediately so it doesn't persist in history
+    params.delete('pi_token');
+    const cleanSearch = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (cleanSearch ? '?' + cleanSearch : ''));
+
+    // Fire-and-forget: verify with backend (informational, never blocks the user)
+    fetch('/api/integrity/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ token: piToken }),
+    }).catch(() => {});
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
