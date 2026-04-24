@@ -495,6 +495,10 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
   const [descEs, setDescEs] = useState('');
   const [savingEs, setSavingEs] = useState(false);
   const [msgEs, setMsgEs] = useState('');
+  const [lat, setLat] = useState('');
+  const [lon, setLon] = useState('');
+  const [savingCoords, setSavingCoords] = useState(false);
+  const [msgCoords, setMsgCoords] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -508,6 +512,8 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
       setHasHours(h.length > 0);
       setNameEs(b.name_es || '');
       setDescEs(b.description_es || '');
+      setLat(b.lat ? String(b.lat).split('.')[1] || '' : '');
+      setLon(b.lon ? String(b.lon).split('.')[1] || '' : '');
     }).catch(() => {});
   }, [businessId]);
 
@@ -545,6 +551,24 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
       setMsgEs(`Error: ${err.message}`);
     } finally {
       setSavingEs(false);
+    }
+  };
+
+  const saveCoords = async () => {
+    setSavingCoords(true);
+    setMsgCoords('');
+    try {
+      await api.patch(`/businesses/${businessId}`, {
+        lat: lat ? parseFloat('18.' + lat) : null,
+        lon: lon ? parseFloat('-65.' + lon) : null,
+      });
+      setMsgCoords('Saved!');
+      setTimeout(() => setMsgCoords(''), 2000);
+      if (onStatusSaved) onStatusSaved();
+    } catch (err) {
+      setMsgCoords(`Error: ${err.message}`);
+    } finally {
+      setSavingCoords(false);
     }
   };
 
@@ -590,6 +614,32 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
             </button>
             {msgEs && <span className={msgEs.startsWith('Error') ? 'text-error' : 'text-success'} style={{ fontSize: '0.875rem' }}>{msgEs}</span>}
           </div>
+        </div>
+      </div>
+
+      <div>
+        {sectionLabel('📍 Coordinates')}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.8rem' }}>Lat</label>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+              <span style={{ padding: '0 8px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.85rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
+              <input type="number" step="any" min="0" max="99999999" value={lat} onChange={e => setLat(e.target.value)} style={{ border: 'none', flex: 1, padding: '8px', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+            </div>
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.8rem' }}>Lon</label>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+              <span style={{ padding: '0 8px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.85rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
+              <input type="number" step="any" min="0" max="99999999" value={lon} onChange={e => setLon(e.target.value)} style={{ border: 'none', flex: 1, padding: '8px', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+          <button className="btn btn-primary btn-sm" onClick={saveCoords} disabled={savingCoords}>
+            {savingCoords ? 'Saving…' : 'Save Coords'}
+          </button>
+          {msgCoords && <span className={msgCoords.startsWith('Error') ? 'text-error' : 'text-success'} style={{ fontSize: '0.875rem' }}>{msgCoords}</span>}
         </div>
       </div>
 
