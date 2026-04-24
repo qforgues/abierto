@@ -80,9 +80,20 @@ export default function BusinessPage() {
           </div>
         )}
         {business.photos?.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(business.photos.length, 3)}, 1fr)`, gap: 8, marginBottom: 20 }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: business.photos.length >= 4 ? '1fr 1fr' : `repeat(${Math.min(business.photos.length, 3)}, 1fr)`,
+            gap: 8,
+            marginBottom: 20,
+          }}>
             {business.photos.map(p => (
-              <img key={p.id} src={uploadUrl(p.filename)} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }} />
+              <img
+                key={p.id}
+                src={uploadUrl(p.filename)}
+                alt=""
+                style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 12 }}
+                onError={e => { e.currentTarget.parentElement.removeChild(e.currentTarget); }}
+              />
             ))}
           </div>
         )}

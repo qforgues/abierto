@@ -150,8 +150,8 @@ export default function OwnerDashboard() {
     navigator.geolocation.getCurrentPosition(
       (pos) => setEditForm(f => ({
         ...f,
-        lat: pos.coords.latitude.toFixed(6).split('.')[1],
-        lon: pos.coords.longitude.toFixed(6).split('.')[1],
+        lat: pos.coords.latitude.toFixed(8).split('.')[1],
+        lon: pos.coords.longitude.toFixed(8).split('.')[1],
       })),
       (err) => {
         if (err.code === 1) {
@@ -274,7 +274,7 @@ export default function OwnerDashboard() {
             <>
               {business.category && <p className="text-sm"><strong>{ow.categoryLabel}:</strong> {business.category}</p>}
               {business.description && <p className="text-sm">{business.description}</p>}
-              {business.lat && <p className="text-sm text-muted">📍 {Number(business.lat).toFixed(5)}, {Number(business.lon).toFixed(5)}</p>}
+              {business.lat && <p className="text-sm text-muted">📍 {Number(business.lat).toFixed(8)}, {Number(business.lon).toFixed(8)}</p>}
               {business.phone
                 ? <p className="text-sm">📱 <strong>WhatsApp/SMS:</strong> {business.phone}</p>
                 : <p className="text-sm text-muted">📱 {ow.noPhone}</p>
@@ -322,14 +322,14 @@ export default function OwnerDashboard() {
                   <label>Lat</label>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
                     <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
-                    <input type="number" step="any" min="0" max="999999" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                    <input type="number" step="any" min="0" max="99999999" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
                   </div>
                 </div>
                 <div className="field">
                   <label>Lon</label>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
                     <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
-                    <input type="number" step="any" min="0" max="999999" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                    <input type="number" step="any" min="0" max="99999999" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
                   </div>
                 </div>
               </div>

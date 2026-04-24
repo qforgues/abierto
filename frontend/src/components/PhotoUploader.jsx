@@ -37,7 +37,7 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
 
   // photos are already sorted by sort_order ASC from the backend
   const [main, ...others] = photos;
-  while (others.length < 2) others.push(null);
+  while (others.length < 3) others.push(null);
 
   const btnBase = {
     position: 'absolute',
@@ -51,10 +51,10 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Main photo slot */}
+      {/* Card icon / main photo slot */}
       <div style={{ position: 'relative' }}>
         <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--mid)', marginBottom: 6 }}>
-          ★ Main Photo
+          ★ Card Photo (shown in list)
         </p>
         <div
           className="photo-slot"
@@ -63,7 +63,11 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
         >
           {main ? (
             <>
-              <img src={uploadUrl(main.filename)} alt="Main photo" />
+              <img
+                src={uploadUrl(main.filename)}
+                alt="Card photo"
+                onError={e => { e.currentTarget.style.display = 'none'; }}
+              />
               <button
                 style={{ ...btnBase, top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white' }}
                 onClick={(e) => { e.stopPropagation(); handleDelete(main.id); }}
@@ -75,8 +79,11 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
         </div>
       </div>
 
-      {/* Secondary photo slots */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {/* Extra photo slots (3) */}
+      <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--mid)', marginBottom: 2 }}>
+        Extra Photos
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         {others.map((photo, i) => (
           <div
             key={photo ? photo.id : `empty-${i}`}
@@ -86,14 +93,18 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
           >
             {photo ? (
               <>
-                <img src={uploadUrl(photo.filename)} alt="Business photo" />
+                <img
+                  src={uploadUrl(photo.filename)}
+                  alt="Business photo"
+                  onError={e => { e.currentTarget.style.display = 'none'; }}
+                />
                 <button
-                  title="Set as main photo"
-                  style={{ ...btnBase, top: 8, left: 8, background: 'rgba(0,0,0,0.55)', color: '#facc15' }}
+                  title="Set as card photo"
+                  style={{ ...btnBase, top: 4, left: 4, background: 'rgba(0,0,0,0.55)', color: '#facc15', width: 24, height: 24, fontSize: '0.75rem' }}
                   onClick={(e) => { e.stopPropagation(); handleSetMain(photo.id); }}
                 >★</button>
                 <button
-                  style={{ ...btnBase, top: 8, right: 8, background: 'rgba(0,0,0,0.55)', color: 'white' }}
+                  style={{ ...btnBase, top: 4, right: 4, background: 'rgba(0,0,0,0.55)', color: 'white', width: 24, height: 24, fontSize: '0.75rem' }}
                   onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
                 >✕</button>
               </>
@@ -107,7 +118,7 @@ export default function PhotoUploader({ businessId, photos, onUpdate }) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png"
         style={{ display: 'none' }}
         onChange={handleAdd}
       />

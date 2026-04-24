@@ -41,8 +41,8 @@ router.post('/', fileUploadRateLimiter, (req, res) => {
       'SELECT COUNT(*) as c FROM business_photos WHERE business_id = ?',
       [req.params.id]
     );
-    if (count.c >= 3) {
-      return res.status(400).json({ error: 'Maximum 3 photos per business.' });
+    if (count.c >= 4) {
+      return res.status(400).json({ error: 'Maximum 4 photos per business.' });
     }
 
     upload.single('photo')(req, res, async (err) => {
