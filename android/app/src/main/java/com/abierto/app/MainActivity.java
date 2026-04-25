@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String APP_URL = "https://www.abiertovqs.com";
+    private static final String APP_URL = "https://abierto.app";
     private static final String TAG = "Abierto";
 
     @Override

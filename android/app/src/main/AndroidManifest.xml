@@ -29,7 +29,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="www.abiertovqs.com"
+                    android:host="abierto.app"
                     android:pathPrefix="/" />
             </intent-filter>
 
@@ -52,7 +52,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="www.abiertovqs.com"
+                    android:host="abierto.app"
                     android:pathPrefix="/.well-known/assetlinks.json" />
             </intent-filter>
         </activity>

@@ -10,7 +10,7 @@ services:
       - key: PORT
         value: 5000
       - key: FRONTEND_URL
-        value: https://abiertovqs.com
+        value: https://abierto.app
       - key: DB_PATH
         value: /var/data/abierto.db
       - key: CORS_ORIGIN
@@ -19,4 +19,5 @@ services:
         sync: false
     plan: free
     domains:
-      - abiertovqs.com
+      - abierto.app
+      - www.abierto.app
