@@ -101,7 +101,7 @@ export default function IslandPickerPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
             >
               <img
-                src={`/island-${island.key}.png`}
+                src={`/island-${island.key}.jpeg`}
                 alt={island.name}
                 style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }}
               />
