@@ -110,6 +110,8 @@ export default function IslandPickerPage() {
               key={island.key}
               name={island.name}
               imgSrc={`/island-${island.key}.jpeg`}
+              imgFit={island.key === 'culebra' ? 'cover' : 'contain'}
+              imgPadding={island.key === 'culebra' ? '0px' : '12px'}
               onClick={() => handleSelect(island.key)}
             />
           ))}
@@ -152,7 +154,7 @@ export default function IslandPickerPage() {
   );
 }
 
-function IslandCard({ name, imgSrc, onClick }) {
+function IslandCard({ name, imgSrc, imgFit = 'contain', imgPadding = '12px', onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -178,13 +180,14 @@ function IslandCard({ name, imgSrc, onClick }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '12px',
+        padding: imgPadding,
         boxSizing: 'border-box',
+        overflow: 'hidden',
       }}>
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+          style={{ width: '100%', height: '100%', objectFit: imgFit, objectPosition: 'center', display: 'block' }}
         />
       </div>
       <div style={{
