@@ -1,0 +1,414 @@
+import React, { useState, useEffect, useRef } from 'react';
+import Navbar from '../components/Navbar';
+import StatusSelector from '../components/StatusSelector';
+import PhotoUploader from '../components/PhotoUploader';
+import StatusBadge from '../components/StatusBadge';
+import HoursEditor from '../components/HoursEditor';
+import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LangContext';
+
+export default function OwnerDashboard() {
+  const { user } = useAuth();
+  const { t } = useLang();
+  const ow = t.owner;
+  const businessId = user?.businessId;
+
+  const [business, setBusiness] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [hasHours, setHasHours] = useState(false);
+  const [status, setStatus] = useState('Closed');
+  const [note, setNote] = useState('');
+  const [returnTime, setReturnTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [quickToggling, setQuickToggling] = useState(false);
+  const [quickOverride, setQuickOverride] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [showMessages, setShowMessages] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [msgUnread, setMsgUnread] = useState(0);
+  const [newMsg, setNewMsg] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatBottomRef = useRef(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [savingInfo, setSavingInfo] = useState(false);
+
+  const load = async () => {
+    const [b, hours] = await Promise.all([
+      api.get(`/businesses/${businessId}`),
+      api.get(`/businesses/${businessId}/hours`),
+    ]);
+    setBusiness(b);
+    setPhotos(b.photos || []);
+    setHasHours(hours.length > 0);
+    const stored = await api.get(`/businesses/${businessId}/status`);
+    setStatus(stored.status || 'Closed');
+    setNote(stored.note || '');
+    setReturnTime(stored.return_time || '');
+    setReturnDate(stored.return_date || '');
+    setQuickOverride(!!stored.quick_override);
+    setEditForm({
+      name: b.name, name_es: b.name_es || '', description: b.description || '', description_es: b.description_es || '', category: b.category || '',
+      lat: b.lat ? String(b.lat).split('.')[1] || '' : '',
+      lon: b.lon ? String(b.lon).split('.')[1] || '' : '',
+      phone: (() => {
+        const d = (b.phone || '').replace(/\D/g, '').slice(-10);
+        if (!d) return '';
+        if (d.length > 6) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+        if (d.length > 3) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+        return d;
+      })(),
+    });
+  };
+
+  useEffect(() => { load(); }, [businessId]);
+
+  useEffect(() => {
+    api.get('/messages/unread').then(r => setMsgUnread(r.count)).catch(() => {});
+  }, [businessId]);
+
+  const loadMessages = async () => {
+    const msgs = await api.get('/messages');
+    setMessages(msgs);
+    setMsgUnread(0);
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMsg.trim() || sending) return;
+    setSending(true);
+    try {
+      const msgs = await api.post('/messages', { body: newMsg.trim() });
+      setMessages(msgs);
+      setNewMsg('');
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleQuickToggle = async () => {
+    setQuickToggling(true);
+    try {
+      await api.post(`/businesses/${businessId}/status/quick-toggle`, {});
+      await load();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setQuickToggling(false);
+    }
+  };
+
+  const saveStatus = async () => {
+    setSaving(true);
+    setMsg('');
+    try {
+      await api.put(`/businesses/${businessId}/status`, {
+        status,
+        note: ['Out to Lunch', 'Closed for the Season'].includes(status) ? undefined : note,
+        return_time: returnTime || undefined,
+        return_date: returnDate || undefined,
+      });
+      setMsg(ow.statusUpdated);
+      setTimeout(() => setMsg(''), 3000);
+      const b = await api.get(`/businesses/${businessId}`);
+      setBusiness(b);
+    } catch (err) {
+      setMsg(`Error: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveInfo = async () => {
+    setSavingInfo(true);
+    try {
+      await api.patch(`/businesses/${businessId}`, {
+        name: editForm.name,
+        name_es: editForm.name_es || null,
+        description: editForm.description || null,
+        description_es: editForm.description_es || null,
+        category: editForm.category || null,
+        lat: editForm.lat ? parseFloat('18.' + editForm.lat) : null,
+        lon: editForm.lon ? parseFloat('-65.' + editForm.lon) : null,
+        phone: editForm.phone ? `+1${editForm.phone.replace(/\D/g, '')}` : null,
+      });
+      await load();
+      setEditMode(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSavingInfo(false);
+    }
+  };
+
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setEditForm(f => ({
+        ...f,
+        lat: pos.coords.latitude.toFixed(8).split('.')[1],
+        lon: pos.coords.longitude.toFixed(8).split('.')[1],
+      })),
+      (err) => {
+        if (err.code === 1) {
+          alert('Location access is blocked. Please enable it in your browser or device settings, then try again.');
+        } else {
+          alert('Could not get location.');
+        }
+      }
+    );
+  };
+
+  if (!business) return <><Navbar /><div className="spinner" /></>;
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = Math.floor((Date.now() - new Date(ts + (ts.includes('Z') ? '' : 'Z'))) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
+
+  const showNote = !['Out to Lunch', 'Closed for the Season'].includes(status);
+
+  return (
+    <>
+      <Navbar />
+      <div className="page page-narrow" style={{ paddingTop: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1>{business.name}</h1>
+            <p className="text-sm text-muted">Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>●●●</strong></p>
+          </div>
+          <StatusBadge status={business.status} />
+        </div>
+
+        {/* Quick open/close toggle */}
+        {(() => {
+          const isLiveOpen = ['Open', 'Open 24 Hours'].includes(business.status);
+          return (
+            <div className="card card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, background: isLiveOpen ? '#f0fdf4' : '#fef2f2' }}>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>{isLiveOpen ? 'Currently Open' : 'Currently Closed'}</p>
+                {quickOverride && <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Manual override — resets at next scheduled check</p>}
+              </div>
+              <button
+                onClick={handleQuickToggle}
+                disabled={quickToggling}
+                style={{
+                  padding: '12px 22px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  borderRadius: 10,
+                  cursor: quickToggling ? 'not-allowed' : 'pointer',
+                  background: isLiveOpen ? '#ef4444' : '#16a34a',
+                  color: 'white',
+                  whiteSpace: 'nowrap',
+                  opacity: quickToggling ? 0.7 : 1,
+                }}
+              >
+                {quickToggling ? 'Saving…' : isLiveOpen ? '🔴 Close Now' : '🟢 Open Now'}
+              </button>
+            </div>
+          );
+        })()}
+
+        {/* Status update */}
+        <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2>{ow.updateStatusTitle}</h2>
+          <StatusSelector
+            value={status}
+            onChange={setStatus}
+            returnTime={returnTime}
+            onReturnTimeChange={setReturnTime}
+            returnDate={returnDate}
+            onReturnDateChange={setReturnDate}
+            hasHours={hasHours}
+          />
+          {showNote && (
+            <div className="field">
+              <label>{ow.noteLabel} <span className="text-muted" style={{ fontWeight: 400 }}>{ow.noteOptional}</span></label>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder={ow.notePlaceholder}
+                rows={2}
+              />
+            </div>
+          )}
+          {msg && <p className={msg.startsWith('Error') ? 'text-error' : 'text-success'}>{msg}</p>}
+          <button className="btn btn-primary btn-full" onClick={saveStatus} disabled={saving} style={{ padding: '14px' }}>
+            {saving ? ow.saving : ow.updateBtn}
+          </button>
+        </div>
+
+        {/* Photos */}
+        <div className="card card-body">
+          <h2 style={{ marginBottom: 16 }}>{ow.photosTitle}</h2>
+          <PhotoUploader businessId={businessId} photos={photos} onUpdate={load} />
+        </div>
+
+        {/* Hours */}
+        <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h2>{ow.hoursTitle}</h2>
+          <p className="text-sm text-muted">{ow.hoursHint}</p>
+          <HoursEditor businessId={businessId} onSaved={() => load()} />
+        </div>
+
+        {/* Business info */}
+        <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>{ow.infoTitle}</h2>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditMode(m => !m)}>
+              {editMode ? ow.cancel : ow.edit}
+            </button>
+          </div>
+
+          {!editMode ? (
+            <>
+              {business.category && <p className="text-sm"><strong>{ow.categoryLabel}:</strong> {business.category}</p>}
+              {business.description && <p className="text-sm">{business.description}</p>}
+              {business.lat && <p className="text-sm text-muted">📍 {Number(business.lat).toFixed(8)}, {Number(business.lon).toFixed(8)}</p>}
+              {business.phone
+                ? <p className="text-sm">📱 <strong>WhatsApp/SMS:</strong> {business.phone}</p>
+                : <p className="text-sm text-muted">📱 {ow.noPhone}</p>
+              }
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field">
+                <label>{ow.nameLabel}</label>
+                <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>{ow.nameEsLabel}</label>
+                <input value={editForm.name_es} onChange={e => setEditForm(f => ({ ...f, name_es: e.target.value }))} placeholder={ow.nameEsPlaceholder} />
+              </div>
+              <div className="field">
+                <label>{ow.categoryLabel}</label>
+                <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
+                  <option value="">None</option>
+                  {['Restaurant','Food Truck','Bar','Cafe','Shop','Service','Beach','Park','Attraction','Transportation','Other'].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>{ow.descLabel}</label>
+                <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+              </div>
+              <div className="field">
+                <label>{ow.descEsLabel}</label>
+                <textarea value={editForm.description_es} onChange={e => setEditForm(f => ({ ...f, description_es: e.target.value }))} rows={3} placeholder={ow.descEsPlaceholder} />
+              </div>
+              <div className="field">
+                <label>{ow.phoneLabel}</label>
+                <input type="text" inputMode="numeric" placeholder="(787) 000-0000" value={editForm.phone} onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  let fmt = digits;
+                  if (digits.length > 6) fmt = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+                  else if (digits.length > 3) fmt = `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+                  setEditForm(f => ({ ...f, phone: fmt }));
+                }} />
+                <p className="text-sm text-muted" style={{ marginTop: 4 }}>{ow.phoneHint}</p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>{ow.useLocation}</button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Lat</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
+                    <input type="number" step="any" min="0" max="99999999" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                  </div>
+                </div>
+                <div className="field">
+                  <label>Lon</label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
+                    <input type="number" step="any" min="0" max="99999999" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
+                  </div>
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={saveInfo} disabled={savingInfo}>
+                {savingInfo ? ow.saving : ow.saveChanges}
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Ask Austin — messaging */}
+        <div className="card card-body" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            onClick={() => {
+              if (!showMessages) loadMessages();
+              setShowMessages(v => !v);
+            }}
+          >
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              ✉️ Ask Austin
+              {msgUnread > 0 && (
+                <span style={{ background: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>
+                  {msgUnread}
+                </span>
+              )}
+            </h2>
+            <span style={{ color: 'var(--mid)' }}>{showMessages ? '▲' : '▼'}</span>
+          </div>
+
+          {showMessages && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', paddingBottom: 4 }}>
+                {messages.length === 0 && (
+                  <p className="text-sm text-muted" style={{ textAlign: 'center', padding: '16px 0' }}>
+                    No messages yet — send Austin a question below!
+                  </p>
+                )}
+                {messages.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: m.from_admin ? 'flex-start' : 'flex-end' }}>
+                    <div style={{
+                      maxWidth: '80%',
+                      padding: '8px 12px',
+                      borderRadius: m.from_admin ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
+                      background: m.from_admin ? '#f0fbff' : '#0d9488',
+                      color: m.from_admin ? '#1a3c2a' : 'white',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5,
+                    }}>
+                      {m.from_admin && <p style={{ margin: '0 0 2px', fontSize: '0.68rem', fontWeight: 700, color: '#0d9488' }}>Austin</p>}
+                      <p style={{ margin: 0 }}>{m.body}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.65rem', opacity: 0.6, textAlign: m.from_admin ? 'left' : 'right' }}>{timeAgo(m.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatBottomRef} />
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                <textarea
+                  value={newMsg}
+                  onChange={e => setNewMsg(e.target.value)}
+                  placeholder="Ask Austin anything…"
+                  rows={2}
+                  style={{ flex: 1, resize: 'none' }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSendMessage}
+                  disabled={!newMsg.trim() || sending}
+                  style={{ alignSelf: 'flex-end', padding: '8px 16px' }}
+                >
+                  {sending ? '…' : 'Send'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </>
+  );
+}
