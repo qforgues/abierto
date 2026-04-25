@@ -61,6 +61,10 @@ app.get('/api/debug', async (req, res) => {
     info.tables = tables.map(t => t.name);
     const bizCount = await db.get('SELECT COUNT(*) as c FROM businesses');
     info.business_count = bizCount?.c ?? 0;
+    const cols = await db.all("PRAGMA table_info(businesses)");
+    info.businesses_columns = cols.map(c => c.name);
+    const islandSample = await db.all("SELECT DISTINCT island FROM businesses LIMIT 10");
+    info.island_values = islandSample.map(r => r.island);
     info.steps.push('queries ok');
     res.json({ ok: true, ...info });
   } catch (err) {
@@ -210,7 +214,9 @@ async function initAndStart() {
   try { await db.run('ALTER TABLE businesses ADD COLUMN name_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE businesses ADD COLUMN description_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE business_status ADD COLUMN quick_override INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
-  try { await db.run("ALTER TABLE businesses ADD COLUMN island TEXT NOT NULL DEFAULT 'vieques'"); } catch (e) {}
+  try { await db.run("ALTER TABLE businesses ADD COLUMN island TEXT DEFAULT 'vieques'"); } catch (e) {}
+  // Back-fill any rows where island is null (pre-migration rows)
+  try { await db.run("UPDATE businesses SET island = 'vieques' WHERE island IS NULL"); } catch (e) {}
 
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');
