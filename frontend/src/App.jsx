@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import IslandPickerPage from './pages/IslandPickerPage';
 import HomePage from './pages/HomePage';
 import BusinessPage from './pages/BusinessPage';
 import LoginPage from './pages/LoginPage';
@@ -32,7 +33,9 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<IslandPickerPage />} />
+      <Route path="/vieques" element={<HomePage island="vieques" />} />
+      <Route path="/culebra" element={<HomePage island="culebra" />} />
       <Route path="/business/:id" element={<BusinessPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />

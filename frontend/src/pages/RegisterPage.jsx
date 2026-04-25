@@ -18,7 +18,7 @@ function blankWeek() {
 }
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '' });
+  const [form, setForm] = useState({ name: '', description: '', category: '', phone: '', lat: '', lon: '', island: 'vieques' });
   const [showHours, setShowHours] = useState(false);
   const [hours, setHours] = useState(blankWeek());
   const [locating, setLocating] = useState(false);
@@ -71,6 +71,7 @@ export default function RegisterPage() {
         phone: form.phone ? `+1${form.phone.replace(/\D/g, '')}` : null,
         lat: form.lat ? parseFloat('18.' + form.lat) : null,
         lon: form.lon ? parseFloat('-65.' + form.lon) : null,
+        island: form.island || 'vieques',
         hours: showHours ? hours : undefined,
       });
       navigate('/register/success', { state: { code: data.code, businessId: data.business.id, name: data.business.name } });
@@ -106,6 +107,13 @@ export default function RegisterPage() {
               <select value={form.category} onChange={e => set('category', e.target.value)}>
                 <option value="">{r.placeholderCategory}</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {t.categories[c]}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Island</label>
+              <select value={form.island} onChange={e => set('island', e.target.value)}>
+                <option value="vieques">Vieques</option>
+                <option value="culebra">Culebra</option>
               </select>
             </div>
             <div className="field">

@@ -38,7 +38,12 @@
       "Bash(ps:*)",
       "Bash(sqlite3:*)",
       "Bash(npm version:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git pull:*)",
+      "Bash(git remote:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh --version)",
+      "Bash(xargs cat *)"
     ]
   }
 }

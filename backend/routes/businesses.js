@@ -65,17 +65,18 @@ async function makeUniqueCode() {
 router.get('/', async (req, res) => {
   try {
     const { dayOfWeek, timeStr } = getViequesNow();
+    const { island } = req.query;
 
     const businesses = await db.all(`
-      SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.created_at,
+      SELECT b.id, b.name, b.name_es, b.description, b.description_es, b.category, b.lat, b.lon, b.island, b.created_at,
              s.status AS stored_status, s.note, s.return_time, s.return_date,
              s.updated_at AS status_updated_at, s.quick_override,
              (SELECT filename FROM business_photos WHERE business_id = b.id ORDER BY sort_order ASC LIMIT 1) AS cover_photo
       FROM businesses b
       LEFT JOIN business_status s ON s.business_id = b.id
-      WHERE b.is_active = 1
+      WHERE b.is_active = 1 ${island ? 'AND b.island = ?' : ''}
       ORDER BY b.name ASC
-    `);
+    `, island ? [island] : []);
 
     // Fetch today's hours for all businesses in one query
     const todayHoursRows = await db.all(
@@ -177,16 +178,17 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/businesses/register — public registration
 router.post('/register', businessCreationRateLimiter, async (req, res) => {
-  const { name, description, category, lat, lon, phone, hours } = req.body;
+  const { name, description, category, lat, lon, phone, hours, island } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required.' });
 
   try {
     const code = await makeUniqueCode();
+    const islandVal = (island && ['vieques', 'culebra'].includes(island)) ? island : 'vieques';
 
     const result = await db.run(
-      `INSERT INTO businesses (name, description, category, lat, lon, phone, code)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, description || null, category || null, lat || null, lon || null, phone || null, code]
+      `INSERT INTO businesses (name, description, category, lat, lon, phone, code, island)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, description || null, category || null, lat || null, lon || null, phone || null, code, islandVal]
     );
 
     const businessId = result.lastID;
@@ -216,7 +218,7 @@ router.post('/register', businessCreationRateLimiter, async (req, res) => {
 
 // PATCH /api/businesses/:id — update business info (owner or admin)
 router.patch('/:id', async (req, res) => {
-  const { name, name_es, description, description_es, category, lat, lon, phone } = req.body;
+  const { name, name_es, description, description_es, category, lat, lon, phone, island } = req.body;
   const { id } = req.params;
 
   const user = requireBusinessAccess(req, res, id);
@@ -228,10 +230,10 @@ router.patch('/:id', async (req, res) => {
       `UPDATE businesses SET name = COALESCE(?, name), name_es = ?,
        description = COALESCE(?, description), description_es = ?,
        category = COALESCE(?, category), lat = COALESCE(?, lat), lon = COALESCE(?, lon),
-       phone = COALESCE(?, phone)
+       phone = COALESCE(?, phone), island = COALESCE(?, island)
        WHERE id = ?`,
       [name || null, name_es || null, description || null, description_es || null,
-       category || null, lat || null, lon || null, phone || null, id]
+       category || null, lat || null, lon || null, phone || null, island || null, id]
     );
 
     const updated = await db.get('SELECT * FROM businesses WHERE id = ?', [id]);

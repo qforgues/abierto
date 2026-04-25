@@ -2,9 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Link } from 'react-router-dom';
 import { CATEGORY_ICONS } from '../constants/categories';
-
-const VIEQUES_CENTER = { lat: 18.12, lng: -65.44 };
-const DEFAULT_ZOOM = 11;
+import { ISLANDS } from '../constants/islands';
 
 const STATUS_COLORS = {
   Open: '#16a34a',
@@ -82,7 +80,8 @@ function userMarkerIcon() {
   };
 }
 
-export default function MapView({ businesses, userLocation }) {
+export default function MapView({ businesses, userLocation, island = 'vieques' }) {
+  const islandConfig = ISLANDS[island] || ISLANDS.vieques;
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
@@ -127,8 +126,8 @@ export default function MapView({ businesses, userLocation }) {
     <div className="map-container" style={{ position: 'relative' }}>
       <GoogleMap
         mapContainerStyle={{ height: '100%', width: '100%' }}
-        center={VIEQUES_CENTER}
-        zoom={DEFAULT_ZOOM}
+        center={islandConfig.center}
+        zoom={islandConfig.zoom}
         onLoad={onLoad}
         onClick={() => setSelected(null)}
         options={{

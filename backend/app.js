@@ -130,6 +130,7 @@ async function initAndStart() {
       is_active   INTEGER NOT NULL DEFAULT 1,
       phone       TEXT,
       password_hash TEXT,
+      island      TEXT NOT NULL DEFAULT 'vieques',
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE TABLE IF NOT EXISTS business_status (
@@ -209,6 +210,7 @@ async function initAndStart() {
   try { await db.run('ALTER TABLE businesses ADD COLUMN name_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE businesses ADD COLUMN description_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE business_status ADD COLUMN quick_override INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+  try { await db.run("ALTER TABLE businesses ADD COLUMN island TEXT NOT NULL DEFAULT 'vieques'"); } catch (e) {}
 
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');

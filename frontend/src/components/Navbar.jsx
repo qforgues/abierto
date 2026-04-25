@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import NotificationBell from './NotificationBell';
+import { ISLANDS } from '../constants/islands';
 
 const styles = {
   nav: {
@@ -40,6 +41,8 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const { lang, t, toggle } = useLang();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentIsland = Object.keys(ISLANDS).find(k => location.pathname.startsWith('/' + k)) || null;
 
   const handleLogout = async () => {
     try {
@@ -54,9 +57,34 @@ export default function Navbar() {
       <Link to="/" style={styles.brand}>
         <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
-      <span className={user?.role === 'admin' ? 'nav-hide-mobile' : undefined} style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-        {t.navSubtitle}
-      </span>
+      {currentIsland ? (
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
+          {Object.values(ISLANDS).map(island => (
+            <Link
+              key={island.key}
+              to={'/' + island.key}
+              onClick={() => localStorage.setItem('abierto_island', island.key)}
+              style={{
+                color: currentIsland === island.key ? 'white' : 'rgba(255,255,255,0.45)',
+                fontWeight: currentIsland === island.key ? 700 : 500,
+                fontSize: '0.9rem',
+                padding: '5px 10px',
+                borderRadius: 8,
+                background: currentIsland === island.key ? 'rgba(255,255,255,0.18)' : 'transparent',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s',
+              }}
+            >
+              {island.name}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <span className={user?.role === 'admin' ? 'nav-hide-mobile' : undefined} style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          {t.navSubtitle}
+        </span>
+      )}
       <div style={styles.actions}>
         {!user && (
           <>

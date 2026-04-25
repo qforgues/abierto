@@ -10,7 +10,7 @@ import { CATEGORY_ICONS } from '../constants/categories';
 
 const CATEGORIES = ['All', 'Restaurant', 'Bar', 'Beach', 'Attraction', 'Cafe', 'Food Truck', 'Shop', 'Park', 'Service', 'Transportation', 'Other', 'Closed'];
 
-export default function HomePage() {
+export default function HomePage({ island = 'vieques' }) {
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -23,17 +23,17 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const fetchBusinesses = () =>
-    api.get('/businesses')
+    api.get(`/businesses?island=${island}`)
       .then(setBusinesses)
       .catch(console.error)
       .finally(() => setLoading(false));
 
   useEffect(() => {
     fetchBusinesses();
-    api.post('/analytics/hit', { path: '/' }).catch(() => {});
+    api.post('/analytics/hit', { path: `/${island}` }).catch(() => {});
     const interval = setInterval(fetchBusinesses, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [island]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -81,7 +81,7 @@ export default function HomePage() {
         </div>
         <div className="home-map-panel">
           <div className="map-wrap">
-            <MapView businesses={filtered} userLocation={userLocation} />
+            <MapView businesses={filtered} userLocation={userLocation} island={island} />
           </div>
         </div>
       </div>
