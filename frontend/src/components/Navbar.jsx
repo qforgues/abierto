@@ -57,7 +57,7 @@ export default function Navbar() {
       <Link to="/" style={styles.brand}>
         <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
+      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2 }}>
         {Object.values(ISLANDS).map(island => (
           <Link
             key={island.key}
@@ -78,6 +78,14 @@ export default function Navbar() {
             {island.name}
           </Link>
         ))}
+        {currentIsland && (
+          <>
+            <span style={{ color: 'rgba(255,255,255,0.25)', margin: '0 4px' }}>·</span>
+            <Link to={`/${currentIsland}/events`} style={{ color: location.pathname.includes('/events') ? 'white' : 'rgba(255,255,255,0.55)', fontWeight: location.pathname.includes('/events') ? 700 : 500, fontSize: '0.9rem', padding: '5px 10px', borderRadius: 8, background: location.pathname.includes('/events') ? 'rgba(255,255,255,0.18)' : 'transparent', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+              Events
+            </Link>
+          </>
+        )}
       </div>
       <div style={styles.actions}>
         {!user && (
@@ -100,6 +108,14 @@ export default function Navbar() {
           <>
             <NotificationBell />
             <Link to="/admin" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>{t.dashboard}</Link>
+            <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}>
+              {t.logout}
+            </button>
+          </>
+        )}
+        {user?.role === 'coordinator' && (
+          <>
+            <Link to="/coordinator" style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)' }}>My Events</Link>
             <button onClick={() => { void handleLogout(); }} style={{ ...styles.link, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}>
               {t.logout}
             </button>

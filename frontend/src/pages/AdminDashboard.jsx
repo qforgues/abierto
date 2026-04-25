@@ -752,6 +752,141 @@ function MessagesTab() {
   );
 }
 
+function EventsTab() {
+  const [coordinators, setCoordinators] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', password: '', island: 'vieques' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [newCode, setNewCode] = useState(null);
+
+  const loadAll = () => Promise.all([
+    api.get('/coordinators').then(setCoordinators),
+    api.get('/events/mine').then(setEvents),
+  ]).catch(() => {});
+
+  useEffect(() => { loadAll(); }, []);
+
+  const createCoordinator = async () => {
+    if (!form.name.trim() || !form.password.trim()) return setMsg('Name and password required.');
+    setSaving(true);
+    setMsg('');
+    try {
+      const result = await api.post('/coordinators', form);
+      setNewCode(result.code);
+      setForm({ name: '', password: '', island: 'vieques' });
+      setShowForm(false);
+      loadAll();
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleActive = async (id, current) => {
+    await api.patch(`/coordinators/${id}`, { is_active: !current });
+    loadAll();
+  };
+
+  const deleteEvent = async (id) => {
+    if (!confirm('Delete this event?')) return;
+    await api.delete(`/events/${id}`);
+    loadAll();
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* Coordinators */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h2 style={{ margin: 0 }}>Event Coordinators</h2>
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(v => !v); setMsg(''); setNewCode(null); }}>
+            {showForm ? 'Cancel' : '+ New Coordinator'}
+          </button>
+        </div>
+
+        {newCode && (
+          <div className="alert" style={{ background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+            <strong>Coordinator created!</strong> Share this code: <code style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.1em' }}>{newCode}</code>
+            <button onClick={() => setNewCode(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mid)' }}>×</button>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="card card-body" style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {msg && <div className="alert alert-error">{msg}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: 10 }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Name</label>
+                <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Maria Events" autoFocus />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Password</label>
+                <input type="text" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Set their login password" />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Island</label>
+                <select value={form.island} onChange={e => setForm(f => ({ ...f, island: e.target.value }))}>
+                  <option value="vieques">Vieques</option>
+                  <option value="culebra">Culebra</option>
+                </select>
+              </div>
+            </div>
+            <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={createCoordinator} disabled={saving}>
+              {saving ? 'Creating…' : 'Create Coordinator'}
+            </button>
+          </div>
+        )}
+
+        {coordinators.length === 0 ? (
+          <p className="text-muted text-sm">No coordinators yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {coordinators.map(c => (
+              <div key={c.id} className="card card-body" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
+                <div>
+                  <span style={{ fontWeight: 700 }}>{c.name}</span>
+                  <span style={{ marginLeft: 10, fontFamily: 'monospace', fontWeight: 700, color: 'var(--ocean)' }}>{c.code}</span>
+                  <span style={{ marginLeft: 10, fontSize: '0.78rem', color: 'var(--mid)' }}>{c.island}</span>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(c.id, c.is_active)}>
+                  {c.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* All Events */}
+      <div>
+        <h2 style={{ marginBottom: 14 }}>All Events</h2>
+        {events.length === 0 ? (
+          <p className="text-muted text-sm">No events yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {events.map(e => (
+              <div key={e.id} className="card card-body" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px' }}>
+                <div>
+                  <span style={{ fontWeight: 700 }}>{e.title}</span>
+                  <span style={{ marginLeft: 10, fontSize: '0.8rem', color: 'var(--mid)' }}>
+                    {e.is_recurring ? '🔁 Recurring' : `📅 ${e.start_date}`}
+                    {e.coordinator_name ? ` · ${e.coordinator_name}` : ''}
+                    {' · '}{e.island}
+                  </span>
+                </div>
+                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => deleteEvent(e.id)}>Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') || 'businesses';
@@ -826,6 +961,7 @@ export default function AdminDashboard() {
             </button>
             <button className={`btn btn-sm ${tab === 'traffic' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('traffic')}>📊 Traffic</button>
             <button className={`btn btn-sm ${tab === 'settings' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('settings')}>⚙️ Settings</button>
+            <button className={`btn btn-sm ${tab === 'events' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('events')}>🗓️ Events</button>
           </div>
         </div>
 
@@ -909,6 +1045,7 @@ export default function AdminDashboard() {
             {tab === 'messages' && <MessagesTab />}
             {tab === 'traffic' && <TrafficTab />}
             {tab === 'settings' && <SettingsTab />}
+            {tab === 'events' && <EventsTab />}
 
             {tab === 'notifications' && (
               <>

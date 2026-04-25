@@ -27,6 +27,7 @@ export default function LoginPage() {
     if (!ready) return;
     if (user?.role === 'owner') navigate('/owner');
     if (user?.role === 'admin') navigate('/admin');
+    if (user?.role === 'coordinator') navigate('/coordinator');
   }, [ready, user, navigate]);
 
   const handleOwnerLogin = async (e) => {
@@ -37,6 +38,21 @@ export default function LoginPage() {
       const data = await api.post('/auth/business/login', { code: code.toUpperCase() });
       login(data.user);
       navigate('/owner');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCoordinatorLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const data = await api.post('/auth/coordinator/login', { code: code.toUpperCase(), password });
+      login(data.user);
+      navigate('/coordinator');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -83,18 +99,16 @@ export default function LoginPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          <button
-            className={`btn ${mode === 'owner' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ flex: 1 }}
-            onClick={() => { setMode('owner'); setError(''); setShowContact(false); }}
-          >
+          <button className={`btn ${mode === 'owner' ? 'btn-primary' : 'btn-ghost'}`} style={{ flex: 1 }}
+            onClick={() => { setMode('owner'); setError(''); setShowContact(false); }}>
             {lp.ownerTab}
           </button>
-          <button
-            className={`btn ${mode === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ flex: 1 }}
-            onClick={() => { setMode('admin'); setError(''); setShowContact(false); }}
-          >
+          <button className={`btn ${mode === 'coordinator' ? 'btn-primary' : 'btn-ghost'}`} style={{ flex: 1 }}
+            onClick={() => { setMode('coordinator'); setError(''); setShowContact(false); }}>
+            Events
+          </button>
+          <button className={`btn ${mode === 'admin' ? 'btn-primary' : 'btn-ghost'}`} style={{ flex: 1 }}
+            onClick={() => { setMode('admin'); setError(''); setShowContact(false); }}>
             {lp.adminTab}
           </button>
         </div>
@@ -181,6 +195,26 @@ export default function LoginPage() {
               </div>
               <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                 {loading ? lp.signingIn : lp.signInBtn}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {mode === 'coordinator' && (
+          <div className="card card-body">
+            <h2 style={{ marginBottom: 16 }}>Event Coordinator Login</h2>
+            <form onSubmit={handleCoordinatorLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field">
+                <label>Coordinator Code</label>
+                <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase().slice(0, 5))}
+                  placeholder="EC01" style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.2em', fontSize: '1.4rem', textAlign: 'center' }} autoFocus />
+              </div>
+              <div className="field">
+                <label>Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+              <button type="submit" className="btn btn-primary btn-full" disabled={loading || !code || !password}>
+                {loading ? 'Signing in…' : 'Sign In'}
               </button>
             </form>
           </div>

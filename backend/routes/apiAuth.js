@@ -49,6 +49,15 @@ function toSessionFromToken(user) {
       username: user.username,
     };
   }
+  if (user.role === 'coordinator') {
+    return {
+      role: 'coordinator',
+      id: user.id,
+      coordinatorId: user.coordinatorId,
+      name: user.name,
+      island: user.island,
+    };
+  }
   return null;
 }
 
@@ -136,6 +145,31 @@ router.get('/me', (req, res) => {
   const session = toSessionFromToken(user);
   if (!session) return res.status(401).json({ error: 'Not authenticated.' });
   return res.json({ user: session });
+});
+
+// POST /api/auth/coordinator/login
+router.post('/coordinator/login', loginRateLimiter, async (req, res) => {
+  try {
+    const { code, password } = req.body;
+    if (!code || !password) return res.status(400).json({ error: 'Code and password required.' });
+    const coordinator = await db.get(
+      'SELECT * FROM event_coordinators WHERE UPPER(code) = ? AND is_active = 1',
+      [code.trim().toUpperCase()]
+    );
+    if (!coordinator || !coordinator.password_hash) return res.status(401).json({ error: 'Invalid credentials.' });
+    const match = await bcrypt.compare(password, coordinator.password_hash);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials.' });
+    const token = jwt.sign(
+      { role: 'coordinator', coordinatorId: coordinator.id, id: coordinator.id, name: coordinator.name, island: coordinator.island },
+      JWT_SECRET, { expiresIn: '30d' }
+    );
+    clearAuthCookie(res);
+    setAuthCookie(res, token, 30 * 24 * 60 * 60 * 1000);
+    return res.json({ user: { role: 'coordinator', coordinatorId: coordinator.id, id: coordinator.id, name: coordinator.name, island: coordinator.island } });
+  } catch (err) {
+    console.error('Coordinator login error:', err);
+    return res.status(500).json({ error: err.message || 'Server error.' });
+  }
 });
 
 module.exports = router;

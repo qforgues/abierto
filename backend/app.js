@@ -105,6 +105,8 @@ app.use('/api/settings',              require('./routes/settings'));
 app.use('/api/subscriptions',         require('./routes/subscriptions'));
 app.use('/api/webhooks',              require('./routes/webhooks'));
 app.use('/api/messages',              require('./routes/messages'));
+app.use('/api/events',       require('./routes/events'));
+app.use('/api/coordinators', require('./routes/coordinators'));
 
 // ── Serve frontend build ──────────────────────────────────────────────────────
 const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
@@ -203,6 +205,33 @@ async function initAndStart() {
       body        TEXT NOT NULL,
       is_read     INTEGER NOT NULL DEFAULT 0,
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS event_coordinators (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT NOT NULL,
+      code        TEXT NOT NULL UNIQUE,
+      password_hash TEXT,
+      island      TEXT NOT NULL DEFAULT 'vieques',
+      is_active   INTEGER NOT NULL DEFAULT 1,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS events (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      coordinator_id  INTEGER NOT NULL REFERENCES event_coordinators(id) ON DELETE CASCADE,
+      title           TEXT NOT NULL,
+      description     TEXT,
+      location_name   TEXT,
+      lat             REAL,
+      lon             REAL,
+      island          TEXT NOT NULL DEFAULT 'vieques',
+      start_date      TEXT NOT NULL,
+      start_time      TEXT,
+      end_time        TEXT,
+      is_recurring    INTEGER NOT NULL DEFAULT 0,
+      recurrence      TEXT,
+      recurrence_end  TEXT,
+      is_active       INTEGER NOT NULL DEFAULT 1,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
   ];
 

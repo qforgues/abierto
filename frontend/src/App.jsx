@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage';
 import RegisterSuccessPage from './pages/RegisterSuccessPage';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import CoordinatorDashboard from './pages/CoordinatorDashboard';
+import EventsPage from './pages/EventsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -38,6 +40,11 @@ export default function App() {
         <Route path="/" element={<IslandPickerPage />} />
         <Route path="/vieques" element={<HomePage island="vieques" />} />
         <Route path="/culebra" element={<HomePage island="culebra" />} />
+        <Route path="/vieques/events" element={<EventsPage island="vieques" />} />
+        <Route path="/culebra/events" element={<EventsPage island="culebra" />} />
+        <Route path="/coordinator" element={
+          <ProtectedRoute role="coordinator"><CoordinatorDashboard /></ProtectedRoute>
+        } />
         <Route path="/business/:id" element={<BusinessPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
