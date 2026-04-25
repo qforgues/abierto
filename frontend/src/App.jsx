@@ -33,22 +33,24 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<IslandPickerPage />} />
-      <Route path="/vieques" element={<HomePage island="vieques" />} />
-      <Route path="/culebra" element={<HomePage island="culebra" />} />
-      <Route path="/business/:id" element={<BusinessPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/register/success" element={<RegisterSuccessPage />} />
-      <Route path="/owner" element={
-        <ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>
-      } />
-      <Route path="/admin" element={
-        <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
-      } />
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
-    {import.meta.env.DEV && <DevPanel />}
+    <>
+      <Routes>
+        <Route path="/" element={<IslandPickerPage />} />
+        <Route path="/vieques" element={<HomePage island="vieques" />} />
+        <Route path="/culebra" element={<HomePage island="culebra" />} />
+        <Route path="/business/:id" element={<BusinessPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register/success" element={<RegisterSuccessPage />} />
+        <Route path="/owner" element={
+          <ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
+        } />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      {import.meta.env.DEV && <DevPanel />}
+    </>
   );
 }
