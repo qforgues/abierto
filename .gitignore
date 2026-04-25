@@ -20,6 +20,10 @@ backend/uploads/
 *.jks
 *.keystore
 
+# Lock files (too large for git)
+backend/package-lock.json
+frontend/package-lock.json
+
 # Coverage and build artifacts
 backend/coverage/
 coverage/
