@@ -68,7 +68,7 @@ export default function IslandPickerPage() {
 
         {/* Logo + headline */}
         <div style={{ textAlign: 'center' }}>
-          <img src="/combined-logo.png" alt="Abierto" style={{ height: 140, marginBottom: 14 }} />
+          <img src="/combined-logo.png" alt="Abierto" style={{ height: 280, marginBottom: 14 }} />
           <p style={{ color: 'var(--mid)', fontSize: '1.15rem', margin: 0, fontWeight: 500 }}>
             Where are you?
           </p>
@@ -110,8 +110,7 @@ export default function IslandPickerPage() {
               key={island.key}
               name={island.name}
               imgSrc={`/island-${island.key}.jpeg`}
-              imgFit={island.key === 'culebra' ? 'cover' : 'contain'}
-              imgPadding={island.key === 'culebra' ? '0px' : '12px'}
+              imgScale={island.key === 'culebra' ? 1.55 : 1}
               onClick={() => handleSelect(island.key)}
             />
           ))}
@@ -154,7 +153,7 @@ export default function IslandPickerPage() {
   );
 }
 
-function IslandCard({ name, imgSrc, imgFit = 'contain', imgPadding = '12px', onClick }) {
+function IslandCard({ name, imgSrc, imgScale = 1, onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -177,17 +176,20 @@ function IslandCard({ name, imgSrc, imgFit = 'contain', imgPadding = '12px', onC
         width: '100%',
         aspectRatio: '4/3',
         background: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: imgPadding,
-        boxSizing: 'border-box',
         overflow: 'hidden',
+        position: 'relative',
       }}>
         <img
           src={imgSrc}
           alt={name}
-          style={{ width: '100%', height: '100%', objectFit: imgFit, objectPosition: 'center', display: 'block' }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            transform: `scale(${imgScale})`,
+            transformOrigin: 'center center',
+          }}
         />
       </div>
       <div style={{
