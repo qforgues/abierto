@@ -57,34 +57,28 @@ export default function Navbar() {
       <Link to="/" style={styles.brand}>
         <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
-      {currentIsland ? (
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
-          {Object.values(ISLANDS).map(island => (
-            <Link
-              key={island.key}
-              to={'/' + island.key}
-              onClick={() => localStorage.setItem('abierto_island', island.key)}
-              style={{
-                color: currentIsland === island.key ? 'white' : 'rgba(255,255,255,0.45)',
-                fontWeight: currentIsland === island.key ? 700 : 500,
-                fontSize: '0.9rem',
-                padding: '5px 10px',
-                borderRadius: 8,
-                background: currentIsland === island.key ? 'rgba(255,255,255,0.18)' : 'transparent',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s',
-              }}
-            >
-              {island.name}
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <span className={user?.role === 'admin' ? 'nav-hide-mobile' : undefined} style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.9)', fontSize: '1rem', fontWeight: 600, letterSpacing: '0.01em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-          {t.navSubtitle}
-        </span>
-      )}
+      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
+        {Object.values(ISLANDS).map(island => (
+          <Link
+            key={island.key}
+            to={'/' + island.key}
+            onClick={() => localStorage.setItem('abierto_island', island.key)}
+            style={{
+              color: currentIsland === island.key ? 'white' : 'rgba(255,255,255,0.45)',
+              fontWeight: currentIsland === island.key ? 700 : 500,
+              fontSize: '0.9rem',
+              padding: '5px 10px',
+              borderRadius: 8,
+              background: currentIsland === island.key ? 'rgba(255,255,255,0.18)' : 'transparent',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s',
+            }}
+          >
+            {island.name}
+          </Link>
+        ))}
+      </div>
       <div style={styles.actions}>
         {!user && (
           <>

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import IslandPickerPage from './pages/IslandPickerPage';
+import DevPanel from './components/DevPanel';
 import HomePage from './pages/HomePage';
 import BusinessPage from './pages/BusinessPage';
 import LoginPage from './pages/LoginPage';
@@ -48,5 +49,6 @@ export default function App() {
       } />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    {import.meta.env.DEV && <DevPanel />}
   );
 }
