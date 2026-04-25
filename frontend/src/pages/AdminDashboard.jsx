@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import StatusSelector from '../components/StatusSelector';
 import HoursEditor from '../components/HoursEditor';
+import CoordEditor from '../components/CoordEditor';
 import { api } from '../api/client';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -512,8 +513,8 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
       setHasHours(h.length > 0);
       setNameEs(b.name_es || '');
       setDescEs(b.description_es || '');
-      setLat(b.lat ? String(b.lat).split('.')[1] || '' : '');
-      setLon(b.lon ? String(b.lon).split('.')[1] || '' : '');
+      setLat(b.lat || null);
+      setLon(b.lon || null);
     }).catch(() => {});
   }, [businessId]);
 
@@ -559,8 +560,8 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
     setMsgCoords('');
     try {
       await api.patch(`/businesses/${businessId}`, {
-        lat: lat ? parseFloat('18.' + lat) : null,
-        lon: lon ? parseFloat('-65.' + lon) : null,
+        lat: lat || null,
+        lon: lon || null,
       });
       setMsgCoords('Saved!');
       setTimeout(() => setMsgCoords(''), 2000);
@@ -619,23 +620,8 @@ function AdminBusinessEditor({ businessId, onStatusSaved }) {
 
       <div>
         {sectionLabel('📍 Coordinates')}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div className="field" style={{ margin: 0 }}>
-            <label style={{ fontSize: '0.8rem' }}>Lat</label>
-            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-              <span style={{ padding: '0 8px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.85rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
-              <input type="number" step="any" min="0" max="99999999" value={lat} onChange={e => setLat(e.target.value)} style={{ border: 'none', flex: 1, padding: '8px', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
-            </div>
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label style={{ fontSize: '0.8rem' }}>Lon</label>
-            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-              <span style={{ padding: '0 8px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.85rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
-              <input type="number" step="any" min="0" max="99999999" value={lon} onChange={e => setLon(e.target.value)} style={{ border: 'none', flex: 1, padding: '8px', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
-            </div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+        <CoordEditor lat={lat} lon={lon} onChange={(newLat, newLon) => { setLat(newLat); setLon(newLon); }} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
           <button className="btn btn-primary btn-sm" onClick={saveCoords} disabled={savingCoords}>
             {savingCoords ? 'Saving…' : 'Save Coords'}
           </button>

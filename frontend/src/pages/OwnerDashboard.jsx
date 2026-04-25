@@ -4,6 +4,7 @@ import StatusSelector from '../components/StatusSelector';
 import PhotoUploader from '../components/PhotoUploader';
 import StatusBadge from '../components/StatusBadge';
 import HoursEditor from '../components/HoursEditor';
+import CoordEditor from '../components/CoordEditor';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
@@ -51,8 +52,8 @@ export default function OwnerDashboard() {
     setQuickOverride(!!stored.quick_override);
     setEditForm({
       name: b.name, name_es: b.name_es || '', description: b.description || '', description_es: b.description_es || '', category: b.category || '',
-      lat: b.lat ? String(b.lat).split('.')[1] || '' : '',
-      lon: b.lon ? String(b.lon).split('.')[1] || '' : '',
+      lat: b.lat || null,
+      lon: b.lon || null,
       phone: (() => {
         const d = (b.phone || '').replace(/\D/g, '').slice(-10);
         if (!d) return '';
@@ -133,8 +134,8 @@ export default function OwnerDashboard() {
         description: editForm.description || null,
         description_es: editForm.description_es || null,
         category: editForm.category || null,
-        lat: editForm.lat ? parseFloat('18.' + editForm.lat) : null,
-        lon: editForm.lon ? parseFloat('-65.' + editForm.lon) : null,
+        lat: editForm.lat || null,
+        lon: editForm.lon || null,
         phone: editForm.phone ? `+1${editForm.phone.replace(/\D/g, '')}` : null,
       });
       await load();
@@ -316,23 +317,11 @@ export default function OwnerDashboard() {
                 }} />
                 <p className="text-sm text-muted" style={{ marginTop: 4 }}>{ow.phoneHint}</p>
               </div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={getLocation}>{ow.useLocation}</button>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field">
-                  <label>Lat</label>
-                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>18.</span>
-                    <input type="number" step="any" min="0" max="99999999" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label>Lon</label>
-                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-                    <span style={{ padding: '0 10px', color: 'var(--mid)', fontWeight: 600, fontSize: '0.95rem', borderRight: '1px solid var(--border)', background: 'var(--light)', alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>-65.</span>
-                    <input type="number" step="any" min="0" max="99999999" value={editForm.lon} onChange={e => setEditForm(f => ({ ...f, lon: e.target.value }))} style={{ border: 'none', flex: 1, padding: '10px 10px', outline: 'none', fontSize: '0.95rem', background: 'transparent' }} />
-                  </div>
-                </div>
-              </div>
+              <CoordEditor
+                lat={editForm.lat}
+                lon={editForm.lon}
+                onChange={(lat, lon) => setEditForm(f => ({ ...f, lat, lon }))}
+              />
               <button className="btn btn-primary" onClick={saveInfo} disabled={savingInfo}>
                 {savingInfo ? ow.saving : ow.saveChanges}
               </button>
