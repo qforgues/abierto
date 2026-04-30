@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.abierto.app",
       "sha256_cert_fingerprints": [
-        "9C:03:FB:FE:21:F2:CC:34:62:FA:3A:FE:DD:FF:6D:41:DD:DE:1C:81:91:C1:23:2C:33:08:01:7B:C1:40:9F:45"
+        "9C:03:FB:FE:21:F2:CC:34:62:FA:3A:FE:DD:FF:6D:41:DD:DE:1C:81:91:C1:23:2C:33:08:01:7B:C1:40:9F:45",
+        "50:65:87:7F:19:8B:77:07:EB:C3:5E:F1:9C:96:E3:1A:B5:D9:F8:1D:2F:40:89:0A:1A:1F:6F:75:09:C7:15:3B"
       ]
     }
   }
