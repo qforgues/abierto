@@ -4,6 +4,7 @@ import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
 import CategoryIcon from './CategoryIcon';
 import { useVrsOrderUrl } from '../api/vrs';
+import { useAutoTranslated } from '../api/translate';
 import { useLang } from '../context/LangContext';
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -46,7 +47,7 @@ export default function BusinessCard({ business, userLocation }) {
   const orderUrl = useVrsOrderUrl(business.id);
   const { status, return_time, return_date, note } = business;
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
-  const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
+  const displayDesc = useAutoTranslated(business.description, business.description_es, lang);
   const displayCategory = business.category ? (t.categories[business.category] || business.category) : null;
 
   const hasGeo = business.lat && business.lon && userLocation;

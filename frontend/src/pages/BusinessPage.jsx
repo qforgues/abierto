@@ -7,6 +7,7 @@ import MapView from '../components/MapView';
 import CategoryIcon from '../components/CategoryIcon';
 import { useVrsOrderUrl } from '../api/vrs';
 import { useAttractionPhoto } from '../api/attractionPhoto';
+import { useAutoTranslated } from '../api/translate';
 import { api, uploadUrl } from '../api/client';
 import { useLang } from '../context/LangContext';
 
@@ -46,6 +47,7 @@ export default function BusinessPage() {
   const [reportNote, setReportNote] = useState('');
   const [reportStatus, setReportStatus] = useState(null); // null | 'sending' | 'done'
   const attractionPhoto = useAttractionPhoto(business);
+  const displayDesc = useAutoTranslated(business?.description, business?.description_es, lang);
 
   useEffect(() => {
     api.post('/analytics/hit', { path: `/business/${id}` }).catch(() => {});
@@ -70,7 +72,6 @@ export default function BusinessPage() {
   const OPEN_STATUSES = ['Open', 'Open 24 Hours', 'Opening Late', 'Back Soon'];
   const isOpen = OPEN_STATUSES.includes(status);
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
-  const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
   const displayCategory = business.category ? (t.categories[business.category] || business.category) : null;
 
   return (
