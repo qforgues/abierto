@@ -12,44 +12,44 @@ const STATUS_COLORS = {
   'Closed for the Season': '#64748b',
 };
 
-// Tropical Caribbean palette matching Abierto brand
+// Abierto island map — warm "paper" land + brand-teal water + gold roads,
+// echoing the vintage travel-poster island cards. (brand: teal #0d9488, gold #f5c518)
 const MAP_STYLES = [
-  { elementType: 'geometry',              stylers: [{ color: '#dff0d0' }] },
-  { elementType: 'labels.text.fill',      stylers: [{ color: '#1a3c2a' }] },
-  { elementType: 'labels.text.stroke',    stylers: [{ color: '#ffffff' }] },
+  { elementType: 'geometry',            stylers: [{ color: '#f6efda' }] },  // warm paper land
+  { elementType: 'labels.text.fill',    stylers: [{ color: '#0f5b54' }] },  // deep teal labels
+  { elementType: 'labels.text.stroke',  stylers: [{ color: '#fbf6ea' }] },
 
-  // Water — brand turquoise
-  { featureType: 'water', elementType: 'geometry.fill',   stylers: [{ color: '#2dd4bf' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#0d9488' }] },
-
-  // Roads
-  { featureType: 'road',                  elementType: 'geometry',        stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road',                  elementType: 'geometry.stroke', stylers: [{ color: '#d4c9a8' }] },
-  { featureType: 'road',                  elementType: 'labels.text.fill', stylers: [{ color: '#5a4a32' }] },
-  { featureType: 'road.highway',          elementType: 'geometry',        stylers: [{ color: '#f5c518' }] },
-  { featureType: 'road.highway',          elementType: 'geometry.stroke', stylers: [{ color: '#d4a017' }] },
-  { featureType: 'road.highway',          elementType: 'labels.text.fill', stylers: [{ color: '#7a5c00' }] },
+  // Water — brand teal
+  { featureType: 'water', elementType: 'geometry.fill',    stylers: [{ color: '#7fd7ca' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#0f5b54' }] },
 
   // Landscape
-  { featureType: 'landscape.natural',     elementType: 'geometry', stylers: [{ color: '#c4e8a8' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#f2ebd3' }] },
 
-  // Buildings — show footprints (fill + outline) from overhead
-  { featureType: 'landscape.man_made',    elementType: 'geometry.fill',   stylers: [{ color: '#eae1d0' }] },
-  { featureType: 'landscape.man_made',    elementType: 'geometry.stroke', stylers: [{ color: '#bcae90' }] },
-  { featureType: 'poi.park',              elementType: 'geometry', stylers: [{ color: '#9ed68f' }] },
-  { featureType: 'poi.park',              elementType: 'labels.text.fill', stylers: [{ color: '#2d6a4f' }] },
-  { featureType: 'poi',                   elementType: 'geometry', stylers: [{ color: '#d0e8c0' }] },
-  { featureType: 'poi',                   elementType: 'labels.text.fill', stylers: [{ color: '#3a7d44' }] },
+  // Parks / nature — soft green
+  { featureType: 'poi.park', elementType: 'geometry',         stylers: [{ color: '#bfe0a4' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#2f7d4f' }] },
+  { featureType: 'poi',      elementType: 'geometry',         stylers: [{ color: '#ece1c1' }] },
 
-  // Admin borders
-  { featureType: 'administrative',        elementType: 'geometry.stroke', stylers: [{ color: '#8fbc8f' }] },
+  // Buildings — footprints from overhead: sand fill + warm outline
+  { featureType: 'landscape.man_made', elementType: 'geometry.fill',   stylers: [{ color: '#ecdfbe' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry.stroke', stylers: [{ color: '#c9b382' }] },
 
-  // Hide transit clutter
-  { featureType: 'transit',              stylers: [{ visibility: 'off' }] },
+  // Roads — cream with sandy edges; highways in brand gold
+  { featureType: 'road',         elementType: 'geometry.fill',    stylers: [{ color: '#fffdf6' }] },
+  { featureType: 'road',         elementType: 'geometry.stroke',  stylers: [{ color: '#e3d3a4' }] },
+  { featureType: 'road',         elementType: 'labels.text.fill', stylers: [{ color: '#7a5c1e' }] },
+  { featureType: 'road.highway', elementType: 'geometry.fill',    stylers: [{ color: '#f5c518' }] },  // brand gold
+  { featureType: 'road.highway', elementType: 'geometry.stroke',  stylers: [{ color: '#d4a017' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#7a5c00' }] },
 
-  // Hide Google's own POI labels (hotels, restaurants, etc.)
-  { featureType: 'poi',                  elementType: 'labels',           stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.business',         stylers: [{ visibility: 'off' }] },
+  // Admin borders — soft teal
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#7fbcae' }] },
+
+  // Declutter
+  { featureType: 'transit',      stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi',          elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
 ];
 
 function markerIcon(business) {
