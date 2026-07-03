@@ -19,10 +19,13 @@ Abierto v1.4 is designed to facilitate the deployment of the existing Abierto we
 
 ## Tech Stack
 
-- **Frontend:** React.js
-- **Backend:** Express.js
-- **Database:** SQLite (with backup plan for PostgreSQL)
-- **Deployment Platform:** Render.com or Railway.app
+- **Frontend:** Vite + React (React Router), served by the backend
+- **Backend:** Express.js (`backend/app.js`) — serves the built frontend and `/api/*`
+- **Database:** Turso (libSQL/SQLite) in production; automatic local SQLite fallback in dev (`backend/db/abierto.db`)
+- **Deployment:** Render.com (`render.yaml`, auto-deploys on push to `main`), behind Cloudflare CDN
+- **Android:** Trusted Web Activity (TWA) wrapper, package `com.abierto.app`, wrapping https://abierto.app for Google Play
+
+> New to this repo? Read **`CLAUDE.md`** for the full architecture, commands, local-dev setup, and gotchas.
 - **Mobile Framework:** Trusted Web Activity (TWA) using Bubblewrap
 - **Authentication:** JSON Web Tokens (JWT) stored in httpOnly cookies
 
