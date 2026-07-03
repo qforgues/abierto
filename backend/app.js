@@ -17,9 +17,10 @@ const allowedOrigins = [
   'http://localhost:5200',
   process.env.FRONTEND_URL,
   process.env.CORS_ORIGIN,
-  // Vieques Room Service reads /api/businesses to show live food-truck status
+  // Vieques Room Service reads our public API for live business status
   'https://viequesroomservice.com',
   'https://www.viequesroomservice.com',
+  'https://vrs-admin.quentin-forgues.workers.dev',
 ].filter(Boolean);
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
@@ -97,6 +98,7 @@ app.post('/api/cron/status-reset', async (req, res) => {
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',                  require('./routes/apiAuth'));
 app.use('/api/integrity',             require('./routes/integrity'));
+app.use('/api/v1',                    require('./routes/v1'));
 app.use('/api/businesses',            require('./routes/businesses'));
 app.use('/api/businesses/:id/status', require('./routes/status'));
 app.use('/api/businesses/:id/photos', require('./routes/photos'));

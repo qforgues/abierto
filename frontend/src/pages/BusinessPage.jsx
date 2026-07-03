@@ -4,6 +4,8 @@ import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import HoursDisplay from '../components/HoursDisplay';
 import MapView from '../components/MapView';
+import CategoryIcon from '../components/CategoryIcon';
+import { useVrsOrderUrl } from '../api/vrs';
 import { api, uploadUrl } from '../api/client';
 import { useLang } from '../context/LangContext';
 
@@ -34,6 +36,7 @@ export default function BusinessPage() {
   const { id } = useParams();
   const { lang, t } = useLang();
   const bp = t.businessPage;
+  const orderUrl = useVrsOrderUrl(id);
   const [business, setBusiness] = useState(null);
   const [hours, setHours] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +113,21 @@ export default function BusinessPage() {
 
           {displayCategory && <p className="text-sm text-muted mt-2">{displayCategory}</p>}
           {displayDesc && <p style={{ marginTop: 12, lineHeight: 1.6 }}>{displayDesc}</p>}
+
+          {orderUrl && (
+            <a
+              href={orderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'var(--ocean)', color: '#fff', borderRadius: 10,
+                padding: '11px 20px', fontWeight: 700, textDecoration: 'none',
+              }}
+            >
+              <CategoryIcon name="Delivery" size={18} /> {lang === 'es' ? 'Pedir Entrega' : 'Order Delivery'}
+            </a>
+          )}
 
           {status === 'Out to Lunch' && return_time && (
             <div className="alert alert-info mt-4" style={{ color: 'var(--status-out-to-lunch)', fontWeight: 500 }}>

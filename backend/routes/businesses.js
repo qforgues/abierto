@@ -3,48 +3,9 @@ const bcrypt = require('bcryptjs');
 const db = require('../db/database');
 const { requireAdmin, requireBusinessAccess } = require('../middleware/auth');
 const { businessCreationRateLimiter } = require('../middleware/rateLimiter');
+const { getViequesNow, computeStatus } = require('../utils/status');
 
 const router = express.Router();
-
-// Puerto Rico / Vieques is UTC-4 year-round (no DST)
-function getViequesNow() {
-  const now = new Date();
-  const local = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-  const dayOfWeek = local.getUTCDay();
-  const timeStr = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
-  return { dayOfWeek, timeStr };
-}
-
-// Compute what status to show publicly.
-// todayHours: { open_time, close_time, is_closed } or null if no hours configured
-function computeStatus(stored, returnTime, todayHours, timeStr, quickOverride) {
-  // Quick manual override — bypass hours until next scheduled reset
-  if (quickOverride) return stored || 'Closed';
-
-  // Permanent overrides — stay until owner changes them
-  if (stored === 'Closed for the Season') return stored;
-
-  // Out to Lunch auto-expires when return_time passes
-  if (stored === 'Out to Lunch') {
-    if (!returnTime || timeStr < returnTime) return 'Out to Lunch';
-    // return time has passed — fall through to hours or manual
-  }
-
-  // No hours configured → honour manual Open/Closed
-  if (!todayHours) return stored || 'Closed';
-
-  // Hours configured for today but marked closed
-  if (todayHours.is_closed) return 'Closed';
-
-  // Hours incomplete — fall back to stored
-  if (!todayHours.open_time || !todayHours.close_time) return stored || 'Closed';
-
-  // Time-based (handle overnight ranges where close < open)
-  const isOpen = todayHours.close_time <= todayHours.open_time
-    ? (timeStr >= todayHours.open_time || timeStr < todayHours.close_time)  // overnight
-    : (timeStr >= todayHours.open_time && timeStr < todayHours.close_time); // same day
-  return isOpen ? 'Open' : 'Closed';
-}
 
 function generateCode() {
   const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));

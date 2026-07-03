@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
 import CategoryIcon from './CategoryIcon';
+import { useVrsOrderUrl } from '../api/vrs';
 import { useLang } from '../context/LangContext';
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -42,6 +43,7 @@ function fmtDate(d) {
 
 export default function BusinessCard({ business, userLocation }) {
   const { lang, t } = useLang();
+  const orderUrl = useVrsOrderUrl(business.id);
   const { status, return_time, return_date, note } = business;
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
   const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
@@ -76,6 +78,18 @@ export default function BusinessCard({ business, userLocation }) {
             </span>
           )}
         </div>
+        {orderUrl && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(orderUrl, '_blank', 'noopener'); }}
+            style={{
+              marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--ocean)', color: '#fff', border: 'none', borderRadius: 8,
+              padding: '6px 12px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            <CategoryIcon name="Delivery" size={16} /> {lang === 'es' ? 'Pedir Entrega' : 'Order Delivery'}
+          </button>
+        )}
         {displayDesc && (
           <p className="text-sm mt-2" style={{ color: 'var(--dark)', opacity: 0.7, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{displayDesc}</p>
         )}

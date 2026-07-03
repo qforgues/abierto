@@ -114,6 +114,16 @@ const PATHS = {
       <path d="M12 7.5V12l3 2" />
     </>
   ),
+  Delivery: (
+    <>
+      <circle cx="6" cy="17" r="2.3" />
+      <circle cx="17.5" cy="17" r="2.3" />
+      <path d="M8.3 17h6.9" />
+      <path d="M15.2 17 12.5 8.5H10" />
+      <path d="M12.5 8.5H16l2 4.7" />
+      <path d="M4.5 12H8l1.4 5" />
+    </>
+  ),
 };
 
 export default function CategoryIcon({ name, size = 22 }) {
