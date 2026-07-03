@@ -89,28 +89,34 @@ export default function MapView({ businesses, userLocation, island = 'vieques' }
   const mapRef = useRef(null);
   const [selected, setSelected] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [locateMsg, setLocateMsg] = useState('');
   const located = (businesses || []).filter(b => b.lat && b.lon);
 
   const onLoad = useCallback(map => { mapRef.current = map; }, []);
 
-  const handleLocate = () => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.panTo({ lat: userLocation.lat, lng: userLocation.lon });
-      mapRef.current.setZoom(16);
+  // Pan to a real location — but only if it's actually on this island.
+  // Prevents the map from silently parking on the island center (near Sun Bay).
+  const goToLocation = (lat, lon) => {
+    if (!mapRef.current) return;
+    const b = islandConfig.bounds;
+    if (b && (lat < b.minLat || lat > b.maxLat || lon < b.minLon || lon > b.maxLon)) {
+      setLocateMsg(`You don't seem to be on ${islandConfig.name} right now.`);
       return;
     }
-    if (!navigator.geolocation) return;
+    setLocateMsg('');
+    mapRef.current.panTo({ lat, lng: lon });
+    mapRef.current.setZoom(16);
+  };
+
+  const handleLocate = () => {
+    setLocateMsg('');
+    if (userLocation) { goToLocation(userLocation.lat, userLocation.lon); return; }
+    if (!navigator.geolocation) { setLocateMsg('Location isn’t available on this device.'); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        setLocating(false);
-        if (mapRef.current) {
-          mapRef.current.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          mapRef.current.setZoom(16);
-        }
-      },
-      () => setLocating(false),
-      { timeout: 8000 }
+      pos => { setLocating(false); goToLocation(pos.coords.latitude, pos.coords.longitude); },
+      () => { setLocating(false); setLocateMsg('Couldn’t find you. Check location permission and try again.'); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -173,34 +179,48 @@ export default function MapView({ businesses, userLocation, island = 'vieques' }
         )}
       </GoogleMap>
 
-      <button
-        onClick={handleLocate}
-        title="Find my location"
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          background: 'white',
-          border: '2px solid rgba(0,0,0,0.15)',
-          borderRadius: 24,
-          padding: '8px 18px',
-          cursor: 'pointer',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-          whiteSpace: 'nowrap',
-          color: '#1a3c2a',
-          opacity: locating ? 0.7 : 1,
-        }}
-      >
-        <span>{locating ? '⏳' : '📍'}</span>
-        {locating ? 'Locating…' : 'Where Am I?'}
-      </button>
+      {locateMsg && (
+        <div style={{
+          position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1000, background: '#1a3c2a', color: '#fff', padding: '8px 14px',
+          borderRadius: 10, fontSize: '0.82rem', fontWeight: 500, maxWidth: 260,
+          textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+        }}>
+          {locateMsg}
+        </div>
+      )}
+
+      {/* Only offer "Where Am I?" when we don't already know the location */}
+      {!userLocation && (
+        <button
+          onClick={handleLocate}
+          title="Find my location"
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'white',
+            border: '2px solid rgba(0,0,0,0.15)',
+            borderRadius: 24,
+            padding: '8px 18px',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            whiteSpace: 'nowrap',
+            color: '#1a3c2a',
+            opacity: locating ? 0.7 : 1,
+          }}
+        >
+          <span>{locating ? '⏳' : '📍'}</span>
+          {locating ? 'Locating…' : 'Where Am I?'}
+        </button>
+      )}
     </div>
   );
 }

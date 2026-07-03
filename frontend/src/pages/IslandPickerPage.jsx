@@ -39,7 +39,7 @@ export default function IslandPickerPage() {
         setDetecting(false);
         setError('Location access denied. Pick your island below.');
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

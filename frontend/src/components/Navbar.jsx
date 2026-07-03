@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import NotificationBell from './NotificationBell';
+import LangToggle from './LangToggle';
 import { ISLANDS } from '../constants/islands';
 
 const styles = {
@@ -39,7 +40,7 @@ const styles = {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const { lang, t, toggle } = useLang();
+  const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
   const currentIsland = Object.keys(ISLANDS).find(k => location.pathname.startsWith('/' + k)) || null;
@@ -121,13 +122,7 @@ export default function Navbar() {
             </button>
           </>
         )}
-        <button
-          onClick={toggle}
-          title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1, padding: '0 4px' }}
-        >
-          {lang === 'en' ? '🇵🇷' : '🇺🇸'}
-        </button>
+        <LangToggle size="1.3rem" />
       </div>
     </nav>
   );

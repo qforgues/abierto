@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MapView from '../components/MapView';
 import BusinessCard from '../components/BusinessCard';
+import LangToggle from '../components/LangToggle';
+import CategoryIcon from '../components/CategoryIcon';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
-import { CATEGORY_ICONS } from '../constants/categories';
 
-const CATEGORIES = ['All', 'Restaurant', 'Bar', 'Beach', 'Attraction', 'Cafe', 'Food Truck', 'Shop', 'Park', 'Service', 'Transportation', 'Other', 'Closed'];
+const CATEGORIES = ['All', 'Food Truck', 'Restaurant', 'Bar', 'Cafe', 'Beach', 'Attraction', 'Shop', 'Park', 'Service', 'Transportation', 'Other', 'Closed'];
 
 export default function HomePage({ island = 'vieques' }) {
   const [businesses, setBusinesses] = useState([]);
@@ -18,7 +19,7 @@ export default function HomePage({ island = 'vieques' }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState(null); // 'sending' | 'done' | 'error'
-  const { t, lang, toggle } = useLang();
+  const { t } = useLang();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -39,7 +40,8 @@ export default function HomePage({ island = 'vieques' }) {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
       pos => setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => {}
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000 }
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
@@ -86,18 +88,21 @@ export default function HomePage({ island = 'vieques' }) {
         </div>
       </div>
 
-      {/* ── Category filters ── */}
+      {/* ── Category filters (icon-only, name on hover) ── */}
       <div className="home-filters">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className={`btn btn-sm ${filter === cat ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ whiteSpace: 'nowrap', gap: 4 }}
-          >
-            <span>{CATEGORY_ICONS[cat]}</span>{t.categories[cat]}
-          </button>
-        ))}
+        <div className="home-filters-grid">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`cat-pill ${filter === cat ? 'cat-pill-active' : ''}`}
+              aria-label={t.categories[cat]}
+            >
+              <CategoryIcon name={cat} size={22} />
+              <span className="cat-pill-tip">{t.categories[cat]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Business list ── */}
@@ -109,7 +114,11 @@ export default function HomePage({ island = 'vieques' }) {
             <p>{t.noBusinesses} <Link to="/register" style={{ color: 'var(--ocean)' }}>{t.addYours}</Link></p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: filtered.length === 1 ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+            gap: 12,
+          }}>
             {filtered.map(b => <BusinessCard key={b.id} business={b} userLocation={userLocation} />)}
           </div>
         )}
@@ -148,13 +157,7 @@ export default function HomePage({ island = 'vieques' }) {
         <div className="home-footer-brand">
           <span className="footer-copy">© 2026 Abierto?</span>
           <span className="footer-version">v{__APP_VERSION__}</span>
-          <button
-            onClick={toggle}
-            className="footer-lang-btn"
-            title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
-          >
-            {lang === 'en' ? '🇵🇷' : '🇺🇸'}
-          </button>
+          <LangToggle size="1.2rem" />
         </div>
       </footer>
 
