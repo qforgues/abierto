@@ -114,11 +114,7 @@ export default function HomePage({ island = 'vieques' }) {
             <p>{t.noBusinesses} <Link to="/register" style={{ color: 'var(--ocean)' }}>{t.addYours}</Link></p>
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: filtered.length === 1 ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-            gap: 12,
-          }}>
+          <div className={`home-list-grid${filtered.length === 1 ? ' single' : ''}`}>
             {filtered.map(b => <BusinessCard key={b.id} business={b} userLocation={userLocation} />)}
           </div>
         )}
