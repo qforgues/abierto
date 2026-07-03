@@ -6,6 +6,7 @@ import HoursDisplay from '../components/HoursDisplay';
 import MapView from '../components/MapView';
 import CategoryIcon from '../components/CategoryIcon';
 import { useVrsOrderUrl } from '../api/vrs';
+import { useAttractionPhoto } from '../api/attractionPhoto';
 import { api, uploadUrl } from '../api/client';
 import { useLang } from '../context/LangContext';
 
@@ -44,6 +45,7 @@ export default function BusinessPage() {
   const [reportIssue, setReportIssue] = useState('');
   const [reportNote, setReportNote] = useState('');
   const [reportStatus, setReportStatus] = useState(null); // null | 'sending' | 'done'
+  const attractionPhoto = useAttractionPhoto(business);
 
   useEffect(() => {
     api.post('/analytics/hit', { path: `/business/${id}` }).catch(() => {});
@@ -75,6 +77,19 @@ export default function BusinessPage() {
     <>
       <Navbar />
       <div className="page page-narrow">
+        {business.category === 'Attraction' && !business.photos?.length && attractionPhoto?.url && (
+          <div style={{ marginBottom: 16, position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <img
+              src={attractionPhoto.url}
+              alt={displayName}
+              style={{ width: '100%', display: 'block', maxHeight: 340, objectFit: 'cover' }}
+              onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+            />
+            <span style={{ position: 'absolute', bottom: 6, right: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: '0.68rem', padding: '2px 7px', borderRadius: 6 }}>
+              Photo: {attractionPhoto.attribution} · Google
+            </span>
+          </div>
+        )}
         {business.lat && business.lon && (
           <div style={{ marginBottom: 16 }}>
             <MapView
