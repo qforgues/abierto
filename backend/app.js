@@ -17,6 +17,9 @@ const allowedOrigins = [
   'http://localhost:5200',
   process.env.FRONTEND_URL,
   process.env.CORS_ORIGIN,
+  // Vieques Room Service reads /api/businesses to show live food-truck status
+  'https://viequesroomservice.com',
+  'https://www.viequesroomservice.com',
 ].filter(Boolean);
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
