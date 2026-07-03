@@ -80,7 +80,7 @@ function userMarkerIcon() {
   };
 }
 
-export default function MapView({ businesses, userLocation, island = 'vieques' }) {
+export default function MapView({ businesses, userLocation, island = 'vieques', center, zoom, showLocate = true }) {
   const islandConfig = ISLANDS[island] || ISLANDS.vieques;
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -132,8 +132,8 @@ export default function MapView({ businesses, userLocation, island = 'vieques' }
     <div className="map-container" style={{ position: 'relative' }}>
       <GoogleMap
         mapContainerStyle={{ height: '100%', width: '100%' }}
-        center={islandConfig.center}
-        zoom={islandConfig.zoom}
+        center={center || islandConfig.center}
+        zoom={zoom || islandConfig.zoom}
         onLoad={onLoad}
         onClick={() => setSelected(null)}
         options={{
@@ -191,7 +191,7 @@ export default function MapView({ businesses, userLocation, island = 'vieques' }
       )}
 
       {/* Only offer "Where Am I?" when we don't already know the location */}
-      {!userLocation && (
+      {showLocate && !userLocation && (
         <button
           onClick={handleLocate}
           title="Find my location"

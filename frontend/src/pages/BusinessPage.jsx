@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
 import HoursDisplay from '../components/HoursDisplay';
+import MapView from '../components/MapView';
 import { api, uploadUrl } from '../api/client';
 import { useLang } from '../context/LangContext';
 
@@ -61,6 +62,8 @@ export default function BusinessPage() {
   if (!business) return <><Navbar /><div className="page text-center mt-6"><p>{bp.notFound}</p><Link to="/">{bp.back}</Link></div></>;
 
   const { status, return_time, return_date, note } = business;
+  const OPEN_STATUSES = ['Open', 'Open 24 Hours', 'Opening Late', 'Back Soon'];
+  const isOpen = OPEN_STATUSES.includes(status);
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
   const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
   const displayCategory = business.category ? (t.categories[business.category] || business.category) : null;
@@ -70,12 +73,13 @@ export default function BusinessPage() {
       <Navbar />
       <div className="page page-narrow">
         {business.lat && business.lon && (
-          <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', background: '#e2e8f0' }}>
-            <img
-              src={`https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${business.lat},${business.lon}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&return_error_codes=true`}
-              alt={`Street view of ${displayName}`}
-              style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
-              onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+          <div style={{ marginBottom: 16 }}>
+            <MapView
+              businesses={[business]}
+              island={business.island || 'vieques'}
+              center={{ lat: Number(business.lat), lng: Number(business.lon) }}
+              zoom={16}
+              showLocate={false}
             />
           </div>
         )}
@@ -137,7 +141,7 @@ export default function BusinessPage() {
         {hours.length > 0 && (
           <div className="card card-body mt-4">
             <h2 style={{ marginBottom: 14 }}>{bp.hoursTitle}</h2>
-            <HoursDisplay hours={hours} />
+            <HoursDisplay hours={hours} isOpen={isOpen} />
           </div>
         )}
 

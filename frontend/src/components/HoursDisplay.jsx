@@ -42,12 +42,15 @@ function getStatus(hours) {
   return { open, todayRow, nextOpen };
 }
 
-export default function HoursDisplay({ hours }) {
+export default function HoursDisplay({ hours, isOpen }) {
   const [expanded, setExpanded] = useState(false);
   if (!hours?.length) return null;
 
   const today = new Date().getDay();
   const { open, todayRow, nextOpen } = getStatus(hours);
+  // The business's live status (which respects manual overrides) is the source of truth —
+  // defer to it so the banner never contradicts the header badge. Fall back to the schedule.
+  const effectiveOpen = isOpen === undefined ? open : isOpen;
 
   // Sort starting from today
   const sorted = [...hours].sort((a, b) => {
@@ -59,32 +62,32 @@ export default function HoursDisplay({ hours }) {
   return (
     <div>
       {/* Status banner */}
-      {open !== null && (
+      {effectiveOpen !== null && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
           padding: '14px 16px',
           borderRadius: 10,
-          background: open ? '#f0fdf4' : '#fff7ed',
-          border: `1.5px solid ${open ? '#86efac' : '#fed7aa'}`,
+          background: effectiveOpen ? '#f0fdf4' : '#fff7ed',
+          border: `1.5px solid ${effectiveOpen ? '#86efac' : '#fed7aa'}`,
           marginBottom: 16,
         }}>
           <span style={{
             width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-            background: open ? 'var(--status-open)' : '#f97316',
-            boxShadow: open ? '0 0 0 3px #bbf7d0' : '0 0 0 3px #fed7aa',
+            background: effectiveOpen ? 'var(--status-open)' : '#f97316',
+            boxShadow: effectiveOpen ? '0 0 0 3px #bbf7d0' : '0 0 0 3px #fed7aa',
           }} />
           <div>
-            <p style={{ fontWeight: 700, fontSize: '1rem', color: open ? '#166534' : '#9a3412' }}>
-              {open ? 'Open now' : 'Closed now'}
+            <p style={{ fontWeight: 700, fontSize: '1rem', color: effectiveOpen ? '#166534' : '#9a3412' }}>
+              {effectiveOpen ? 'Open now' : 'Closed now'}
             </p>
-            {open && todayRow && (
+            {effectiveOpen && todayRow && (
               <p style={{ fontSize: '0.82rem', color: '#15803d', marginTop: 1 }}>
                 Closes at {fmt(todayRow.close_time)}
               </p>
             )}
-            {!open && nextOpen && (
+            {!effectiveOpen && nextOpen && (
               <p style={{ fontSize: '0.82rem', color: '#c2410c', marginTop: 1 }}>
                 Opens {nextOpen.offset === 1 ? 'tomorrow' : nextOpen.day} at {nextOpen.time}
               </p>
