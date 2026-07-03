@@ -99,24 +99,28 @@ export default function HomePage({ island = 'vieques' }) {
       <div className="home-filters">
         <div className="home-filters-grid">
           {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={`cat-pill ${filter === cat ? 'cat-pill-active' : ''}`}
-              aria-label={t.categories[cat]}
-            >
-              <CategoryIcon name={cat} size={20} />
-              <span className="cat-pill-label">{t.categories[cat]}</span>
-            </button>
+            <React.Fragment key={cat}>
+              {/* Events isn't a filter — it links to the events page. Sits before "Closed". */}
+              {cat === 'Closed' && (
+                <Link
+                  to={`/${island}/events`}
+                  className="cat-pill cat-pill-events"
+                  aria-label={t.events}
+                >
+                  <CategoryIcon name="Events" size={20} />
+                  <span className="cat-pill-label">{t.events}</span>
+                </Link>
+              )}
+              <button
+                onClick={() => setFilter(cat)}
+                className={`cat-pill ${filter === cat ? 'cat-pill-active' : ''}`}
+                aria-label={t.categories[cat]}
+              >
+                <CategoryIcon name={cat} size={20} />
+                <span className="cat-pill-label">{t.categories[cat]}</span>
+              </button>
+            </React.Fragment>
           ))}
-          <Link
-            to={`/${island}/events`}
-            className="cat-pill cat-pill-events"
-            aria-label={t.events}
-          >
-            <CategoryIcon name="Events" size={20} />
-            <span className="cat-pill-label">{t.events}</span>
-          </Link>
         </div>
       </div>
 
@@ -137,33 +141,28 @@ export default function HomePage({ island = 'vieques' }) {
 
       {/* ── Footer ── */}
       <footer className="home-footer">
+        {/* Auth row: left action · feedback bulb (center) · logout (right) */}
         <div className="home-footer-auth">
-          {!user && (
-            <>
-              <Link to="/register" className="footer-link-gold">{t.addBusiness}</Link>
-              <Link to="/login" className="footer-link-ghost">{t.login}</Link>
-            </>
-          )}
-          {user?.role === 'owner' && (
-            <>
-              <Link to="/owner" className="footer-link-plain">{t.myBusiness}</Link>
-              <button onClick={() => { void handleLogout(); }} className="footer-btn-plain">{t.logout}</button>
-            </>
-          )}
-          {user?.role === 'admin' && (
-            <>
-              <Link to="/admin" className="footer-link-plain">{t.dashboard}</Link>
-              <button onClick={() => { void handleLogout(); }} className="footer-btn-plain">{t.logout}</button>
-            </>
-          )}
-        </div>
+          <span className="footer-auth-left">
+            {!user && <Link to="/register" className="footer-link-gold">{t.addBusiness}</Link>}
+            {user?.role === 'owner' && <Link to="/owner" className="footer-link-plain">{t.myBusiness}</Link>}
+            {user?.role === 'admin' && <Link to="/admin" className="footer-link-plain">{t.dashboard}</Link>}
+          </span>
 
-        <button onClick={() => setFeedbackOpen(true)} className="footer-lang-btn" title="Give Feedback" style={{ display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.7)' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.9 10.2 19 8.7 19 7a7 7 0 1 0-13.4 2.8C6.4 11.6 7 12.5 7 14"/>
-            <path d="M9 14h6"/><path d="M9 18h6"/><path d="M10 22h4"/>
-          </svg>
-        </button>
+          <button onClick={() => setFeedbackOpen(true)} className="footer-feedback" title="Give Feedback" aria-label="Give Feedback">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.9 10.2 19 8.7 19 7a7 7 0 1 0-13.4 2.8C6.4 11.6 7 12.5 7 14"/>
+              <path d="M9 14h6"/><path d="M9 18h6"/><path d="M10 22h4"/>
+            </svg>
+          </button>
+
+          <span className="footer-auth-right">
+            {!user && <Link to="/login" className="footer-link-ghost">{t.login}</Link>}
+            {(user?.role === 'owner' || user?.role === 'admin') && (
+              <button onClick={() => { void handleLogout(); }} className="footer-btn-plain">{t.logout}</button>
+            )}
+          </span>
+        </div>
 
         <div className="home-footer-brand">
           <button onClick={handleChangeIsland} className="footer-reset-btn">

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 const translations = {
   en: {
     categories: {
-      All: 'Abierto/Open', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
+      All: 'Abierto', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Cafe', Shop: 'Shop', Service: 'Service',
       Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Transportation: 'Transportation', Other: 'Other', Closed: 'Closed',
       Events: 'Events',
@@ -157,7 +157,7 @@ const translations = {
 
   es: {
     categories: {
-      All: 'Abierto/Open', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
+      All: 'Abierto', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Café', Shop: 'Tienda', Service: 'Servicio',
       Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Transportation: 'Transporte', Other: 'Otro', Closed: 'Cerrado',
       Events: 'Eventos',

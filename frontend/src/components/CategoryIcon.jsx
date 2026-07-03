@@ -4,7 +4,7 @@ import React from 'react';
 // shared between the React <CategoryIcon> (pills, cards, pickers) and the map
 // marker SVG (built as a data URI). A touch of island flair where it fits.
 export const ICON_PATHS = {
-  All: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  All: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/>',
   'Food Truck': '<path d="M10 17h4V6H3v11h2"/><path d="M14 9h4l3 3v5h-2"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.2"/><circle cx="17.5" cy="17.5" r="2.2"/>',
   Restaurant: '<path d="M4 3v6a2.2 2.2 0 0 0 4.4 0V3"/><path d="M6.2 11v10"/><path d="M19 3c-2 0-3.4 2-3.4 4.5S17 12 19 12"/><path d="M19 3v18"/>',
   Bar: '<path d="M5 4h14l-7 8Z"/><path d="M12 12v7"/><path d="M8.5 21h7"/><path d="M12.5 9.5 16 4.5"/><circle cx="16.3" cy="4.2" r="1.1" fill="currentColor" stroke="none"/>',

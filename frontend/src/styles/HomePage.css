@@ -131,10 +131,27 @@
 }
 
 .home-footer-auth {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  width: 100%;
 }
+.footer-auth-left  { justify-self: start; display: flex; align-items: center; gap: 10px; }
+.footer-auth-right { justify-self: end;   display: flex; align-items: center; gap: 10px; }
+.footer-feedback {
+  justify-self: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.footer-feedback:hover { color: #fff; }
 
 .home-footer-brand {
   display: flex;
