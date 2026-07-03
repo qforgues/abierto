@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
@@ -9,6 +9,36 @@ import { coordsSuspect } from '../constants/islands';
 import { api } from '../api/client';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Line-icon set for the admin tabs (replaces the old emoji labels).
+const TAB_ICON_PATHS = {
+  businesses: '<path d="M4 9.5 5.5 4.5h13L20 9.5"/><path d="M4 9.5a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/><path d="M5 11.5V20h14v-8.5"/><path d="M10 20v-4.5h4V20"/>',
+  billing: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/>',
+  notifications: '<path d="M18 8.5a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  messages: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 6.5 8.5 6 8.5-6"/>',
+  traffic: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M4 20h16"/>',
+  settings: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/>',
+  events: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/>',
+};
+
+function TabIcon({ name, size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      style={{ flexShrink: 0 }}
+      dangerouslySetInnerHTML={{ __html: TAB_ICON_PATHS[name] || TAB_ICON_PATHS.businesses }} />
+  );
+}
+
+const ADMIN_TABS = [
+  { key: 'businesses',    label: 'Businesses' },
+  { key: 'billing',       label: 'Billing' },
+  { key: 'notifications', label: 'Notifications' },
+  { key: 'messages',      label: 'Messages' },
+  { key: 'traffic',       label: 'Traffic' },
+  { key: 'settings',      label: 'Settings' },
+  { key: 'events',        label: 'Events' },
+];
 
 function formatPaidAt(paid_at) {
   if (!paid_at) return '';
@@ -888,6 +918,85 @@ function EventsTab() {
   );
 }
 
+function AdminTabMenu({ tab, badges, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = ADMIN_TABS.find(t => t.key === tab) || ADMIN_TABS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        className="btn btn-sm btn-primary"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <TabIcon name={current.key} />
+        <span>{current.label}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+          strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <ul
+          role="menu"
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100,
+            listStyle: 'none', margin: 0, padding: 6, minWidth: 210,
+            background: 'white', border: '1px solid var(--border)', borderRadius: 12,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
+          }}
+        >
+          {ADMIN_TABS.map(t => {
+            const count = badges[t.key] || 0;
+            const active = t.key === tab;
+            return (
+              <li key={t.key} role="none">
+                <button
+                  role="menuitem"
+                  onClick={() => { onSelect(t.key); setOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 11px', border: 'none', borderRadius: 8, cursor: 'pointer',
+                    background: active ? 'var(--ocean, #2dd4bf)' : 'transparent',
+                    color: active ? '#fff' : '#12312e',
+                    font: 'inherit', fontWeight: 600, fontSize: '0.9rem', textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--light, #f1f5f4)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <TabIcon name={t.key} />
+                  <span style={{ flex: 1 }}>{t.label}</span>
+                  {count > 0 && (
+                    <span style={{
+                      background: active ? 'rgba(255,255,255,0.3)' : 'var(--danger, #ef4444)',
+                      color: '#fff', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700,
+                      minWidth: 20, height: 20, padding: '0 6px', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>{count}</span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') || 'businesses';
@@ -952,21 +1061,16 @@ export default function AdminDashboard() {
     <>
       <Navbar />
       <div className="page" style={{ paddingTop: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <h1>Admin Dashboard</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className={`btn btn-sm ${tab === 'businesses' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('businesses')}>🏪 Businesses</button>
-            <button className={`btn btn-sm ${tab === 'billing' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('billing')}>💳 Billing</button>
-            <button className={`btn btn-sm ${tab === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('notifications')}>
-              🔔 Notifications{notifications.filter(n => !n.is_read).length > 0 ? ` (${notifications.filter(n => !n.is_read).length})` : ''}
-            </button>
-            <button className={`btn btn-sm ${tab === 'messages' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { switchTab('messages'); setMsgUnread(0); }}>
-              ✉️ Messages{msgUnread > 0 ? ` (${msgUnread})` : ''}
-            </button>
-            <button className={`btn btn-sm ${tab === 'traffic' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('traffic')}>📊 Traffic</button>
-            <button className={`btn btn-sm ${tab === 'settings' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('settings')}>⚙️ Settings</button>
-            <button className={`btn btn-sm ${tab === 'events' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => switchTab('events')}>🗓️ Events</button>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
+          <h1 style={{ margin: 0 }}>Admin Dashboard</h1>
+          <AdminTabMenu
+            tab={tab}
+            badges={{
+              notifications: notifications.filter(n => !n.is_read).length,
+              messages: msgUnread,
+            }}
+            onSelect={(key) => { switchTab(key); if (key === 'messages') setMsgUnread(0); }}
+          />
         </div>
 
         {loadError && <div className="alert alert-error" style={{ marginBottom: 16 }}>Failed to load: {loadError} — try refreshing or logging in again.</div>}
