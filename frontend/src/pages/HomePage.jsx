@@ -61,6 +61,13 @@ export default function HomePage({ island = 'vieques' }) {
     }
   };
 
+  // Clear the saved-island lock so "/" shows the picker again instead of
+  // auto-redirecting straight back into this island.
+  const handleChangeIsland = () => {
+    localStorage.removeItem('abierto_island');
+    navigate('/');
+  };
+
   const handleFeedbackSubmit = async () => {
     if (!feedbackMsg.trim()) return;
     setFeedbackStatus('sending');
@@ -88,7 +95,7 @@ export default function HomePage({ island = 'vieques' }) {
         </div>
       </div>
 
-      {/* ── Category filters (icon-only, name on hover) ── */}
+      {/* ── Category filters (icon + label, always visible) ── */}
       <div className="home-filters">
         <div className="home-filters-grid">
           {CATEGORIES.map(cat => (
@@ -98,10 +105,18 @@ export default function HomePage({ island = 'vieques' }) {
               className={`cat-pill ${filter === cat ? 'cat-pill-active' : ''}`}
               aria-label={t.categories[cat]}
             >
-              <CategoryIcon name={cat} size={22} />
-              <span className="cat-pill-tip">{t.categories[cat]}</span>
+              <CategoryIcon name={cat} size={20} />
+              <span className="cat-pill-label">{t.categories[cat]}</span>
             </button>
           ))}
+          <Link
+            to={`/${island}/events`}
+            className="cat-pill cat-pill-events"
+            aria-label={t.events}
+          >
+            <CategoryIcon name="Events" size={20} />
+            <span className="cat-pill-label">{t.events}</span>
+          </Link>
         </div>
       </div>
 
@@ -151,6 +166,9 @@ export default function HomePage({ island = 'vieques' }) {
         </button>
 
         <div className="home-footer-brand">
+          <button onClick={handleChangeIsland} className="footer-reset-btn">
+            ← {t.changeIsland}
+          </button>
           <span className="footer-copy">© 2026 Abierto?</span>
           <span className="footer-version">v{__APP_VERSION__}</span>
           <LangToggle size="1.2rem" />

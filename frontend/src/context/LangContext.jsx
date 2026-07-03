@@ -3,10 +3,13 @@ import React, { createContext, useContext, useState } from 'react';
 const translations = {
   en: {
     categories: {
-      All: 'All', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
+      All: 'Abierto/Open', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Cafe', Shop: 'Shop', Service: 'Service',
       Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Transportation: 'Transportation', Other: 'Other', Closed: 'Closed',
+      Events: 'Events',
     },
+    events: 'Events',
+    changeIsland: 'Change Island',
     noBusinesses: 'No businesses yet.',
     addYours: 'Add yours!',
     addBusiness: 'Add your Business',
@@ -154,10 +157,13 @@ const translations = {
 
   es: {
     categories: {
-      All: 'Todo', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
+      All: 'Abierto/Open', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Café', Shop: 'Tienda', Service: 'Servicio',
       Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Transportation: 'Transporte', Other: 'Otro', Closed: 'Cerrado',
+      Events: 'Eventos',
     },
+    events: 'Eventos',
+    changeIsland: 'Cambiar Isla',
     noBusinesses: 'No hay negocios todavía.',
     addYours: '¡Añade el tuyo!',
     addBusiness: 'Añade tu Negocio',

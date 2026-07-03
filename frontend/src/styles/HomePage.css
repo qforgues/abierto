@@ -49,28 +49,37 @@
   border-bottom: 1px solid var(--border);
   padding: 10px 16px;
 }
-/* Icon-only category pills, spread evenly across the row */
+/* Category pills: icon + label, always visible (works on touch/mobile) */
 .home-filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
   gap: 8px;
-  max-width: 760px;
+  max-width: 820px;
   margin: 0 auto;
   width: 100%;
 }
 .cat-pill {
-  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 46px;
+  gap: 4px;
+  min-height: 60px;
+  padding: 8px 4px;
   border-radius: 12px;
   border: 1.5px solid var(--border);
   background: white;
   color: #12312e;
   cursor: pointer;
-  padding: 0;
+  text-decoration: none;
   transition: transform 0.12s, border-color 0.12s, background 0.12s, box-shadow 0.12s, color 0.12s;
+}
+.cat-pill-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
 }
 .cat-pill:hover { transform: translateY(-2px); border-color: var(--ocean); }
 .cat-pill-active {
@@ -79,24 +88,16 @@
   color: #fff;
   box-shadow: 0 4px 12px rgba(45, 212, 191, 0.35);
 }
-.cat-pill-tip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: #1a3c2a;
-  color: #fff;
-  padding: 4px 9px;
-  border-radius: 7px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s, transform 0.12s;
-  z-index: 30;
+/* Events isn't a filter — it's a link to the events page; give it gold flair */
+.cat-pill-events {
+  border-color: rgba(245, 197, 24, 0.6);
+  color: #8a6d00;
+  background: #fffdf3;
 }
-.cat-pill:hover .cat-pill-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cat-pill-events:hover {
+  border-color: #f5c518;
+  box-shadow: 0 4px 12px rgba(245, 197, 24, 0.3);
+}
 
 /* Business list */
 .home-list {
@@ -178,6 +179,21 @@
   font-size: 0.88rem;
   font-family: 'Outfit', sans-serif;
 }
+
+.footer-reset-btn {
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  font-family: 'Outfit', sans-serif;
+  padding: 7px 14px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.footer-reset-btn:hover { background: rgba(255,255,255,0.22); }
 
 .footer-copy {
   color: rgba(255,255,255,0.35);

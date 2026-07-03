@@ -58,7 +58,7 @@ export default function Navbar() {
       <Link to="/" style={styles.brand}>
         <img src="/logo-solo.png" alt="Abierto?" style={{ height: 44, filter: 'brightness(0) invert(1) drop-shadow(0 1px 4px rgba(0,0,0,0.4))' }} />
       </Link>
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2 }}>
+      <div className="nav-hide-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2 }}>
         {Object.values(ISLANDS).map(island => (
           <Link
             key={island.key}
