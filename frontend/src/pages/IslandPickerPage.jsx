@@ -110,7 +110,7 @@ export default function IslandPickerPage() {
               key={island.key}
               name={island.name}
               imgSrc={`/island-${island.key}.jpeg`}
-              imgScale={island.key === 'culebra' ? 1.55 : 1}
+              imgScale={1}
               onClick={() => handleSelect(island.key)}
             />
           ))}
@@ -126,21 +126,22 @@ export default function IslandPickerPage() {
           }}>
             <div style={{
               width: '100%',
-              aspectRatio: '4/3',
+              aspectRatio: '1160 / 1494',
               background: 'var(--light)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 10,
+              padding: 12,
             }}>
-              <span style={{ fontSize: '2rem' }}>🗺️</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--mid)', fontWeight: 600, letterSpacing: '0.03em' }}>
+              <span style={{ fontSize: '2.4rem' }}>🗺️</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--mid)', fontWeight: 700, letterSpacing: '0.04em' }}>
                 COMING SOON
               </span>
-            </div>
-            <div style={{ padding: '10px 0 12px', fontWeight: 600, fontSize: '0.9rem', color: 'var(--mid)', textAlign: 'center' }}>
-              More Islands
+              <span style={{ fontSize: '0.9rem', color: 'var(--mid)', fontWeight: 600 }}>
+                More Islands
+              </span>
             </div>
           </div>
         </div>
@@ -174,7 +175,7 @@ function IslandCard({ name, imgSrc, imgScale = 1, onClick }) {
     >
       <div style={{
         width: '100%',
-        aspectRatio: '4/3',
+        aspectRatio: '1160 / 1494',
         background: 'white',
         overflow: 'hidden',
         position: 'relative',
@@ -191,15 +192,6 @@ function IslandCard({ name, imgSrc, imgScale = 1, onClick }) {
             transformOrigin: 'center center',
           }}
         />
-      </div>
-      <div style={{
-        padding: '10px 0 12px',
-        fontWeight: 700,
-        fontSize: '0.95rem',
-        color: 'var(--dark)',
-        textAlign: 'center',
-      }}>
-        {name}
       </div>
     </button>
   );
