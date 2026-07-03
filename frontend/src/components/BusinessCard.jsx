@@ -47,7 +47,7 @@ export default function BusinessCard({ business, userLocation }) {
   const orderUrl = useVrsOrderUrl(business.id);
   const { status, return_time, return_date, note } = business;
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
-  const displayDesc = useAutoTranslated(business.description, business.description_es, lang);
+  const displayDesc = useAutoTranslated(business.description, business.description_es, lang, business.id);
   const displayCategory = business.category ? (t.categories[business.category] || business.category) : null;
 
   const hasGeo = business.lat && business.lon && userLocation;

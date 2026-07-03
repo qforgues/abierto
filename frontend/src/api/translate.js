@@ -3,9 +3,11 @@
 // original text). Params are passed in the query string to keep it a simple CORS
 // request (no preflight).
 import { useState, useEffect } from 'react';
+import { api } from './client';
 
 const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const cache = {}; // `${target}:${text}` -> translated text
+const persisted = new Set(); // business ids we've already sent a translation for this session
 
 export async function translateText(text, target = 'es', source = 'en') {
   if (!text || !KEY) return text;
@@ -27,8 +29,10 @@ export async function translateText(text, target = 'es', source = 'en') {
 }
 
 // Best display text: stored translation if present, else an auto-translation
-// (only in Spanish mode), else the original English.
-export function useAutoTranslated(original, stored, lang) {
+// (only in Spanish mode), else the original English. When a businessId is given,
+// a fresh auto-translation is persisted to the DB (description_es) so it's only
+// ever generated once — subsequent loads get the stored copy.
+export function useAutoTranslated(original, stored, lang, businessId) {
   const [text, setText] = useState(stored || original || '');
   useEffect(() => {
     if (lang !== 'es') { setText(original || ''); return; }
@@ -36,8 +40,16 @@ export function useAutoTranslated(original, stored, lang) {
     if (!original) { setText(''); return; }
     let alive = true;
     setText(original);                             // show English while translating
-    translateText(original, 'es').then(t => { if (alive) setText(t); });
+    translateText(original, 'es').then(t => {
+      if (alive) setText(t);
+      // Cache it in the DB (once per business per session, only a real translation).
+      if (businessId && t && t !== original && !persisted.has(businessId)) {
+        persisted.add(businessId);
+        api.post(`/businesses/${businessId}/translation`, { description: original, description_es: t })
+          .catch(() => persisted.delete(businessId));
+      }
+    });
     return () => { alive = false; };
-  }, [original, stored, lang]);
+  }, [original, stored, lang, businessId]);
   return text;
 }

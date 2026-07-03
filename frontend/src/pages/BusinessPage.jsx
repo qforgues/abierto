@@ -47,7 +47,7 @@ export default function BusinessPage() {
   const [reportNote, setReportNote] = useState('');
   const [reportStatus, setReportStatus] = useState(null); // null | 'sending' | 'done'
   const attractionPhoto = useAttractionPhoto(business);
-  const displayDesc = useAutoTranslated(business?.description, business?.description_es, lang);
+  const displayDesc = useAutoTranslated(business?.description, business?.description_es, lang, business?.id);
 
   useEffect(() => {
     api.post('/analytics/hit', { path: `/business/${id}` }).catch(() => {});

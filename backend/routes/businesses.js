@@ -205,6 +205,36 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
+// POST /api/businesses/:id/translation — cache a machine translation of the
+// description so it only has to be generated once. Public, but write-limited:
+// it only FILLS an empty description_es (never overwrites a human/existing one)
+// and only when the submitted source still matches the current English text.
+router.post('/:id/translation', async (req, res) => {
+  const { description, description_es } = req.body;
+  if (!description_es || !description_es.trim()) {
+    return res.status(400).json({ error: 'description_es required' });
+  }
+  try {
+    const biz = await db.get(
+      'SELECT id, description, description_es FROM businesses WHERE id = ? AND is_active = 1',
+      [req.params.id]
+    );
+    if (!biz) return res.status(404).json({ error: 'Not found' });
+    if (biz.description_es && biz.description_es.trim()) {
+      return res.json({ success: true, skipped: 'already set' });   // don't clobber
+    }
+    // Guard: the translation must be for the description that's live right now.
+    if (description && biz.description && description.trim() !== biz.description.trim()) {
+      return res.json({ success: true, skipped: 'source mismatch' });
+    }
+    await db.run('UPDATE businesses SET description_es = ? WHERE id = ?', [description_es, req.params.id]);
+    res.json({ success: true, stored: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
 // DELETE /api/businesses/:id — soft delete (admin only)
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
