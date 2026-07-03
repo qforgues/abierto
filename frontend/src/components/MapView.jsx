@@ -32,6 +32,10 @@ const MAP_STYLES = [
 
   // Landscape
   { featureType: 'landscape.natural',     elementType: 'geometry', stylers: [{ color: '#c4e8a8' }] },
+
+  // Buildings — show footprints (fill + outline) from overhead
+  { featureType: 'landscape.man_made',    elementType: 'geometry.fill',   stylers: [{ color: '#eae1d0' }] },
+  { featureType: 'landscape.man_made',    elementType: 'geometry.stroke', stylers: [{ color: '#bcae90' }] },
   { featureType: 'poi.park',              elementType: 'geometry', stylers: [{ color: '#9ed68f' }] },
   { featureType: 'poi.park',              elementType: 'labels.text.fill', stylers: [{ color: '#2d6a4f' }] },
   { featureType: 'poi',                   elementType: 'geometry', stylers: [{ color: '#d0e8c0' }] },

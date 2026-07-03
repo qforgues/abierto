@@ -81,7 +81,7 @@ export default function BusinessPage() {
               businesses={[business]}
               island={business.island || 'vieques'}
               center={{ lat: Number(business.lat), lng: Number(business.lon) }}
-              zoom={16}
+              zoom={18}
               showLocate={false}
             />
           </div>
