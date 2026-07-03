@@ -5,6 +5,7 @@ import StatusBadge from '../components/StatusBadge';
 import StatusSelector from '../components/StatusSelector';
 import HoursEditor from '../components/HoursEditor';
 import CoordEditor from '../components/CoordEditor';
+import { coordsSuspect } from '../constants/islands';
 import { api } from '../api/client';
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -944,6 +945,9 @@ export default function AdminDashboard() {
     return matchesSearch && matchesActive;
   });
 
+  // Active businesses whose coordinates look wrong/unset — surfaced as an alert to verify.
+  const needsLocation = businesses.filter(b => b.is_active && coordsSuspect(b));
+
   return (
     <>
       <Navbar />
@@ -970,6 +974,21 @@ export default function AdminDashboard() {
           <>
             {tab === 'businesses' && (
               <>
+                {needsLocation.length > 0 && (
+                  <div style={{ marginBottom: 16, padding: '14px 16px', borderRadius: 10, background: '#fff7ed', border: '1.5px solid #fed7aa' }}>
+                    <strong style={{ color: '#9a3412' }}>⚠️ {needsLocation.length} {needsLocation.length === 1 ? 'business needs' : 'businesses need'} location verification</strong>
+                    <p className="text-sm" style={{ color: '#9a3412', margin: '4px 0 10px' }}>
+                      Missing or placeholder coordinates — the map pin would land off-island / in the water. Click one to open and fix its location.
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {needsLocation.map(b => (
+                        <button key={b.id} className="btn btn-sm btn-ghost" onClick={() => { setSearch(''); setShowArchived(false); setEditingId(b.id); }}>
+                          📍 {b.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <input
@@ -1004,6 +1023,9 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                             <strong>{b.name}</strong>
                             <StatusBadge status={b.status} />
+                            {b.is_active && coordsSuspect(b) && (
+                              <span style={{ fontSize: '0.72rem', background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: 999, fontWeight: 600 }}>⚠ Check location</span>
+                            )}
                             {!b.is_active && <span style={{ fontSize: '0.75rem', background: '#e5e7eb', color: '#6b7280', padding: '2px 8px', borderRadius: 999 }}>Archived</span>}
                           </div>
                           <p className="text-sm text-muted mt-2">
