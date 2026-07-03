@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { uploadUrl } from '../api/client';
-import { CATEGORY_ICONS } from '../constants/categories';
+import CategoryIcon from './CategoryIcon';
 import { useLang } from '../context/LangContext';
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -42,7 +42,6 @@ function fmtDate(d) {
 
 export default function BusinessCard({ business, userLocation }) {
   const { lang, t } = useLang();
-  const icon = CATEGORY_ICONS[business.category] || '📍';
   const { status, return_time, return_date, note } = business;
   const displayName = lang === 'es' ? (business.name_es || business.name) : business.name;
   const displayDesc = lang === 'es' ? (business.description_es || business.description) : business.description;
@@ -57,7 +56,7 @@ export default function BusinessCard({ business, userLocation }) {
       {business.cover_photo ? (
         <img src={uploadUrl(business.cover_photo)} alt={displayName} className="business-card-cover" />
       ) : (
-        <div className="business-card-cover-placeholder">{icon}</div>
+        <div className="business-card-cover-placeholder"><CategoryIcon name={business.category} size={38} /></div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -66,7 +65,9 @@ export default function BusinessCard({ business, userLocation }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
           {displayCategory && (
-            <span className="text-sm text-muted">{icon} {displayCategory}</span>
+            <span className="text-sm text-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <CategoryIcon name={business.category} size={15} /> {displayCategory}
+            </span>
           )}
           {hasGeo && (
             <span className="text-sm" style={{ color: 'var(--ocean)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>

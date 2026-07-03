@@ -54,7 +54,8 @@ const PATHS = {
   ),
   Attraction: (
     <>
-      <path d="m12 3 2.5 5.3 5.5.5-4.2 3.7 1.3 5.5L12 20.4 6.9 18l1.3-5.5L4 8.8l5.5-.5Z" />
+      <path d="M4 8.5h3L8.3 6.5h7.4L17 8.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z" />
+      <circle cx="12" cy="13" r="3.2" />
     </>
   ),
   Shop: (
@@ -66,8 +67,10 @@ const PATHS = {
   ),
   Park: (
     <>
-      <path d="M12 3a6.5 6.5 0 0 0-3 12.3V17a3 3 0 0 0 6 0v-1.7A6.5 6.5 0 0 0 12 3Z" />
-      <path d="M12 22v-5" />
+      <path d="M12 3 8 9h8Z" />
+      <path d="M12 7 6.5 14h11Z" />
+      <path d="M12 14v5" />
+      <path d="M9.5 19h5" />
     </>
   ),
   Service: (
@@ -93,8 +96,8 @@ const PATHS = {
   ),
   Closed: (
     <>
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M7.5 11V7.5a4.5 4.5 0 0 1 9 0V11" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M5.8 5.8 18.2 18.2" />
     </>
   ),
 };

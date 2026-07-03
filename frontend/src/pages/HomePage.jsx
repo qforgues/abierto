@@ -9,7 +9,7 @@ import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
 import '../styles/HomePage.css';
 
-const CATEGORIES = ['All', 'Food Truck', 'Restaurant', 'Bar', 'Cafe', 'Beach', 'Attraction', 'Shop', 'Park', 'Service', 'Transportation', 'Other', 'Closed'];
+const CATEGORIES = ['All', 'Food Truck', 'Restaurant', 'Bar', 'Cafe', 'Beach', 'Attraction', 'Shop', 'Park', 'Transportation', 'Service', 'Other', 'Closed'];
 
 export default function HomePage({ island = 'vieques' }) {
   const [businesses, setBusinesses] = useState([]);
