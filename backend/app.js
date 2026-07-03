@@ -256,6 +256,13 @@ async function initAndStart() {
   // Back-fill any rows where island is null (pre-migration rows)
   try { await db.run("UPDATE businesses SET island = 'vieques' WHERE island IS NULL"); } catch (e) {}
 
+  // Beta cleanup: undo any businesses auto-deactivated for non-payment (feature now disabled)
+  // and clear those false alerts. Idempotent — once the alerts are gone this is a no-op.
+  try {
+    await db.run(`UPDATE businesses SET is_active = 1 WHERE is_active = 0 AND id IN (SELECT DISTINCT business_id FROM notifications WHERE type = 'subscription')`);
+    await db.run(`DELETE FROM notifications WHERE type = 'subscription'`);
+  } catch (e) {}
+
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');
   if (adminRow.count === 0) {

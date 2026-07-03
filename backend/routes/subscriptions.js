@@ -45,8 +45,9 @@ router.get('/', requireAdmin, async (req, res) => {
 
     const paidSet = new Set(recentPayments.map(p => `${p.business_id}-${p.year}-${p.month}`));
 
-    // Calculate consecutive unpaid months for each business
-    const toInactivate = [];
+    // Calculate consecutive unpaid months for each business — for the admin's info only.
+    // NOTE: auto-deactivation for non-payment is DISABLED during beta. Businesses stay live
+    // regardless of payment; nothing is turned off here.
     for (const b of businesses) {
       const created = new Date(b.created_at.replace(' ', 'T') + (b.created_at.includes('Z') ? '' : 'Z'));
       const createdMonthStart = new Date(created.getFullYear(), created.getMonth(), 1);
@@ -62,24 +63,9 @@ router.get('/', requireAdmin, async (req, res) => {
         }
       }
       b.months_unpaid = unpaid;
-      if (unpaid >= 3) toInactivate.push(b.id);
     }
 
-    // Auto-inactivate and notify
-    for (const id of toInactivate) {
-      await db.run('UPDATE businesses SET is_active = 0 WHERE id = ?', [id]);
-      const biz = businesses.find(b => b.id === id);
-      await db.run(
-        `INSERT INTO notifications (type, business_id, message) VALUES ('subscription', ?, ?)`,
-        [id, `"${biz.name}" was automatically deactivated after 3 months of non-payment.`]
-      );
-    }
-
-    res.json({
-      year,
-      month,
-      businesses: businesses.filter(b => !toInactivate.includes(b.id)),
-    });
+    res.json({ year, month, businesses });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error.' });
