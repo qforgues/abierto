@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
       const { stored_status, quick_override, ...rest } = b;
       return {
         ...rest,
-        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override),
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override, b.status_updated_at),
       };
     });
 
@@ -86,7 +86,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
       const { stored_status, quick_override, ...rest } = b;
       return {
         ...rest,
-        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override),
+        status: computeStatus(stored_status, b.return_time, hoursMap[b.id] || null, timeStr, quick_override, b.status_updated_at),
       };
     });
 
@@ -127,7 +127,7 @@ router.get('/:id', async (req, res) => {
     const { stored_status, quick_override, ...rest } = business;
     res.json({
       ...rest,
-      status: computeStatus(stored_status, business.return_time, todayHours, timeStr, quick_override),
+      status: computeStatus(stored_status, business.return_time, todayHours, timeStr, quick_override, business.status_updated_at),
       has_hours: hours.length > 0,
       photos,
     });

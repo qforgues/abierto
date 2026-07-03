@@ -10,11 +10,24 @@ function getViequesNow() {
   return { dayOfWeek, timeStr };
 }
 
+// AST (UTC-4) calendar date 'YYYY-MM-DD' for a Date or a UTC 'YYYY-MM-DD HH:MM:SS' string.
+function viequesDate(input) {
+  const utc = input instanceof Date ? input : new Date(String(input || '').replace(' ', 'T') + 'Z');
+  if (isNaN(utc.getTime())) return null;
+  return new Date(utc.getTime() - 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 // Compute what status to show publicly.
 // todayHours: { open_time, close_time, is_closed } or null if no hours configured
-function computeStatus(stored, returnTime, todayHours, timeStr, quickOverride) {
-  // Quick manual override — bypass hours until next scheduled reset
-  if (quickOverride) return stored || 'Closed';
+// overrideSetAt: when the manual status was last set (business_status.updated_at, UTC)
+function computeStatus(stored, returnTime, todayHours, timeStr, quickOverride, overrideSetAt) {
+  // Quick manual override — only valid the Vieques day it was set. A stale override
+  // (from a previous day) expires, so a business never stays "Open" forever.
+  if (quickOverride) {
+    const setDay = overrideSetAt ? viequesDate(overrideSetAt) : null;
+    if (!setDay || setDay === viequesDate(new Date())) return stored || 'Closed';
+    // stale override → fall through to the schedule / permanent-status logic below
+  }
 
   // Permanent overrides — stay until owner changes them
   if (stored === 'Closed for the Season') return stored;

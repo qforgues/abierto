@@ -14,7 +14,7 @@ const absPhoto = (filename) => (filename ? `${BASE}/uploads/${filename}` : null)
 const toIso = (dt) => (dt ? dt.replace(' ', 'T') + 'Z' : null);
 
 function shape(b, hoursRows, timeStr, todayHoursForStatus) {
-  const status = computeStatus(b.stored_status, b.return_time, todayHoursForStatus, timeStr, b.quick_override);
+  const status = computeStatus(b.stored_status, b.return_time, todayHoursForStatus, timeStr, b.quick_override, b.status_updated_at);
   return {
     id: b.id,
     name: b.name,
