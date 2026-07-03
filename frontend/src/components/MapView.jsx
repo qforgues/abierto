@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Link } from 'react-router-dom';
-import { CATEGORY_ICONS } from '../constants/categories';
+import { ICON_PATHS } from './CategoryIcon';
 import { ISLANDS } from '../constants/islands';
 
 const STATUS_COLORS = {
@@ -54,7 +54,8 @@ const MAP_STYLES = [
 
 function markerIcon(business) {
   const color = STATUS_COLORS[business.status] || '#94a3b8';
-  const emoji = CATEGORY_ICONS[business.category] || '📍';
+  // Same custom line icons as the rest of the app (currentColor -> status color).
+  const iconInner = (ICON_PATHS[business.category] || ICON_PATHS.Other).replace(/currentColor/g, color);
   const isOpen = business.status === 'Open' || business.status === 'Open 24 Hours';
   const glow = isOpen
     ? `<circle cx="22" cy="22" r="21" fill="${color}" opacity="0.18"/>`
@@ -63,7 +64,7 @@ function markerIcon(business) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
     ${glow}
     <circle cx="22" cy="22" r="18" fill="white" stroke="${color}" stroke-width="3"/>
-    <text x="22" y="29" text-anchor="middle" font-size="18" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emoji}</text>
+    <g transform="translate(12.4,12.4) scale(0.8)" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${iconInner}</g>
   </svg>`;
 
   return {
