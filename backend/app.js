@@ -236,6 +236,10 @@ async function initAndStart() {
       is_active       INTEGER NOT NULL DEFAULT 1,
       created_at      TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
+    `CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT
+    )`,
   ];
 
   for (const sql of schema) {

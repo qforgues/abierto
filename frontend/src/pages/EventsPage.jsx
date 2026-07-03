@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import CategoryIcon from '../components/CategoryIcon';
 import { api } from '../api/client';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -56,7 +57,7 @@ export default function EventsPage({ island = 'vieques' }) {
 
         {!loading && events.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--mid)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🗓️</div>
+            <div style={{ marginBottom: 12, color: 'var(--border)' }}><CategoryIcon name="Events" size={44} /></div>
             <p style={{ fontWeight: 600 }}>No upcoming events</p>
             <p style={{ fontSize: '0.88rem', marginTop: 4 }}>Check back soon!</p>
           </div>
@@ -76,11 +77,11 @@ export default function EventsPage({ island = 'vieques' }) {
                   )}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: '0.88rem', color: 'var(--mid)' }}>
-                  <span>📅 {rec ? rec : formatDate(event.start_date)}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CategoryIcon name="Events" size={15} /> {rec ? rec : formatDate(event.start_date)}</span>
                   {event.start_time && (
-                    <span>🕐 {formatTime(event.start_time)}{event.end_time ? ` – ${formatTime(event.end_time)}` : ''}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CategoryIcon name="Clock" size={15} /> {formatTime(event.start_time)}{event.end_time ? ` – ${formatTime(event.end_time)}` : ''}</span>
                   )}
-                  {event.location_name && <span>📍 {event.location_name}</span>}
+                  {event.location_name && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CategoryIcon name="Other" size={15} /> {event.location_name}</span>}
                 </div>
                 {event.description && (
                   <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--dark)', lineHeight: 1.5 }}>{event.description}</p>

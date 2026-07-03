@@ -100,6 +100,20 @@ const PATHS = {
       <path d="M5.8 5.8 18.2 18.2" />
     </>
   ),
+  Events: (
+    <>
+      <rect x="3" y="4.5" width="18" height="16" rx="2" />
+      <path d="M3 9.5h18" />
+      <path d="M8 2.5v4" />
+      <path d="M16 2.5v4" />
+    </>
+  ),
+  Clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
 };
 
 export default function CategoryIcon({ name, size = 22 }) {

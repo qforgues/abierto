@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import HoursEditor from '../components/HoursEditor';
 import { api } from '../api/client';
 import { useLang } from '../context/LangContext';
-import { CATEGORY_ICONS } from '../constants/categories';
+import CategoryIcon from '../components/CategoryIcon';
 
 const CATEGORIES = ['Attraction', 'Bar', 'Beach', 'Cafe', 'Food Truck', 'Other', 'Park', 'Restaurant', 'Service', 'Shop', 'Transportation'];
 
@@ -104,10 +104,29 @@ export default function RegisterPage() {
             </div>
             <div className="field">
               <label>{r.labelCategory}</label>
-              <select value={form.category} onChange={e => set('category', e.target.value)}>
-                <option value="">{r.placeholderCategory}</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ICONS[c]} {t.categories[c]}</option>)}
-              </select>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8 }}>
+                {CATEGORIES.map(c => {
+                  const active = form.category === c;
+                  return (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => set('category', c)}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                        padding: '10px 6px', borderRadius: 12, cursor: 'pointer',
+                        border: `1.5px solid ${active ? 'var(--ocean)' : 'var(--border)'}`,
+                        background: active ? 'var(--ocean)' : 'white',
+                        color: active ? '#fff' : '#12312e',
+                        transition: 'border-color 0.12s, background 0.12s, color 0.12s',
+                      }}
+                    >
+                      <CategoryIcon name={c} size={22} />
+                      <span style={{ fontSize: '0.72rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.15 }}>{t.categories[c]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="field">
               <label>Island</label>

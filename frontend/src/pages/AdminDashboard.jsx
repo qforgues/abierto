@@ -316,7 +316,7 @@ function SettingsTab() {
   const [saved, setSaved] = React.useState(false);
 
   React.useEffect(() => {
-    api.get('/settings').then(setSettings).catch(() => {});
+    api.get('/settings').then(setSettings).catch(() => setSettings({}));
   }, []);
 
   const toggle = async (key) => {
