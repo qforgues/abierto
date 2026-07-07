@@ -5,7 +5,7 @@ const translations = {
     categories: {
       All: 'Abierto', Restaurant: 'Restaurant', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Cafe', Shop: 'Shop', Service: 'Service',
-      Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Transportation: 'Transportation', Other: 'Other', Closed: 'Closed',
+      Beach: 'Beach', Park: 'Park', Attraction: 'Attraction', Transportation: 'Taxi', Other: 'Other', Closed: 'Closed',
       Events: 'Events',
     },
     events: 'Events',
@@ -159,7 +159,7 @@ const translations = {
     categories: {
       All: 'Abierto', Restaurant: 'Restaurante', 'Food Truck': 'Food Truck',
       Bar: 'Bar', Cafe: 'Café', Shop: 'Tienda', Service: 'Servicio',
-      Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Transportation: 'Transporte', Other: 'Otro', Closed: 'Cerrado',
+      Beach: 'Playa', Park: 'Parque', Attraction: 'Atracción', Transportation: 'Taxi', Other: 'Otro', Closed: 'Cerrado',
       Events: 'Eventos',
     },
     events: 'Eventos',
