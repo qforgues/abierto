@@ -9,7 +9,7 @@ export const CATEGORY_ICONS = {
   Beach:        '🏖️',
   Park:         '🌳',
   Attraction:   '🏰',
-  Transportation: '🚌',
+  Transportation: '🚕',
   Other:        '📍',
   Closed:       '🔒',
 };

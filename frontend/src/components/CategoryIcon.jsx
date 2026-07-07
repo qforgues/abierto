@@ -14,7 +14,7 @@ export const ICON_PATHS = {
   Shop: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23Z"/>',
   Park: '<path d="M12 3 8 9h8Z"/><path d="M12 7 6.5 14h11Z"/><path d="M12 14v5"/><path d="M9.5 19h5"/>',
   Service: '<path d="M14.6 6.3a5 5 0 0 0-6.5 6.4l-5 5a2.1 2.1 0 0 0 3 3l5-5a5 5 0 0 0 6.4-6.5l-2.9 2.9-2.4-.6-.6-2.4Z"/>',
-  Transportation: '<path d="M4 12 5.6 7.4A2 2 0 0 1 7.5 6h9a2 2 0 0 1 1.9 1.4L20 12"/><path d="M3 12h18v5a1 1 0 0 1-1 1h-1.5"/><path d="M6.5 18H5a1 1 0 0 1-1-1v-5"/><path d="M9 18h6"/><circle cx="7.5" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/>',
+  Transportation: '<rect x="9" y="3.2" width="6" height="2.4" rx="0.6"/><path d="M4 13 5.6 8.6A2 2 0 0 1 7.5 7.2h9a2 2 0 0 1 1.9 1.4L20 13"/><path d="M3 13h18v5a1 1 0 0 1-1 1h-1.5"/><path d="M6.5 19H5a1 1 0 0 1-1-1v-5"/><path d="M9 19h6"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/>',
   Other: '<path d="M20 10.5c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10.5" r="2.6"/>',
   Closed: '<circle cx="12" cy="12" r="9"/><path d="M5.8 5.8 18.2 18.2"/>',
   Events: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/>',
