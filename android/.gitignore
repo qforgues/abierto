@@ -1,0 +1,9 @@
+# Android build artifacts and local caches — never commit these
+.gradle/
+build/
+app/build/
+local.properties
+
+# Signing keystore — keep out of version control
+*.jks
+*.keystore
