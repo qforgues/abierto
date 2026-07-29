@@ -118,10 +118,21 @@ that header — otherwise every pre-print check would write ~24 fake scans into 
 and poison the very numbers it exists to protect. Redirect behaviour is unchanged, so the
 check still tests the real thing.
 
-**Note on the launch baseline:** the initial deploy verification ran *before* this
-exclusion existed, so `download_clicks` contains roughly 30 synthetic rows dated
-**2026-07-29**. No printed material existed then, so any activity on that date is test
-traffic — discount it when reading the first campaign report.
+**The launch baseline, and why it is a timestamp not a date.** The initial deploy
+verification ran *before* the exclusion header existed, so `download_clicks` holds roughly
+30 synthetic rows from 2026-07-29. The first fix excluded that whole *date* — which also
+hid the owner's own acceptance-test scan later the same day, making a working system look
+completely dead.
+
+The exclusion is now a precise instant, `SYNTHETIC_CUTOFF` in `backend/config/appLinks.js`
+(default `2026-07-29 18:40:00` UTC, overridable with `ANALYTICS_SYNTHETIC_CUTOFF`). Rows
+written before it are filtered from reporting; rows after it count. `/download` only went
+live around 18:00 UTC that day, the URLs were not public, and no QR code had been printed,
+so nothing before the cutoff could have come from a real member of the public.
+
+Rows are still never deleted. The panel states how many are being held back, and when
+every stored row is excluded it says so explicitly — so "no campaign activity yet" can
+never again be confused with "tracking is broken".
 
 ---
 

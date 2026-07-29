@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db/database');
 const { requireAdmin } = require('../middleware/auth');
-const { CAMPAIGNS, CONTAMINATED_DATES } = require('../config/appLinks');
+const { CAMPAIGNS, SYNTHETIC_CUTOFF } = require('../config/appLinks');
 
 const router = express.Router();
 
@@ -106,16 +106,13 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
     // ── What counts as a reportable scan ──────────────────────────────────────
     // Excluded from every figure below:
     //   platform 'bot'  — link-preview fetchers and crawlers (still stored, see totals.bots)
-    //   contaminated dates — days known to hold pre-launch verification traffic.
-    // Rows are only ever FILTERED, never deleted: we cannot prove every row on a
-    // contaminated date is synthetic, so we exclude by default and report it openly.
-    // Automated pre-print checks (X-Abierto-Check) are never written in the first place.
-    const dateExclusion = CONTAMINATED_DATES.length
-      ? ` AND date NOT IN (${CONTAMINATED_DATES.map(() => '?').join(',')})`
-      : '';
-    const HUMAN = `platform != 'bot'${dateExclusion}`;
-    // Every query below interpolates HUMAN, so each needs the excluded dates bound too.
-    const X = CONTAMINATED_DATES;
+    //   created_at < SYNTHETIC_CUTOFF — pre-launch verification traffic.
+    // Rows are only ever FILTERED, never deleted. Automated pre-print checks
+    // (X-Abierto-Check) are never written in the first place.
+    const HUMAN = `platform != 'bot' AND created_at >= ?`;
+    // HUMAN is interpolated into several queries, so the cutoff is bound once per use,
+    // in the order its placeholder appears.
+    const X = [SYNTHETIC_CUTOFF];
 
     const [totals, byCampaign, byPlatform, byDestination, daily, excluded] = await Promise.all([
       // SUM(CASE …) rather than COUNT(*) FILTER — portable across every SQLite/libSQL
@@ -159,13 +156,9 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
       ),
       // How many rows the exclusions are holding back, so the panel can say so out loud
       // rather than silently under-reporting.
-      CONTAMINATED_DATES.length
-        ? db.get(
-            `SELECT COUNT(*) AS c FROM download_clicks
-             WHERE date IN (${CONTAMINATED_DATES.map(() => '?').join(',')})`,
-            [...X]
-          )
-        : Promise.resolve({ c: 0 }),
+      db.get(
+        `SELECT COUNT(*) AS c FROM download_clicks WHERE created_at < ?`, [...X]
+      ),
     ]);
 
     const uniqueOf = (p) => byPlatform.find(r => r.platform === p)?.unique_devices || 0;
@@ -204,10 +197,10 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
       daily,
       // Disclosed, not hidden.
       exclusions: {
-        contaminatedDates: CONTAMINATED_DATES,
-        rowsExcludedByDate: excluded?.c || 0,
+        syntheticCutoff: SYNTHETIC_CUTOFF,
+        rowsBeforeCutoff: excluded?.c || 0,
         botsExcluded: totals?.bots || 0,
-        note: 'Verification traffic (X-Abierto-Check) is never recorded. Contaminated dates are filtered from reporting, never deleted.',
+        note: 'Verification traffic (X-Abierto-Check) is never recorded. Pre-launch rows are filtered from reporting, never deleted.',
       },
     });
   } catch (err) {

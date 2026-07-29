@@ -86,16 +86,24 @@ const CAMPAIGNS = {
   },
 };
 
-// ── Contaminated reporting dates ──────────────────────────────────────────────
-// Dates whose download_clicks rows are known to be test traffic and are excluded from
-// campaign reporting by default. Rows are NEVER deleted — only filtered — because we
-// cannot prove with certainty that every row on such a date is synthetic.
+// ── Synthetic-traffic cutoff ──────────────────────────────────────────────────
+// download_clicks rows written BEFORE this instant are pre-launch verification traffic
+// and are excluded from campaign reporting. Rows are NEVER deleted — only filtered.
 //
-// 2026-07-29: launch day. The /download system was deployed and verified with
-// scripts/verify-qr.js --live BEFORE the X-Abierto-Check exclusion header existed, so
-// this date holds roughly 30 synthetic scans. No printed QR code existed yet, so there
-// was no way for a real member of the public to have scanned one.
-const CONTAMINATED_DATES = ['2026-07-29'];
+// Why a timestamp and not a date: the first version of this excluded all of 2026-07-29,
+// which also hid the owner's own acceptance-test scan later that same day. A date is too
+// blunt when launch day and first-real-use are the same day.
+//
+// Where the boundary comes from: /download went live ~18:00 UTC on 2026-07-29 and was
+// verified with scripts/verify-qr.js --live plus manual curl checks, none of which sent
+// the X-Abierto-Check header yet — those wrote ~30 synthetic rows. From ~18:30 UTC every
+// automated check has carried the header and writes nothing. No QR code had been printed
+// or published, and the URLs were not public, so no member of the public could have
+// reached them before this point.
+//
+// created_at is written by the database as UTC 'YYYY-MM-DD HH:MM:SS', so a plain string
+// comparison is a correct chronological comparison.
+const SYNTHETIC_CUTOFF = process.env.ANALYTICS_SYNTHETIC_CUTOFF || '2026-07-29 18:40:00';
 
 const DEFAULT_CAMPAIGN = 'direct';
 
@@ -198,7 +206,7 @@ module.exports = {
   WEB_APP_URL,
   ANDROID_PACKAGE,
   CAMPAIGNS,
-  CONTAMINATED_DATES,
+  SYNTHETIC_CUTOFF,
   DEFAULT_CAMPAIGN,
   CAMPAIGN_RE,
   normalizeCampaign,

@@ -669,15 +669,15 @@ function CampaignsPanel() {
       </p>
 
       {/* Say out loud what is being held back, so no number is quietly smaller than it looks. */}
-      {(exclusions?.rowsExcludedByDate > 0 || totals.bots > 0) && (
+      {(exclusions?.rowsBeforeCutoff > 0 || totals.bots > 0) && (
         <div className="card card-body" style={{ borderLeft: '3px solid var(--ocean)', padding: '12px 16px' }}>
           <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 4 }}>Excluded from these numbers</div>
           <ul className="text-sm text-muted" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.65 }}>
-            {exclusions?.rowsExcludedByDate > 0 && (
+            {exclusions?.rowsBeforeCutoff > 0 && (
               <li>
-                <strong>{exclusions.rowsExcludedByDate}</strong> record(s) from{' '}
-                {exclusions.contaminatedDates.join(', ')} — pre-launch testing, before any QR code
-                was printed. Kept in the database, hidden from reporting.
+                <strong>{exclusions.rowsBeforeCutoff}</strong> record(s) from before{' '}
+                {exclusions.syntheticCutoff} UTC — pre-launch testing, before any QR code was
+                printed. Kept in the database, hidden from reporting.
               </li>
             )}
             {totals.bots > 0 && (
@@ -688,13 +688,22 @@ function CampaignsPanel() {
         </div>
       )}
 
+      {/* Empty state must distinguish "nobody has scanned" from "tracking is broken". */}
       {!hasData && (
         <div className="card card-body">
           <p style={{ margin: 0, fontWeight: 600 }}>No campaign activity yet.</p>
-          <p className="text-sm text-muted" style={{ margin: '4px 0 0' }}>
-            This is the correct reading before the printed codes go up — the counters below start
-            moving the first time a real person scans one. Codes are ready in the QR Codes tab.
-          </p>
+          {totals.storedRows > 0 ? (
+            <p className="text-sm text-muted" style={{ margin: '4px 0 0' }}>
+              Tracking is working — <strong>{totals.storedRows}</strong> record(s) are stored, but all
+              of them are excluded above as pre-launch tests or bots. The first real scan will
+              appear here.
+            </p>
+          ) : (
+            <p className="text-sm text-muted" style={{ margin: '4px 0 0' }}>
+              Nothing has been recorded at all yet. This is the correct reading before the printed
+              codes go up. Codes are ready in the QR Codes tab.
+            </p>
+          )}
         </div>
       )}
 
