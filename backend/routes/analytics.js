@@ -96,12 +96,29 @@ router.get('/summary', requireAdmin, async (req, res) => {
 // GET /api/analytics/campaigns — admin only
 // Where /download traffic comes from, what device it was on, and where it went.
 // Bot/link-preview hits are counted separately so headline numbers stay honest.
+// The window the detail section is filtered to. Whitelisted, so ?days= can never be used
+// to smuggle arbitrary values into a query or ask for something unreasonably expensive.
+const RANGES = {
+  7:   'Last 7 days',
+  30:  'Last 30 days',
+  90:  'Last 90 days',
+  365: 'Last year',
+  0:   'All time',
+};
+const DEFAULT_RANGE = 30;
+
 router.get('/campaigns', requireAdmin, async (req, res) => {
   try {
     const today = getViequesDate();
     const d7  = new Date(Date.now() -  7 * 86400000).toISOString().slice(0, 10);
     const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-    const d14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+
+    const requested = parseInt(req.query.days, 10);
+    const rangeDays = Object.hasOwn(RANGES, requested) ? requested : DEFAULT_RANGE;
+    // 0 = all time; '0000-00-00' sorts before any real date.
+    const rangeStart = rangeDays === 0
+      ? '0000-00-00'
+      : new Date(Date.now() - rangeDays * 86400000).toISOString().slice(0, 10);
 
     // ── What counts as a reportable scan ──────────────────────────────────────
     // Excluded from every figure below:
@@ -113,8 +130,14 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
     // HUMAN is interpolated into several queries, so the cutoff is bound once per use,
     // in the order its placeholder appears.
     const X = [SYNTHETIC_CUTOFF];
+    // The detail section (breakdowns + trend) is additionally scoped to the chosen range.
+    // The four summary cards deliberately are NOT — Today/Week/Month/All Time mean the
+    // same thing whatever range is selected, which is what makes them a stable reference.
+    const IN_RANGE = `${HUMAN} AND date >= ?`;
+    const XR = [...X, rangeStart];
 
-    const [totals, byCampaign, byPlatform, byDestination, daily, excluded] = await Promise.all([
+    const [totals, byCampaign, byPlatform, byDestination, daily, excluded,
+           campaignDevices, campaignDestinations, campaignDaily] = await Promise.all([
       // SUM(CASE …) rather than COUNT(*) FILTER — portable across every SQLite/libSQL
       // build we might ever run on. Each CASE repeats HUMAN, so the excluded dates are
       // bound once per occurrence, in the order the placeholders appear.
@@ -134,32 +157,59 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
                 COUNT(*)                        AS scans,
                 COUNT(DISTINCT ip_hash)         AS unique_devices,
                 MAX(created_at)                 AS last_seen
-         FROM download_clicks WHERE ${HUMAN}
+         FROM download_clicks WHERE ${IN_RANGE}
          GROUP BY campaign ORDER BY scans DESC`,
-        [...X]
+        [...XR]
       ),
       db.all(
         `SELECT platform, COUNT(*) AS scans, COUNT(DISTINCT ip_hash) AS unique_devices
          FROM download_clicks
-         WHERE ${HUMAN} GROUP BY platform ORDER BY scans DESC`,
-        [...X]
+         WHERE ${IN_RANGE} GROUP BY platform ORDER BY scans DESC`,
+        [...XR]
       ),
       db.all(
         `SELECT destination, COUNT(*) AS scans FROM download_clicks
-         WHERE ${HUMAN} GROUP BY destination ORDER BY scans DESC`,
-        [...X]
+         WHERE ${IN_RANGE} GROUP BY destination ORDER BY scans DESC`,
+        [...XR]
       ),
       db.all(
         `SELECT date, COUNT(*) AS scans FROM download_clicks
-         WHERE ${HUMAN} AND date >= ? GROUP BY date ORDER BY date ASC`,
-        [...X, d14]
+         WHERE ${IN_RANGE} GROUP BY date ORDER BY date ASC`,
+        [...XR]
       ),
       // How many rows the exclusions are holding back, so the panel can say so out loud
       // rather than silently under-reporting.
       db.get(
         `SELECT COUNT(*) AS c FROM download_clicks WHERE created_at < ?`, [...X]
       ),
+      // Per-campaign detail, fetched up front so expanding a campaign in the dashboard is
+      // instant and doesn't fire another request per click.
+      db.all(
+        `SELECT campaign, platform, COUNT(*) AS scans, COUNT(DISTINCT ip_hash) AS unique_devices
+         FROM download_clicks WHERE ${IN_RANGE}
+         GROUP BY campaign, platform ORDER BY scans DESC`,
+        [...XR]
+      ),
+      db.all(
+        `SELECT campaign, destination, COUNT(*) AS scans
+         FROM download_clicks WHERE ${IN_RANGE}
+         GROUP BY campaign, destination ORDER BY scans DESC`,
+        [...XR]
+      ),
+      db.all(
+        `SELECT campaign, date, COUNT(*) AS scans
+         FROM download_clicks WHERE ${IN_RANGE}
+         GROUP BY campaign, date ORDER BY date ASC`,
+        [...XR]
+      ),
     ]);
+
+    /** Group rows by campaign so the client gets a ready-made per-campaign object. */
+    const groupByCampaign = (rows, pick) => {
+      const out = {};
+      for (const r of rows) (out[r.campaign] ||= []).push(pick(r));
+      return out;
+    };
 
     const uniqueOf = (p) => byPlatform.find(r => r.platform === p)?.unique_devices || 0;
     const scansOf  = (p) => byPlatform.find(r => r.platform === p)?.scans || 0;
@@ -187,10 +237,16 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
       googlePlayRedirects:
         (byDestination.find(r => r.destination === 'play')?.scans || 0) +
         (byDestination.find(r => r.destination === 'play_manual')?.scans || 0),
+      // What window the detail below is filtered to.
+      range: { days: rangeDays, label: RANGES[rangeDays], start: rangeStart, options: RANGES },
       byCampaign: byCampaign.map(r => ({
         ...r,
         label: CAMPAIGNS[r.campaign]?.label || r.campaign,
+        usage: CAMPAIGNS[r.campaign]?.usage || null,
         registered: Object.hasOwn(CAMPAIGNS, r.campaign),
+        devices:      groupByCampaign(campaignDevices,      x => ({ platform: x.platform, scans: x.scans, unique_devices: x.unique_devices }))[r.campaign] || [],
+        destinations: groupByCampaign(campaignDestinations, x => ({ destination: x.destination, scans: x.scans }))[r.campaign] || [],
+        daily:        groupByCampaign(campaignDaily,        x => ({ date: x.date, scans: x.scans }))[r.campaign] || [],
       })),
       byPlatform,
       byDestination,

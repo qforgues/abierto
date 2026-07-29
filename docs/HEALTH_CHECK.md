@@ -1,5 +1,15 @@
 # Health Check Endpoint Documentation
 
+> **Update (2026-07-29):** these endpoints are now actually mounted. Previously
+> `routes/health.js` existed but was never wired into `app.js`, so `/api/health` fell
+> through to the SPA and returned `index.html` with a 200 — meaning the Dockerfile
+> `HEALTHCHECK` passed no matter how broken the app was. It is now mounted **before** the
+> SPA fallback, and a test asserts the response is JSON rather than HTML.
+>
+> A second endpoint, **`/api/health/ready`**, exercises the database and returns **503**
+> when it is unreachable. Container probes stay on `/api/health` (liveness) on purpose —
+> see `docs/LAUNCH_INFRASTRUCTURE.md`.
+
 ## Overview
 
 The health check endpoint is a critical component of the Abierto application that allows monitoring and verification of the application's operational status. This endpoint is essential for cloud deployments, load balancers, and automated monitoring systems.

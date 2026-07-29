@@ -81,25 +81,38 @@ landed by watching the hashed bundle name in the live HTML (`/assets/index-*.js`
 - **Map**: `frontend/src/components/MapView.jsx` uses `@react-google-maps/api` with
   `VITE_GOOGLE_MAPS_API_KEY` (set at build time on Render).
 
-## Download / campaign routing (launch infrastructure)
+## Download / campaign routing (launch infrastructure — Roadmap Step 1, COMPLETE)
 
 Printed QR codes **never** point at Google Play or the App Store — they point at
 `abierto.app/go/<campaign>`, so destinations and tracking can change without reprinting.
+**Full detail: `docs/LAUNCH_INFRASTRUCTURE.md`.**
 
 - **`backend/config/appLinks.js`** — single source of truth: store URLs, the campaign
-  registry, UA→platform detection. **When the iPhone app ships, set `IOS_APP_STORE_URL` on
-  Render (or `IOS_STORE_URL` here) and every existing printed code starts working.**
+  registry (with `usage`/`note` per campaign), platform detection, the synthetic-traffic
+  cutoff. **When the iPhone app ships, set `IOS_APP_STORE_URL` on Render (or `IOS_STORE_URL`
+  here) and every existing printed code starts working.**
 - **`backend/routes/download.js`** — `/download`, `/go/:campaign`, `/app`, `/get`, plus
   `/download/{android,ios,web}`. Server-rendered HTML (like `/privacy`), so it paints on bad
   ferry wifi without booting React. Mounted in `app.js` **before** `express.static` and the
   SPA `*` fallback — move it after and React Router eats these paths.
-- Redirects are **302 + `no-store`**, never 301, so Cloudflare can't pin a destination.
-- **Tracking:** `download_clicks` table (campaign / platform / destination / date / salted
-  IP hash / referer-without-query). No raw IP, no UA string. Admin view: Traffic tab →
-  *Download Campaigns* (`GET /api/analytics/campaigns`).
+- Redirects are **302 + `no-store` + `Vary: User-Agent`**, never 301, so Cloudflare can't
+  pin one device's destination and serve it to another.
+- **"Already Had Abierto"** — `X-Requested-With: com.abierto.app` is checked *before* the
+  User-Agent, so an installed TWA user is never counted as a new Android acquisition. They
+  get app content, not a Play listing they can't use.
+- **Tracking:** `download_clicks` (campaign / platform / destination / date / salted IP hash
+  / referer-without-query). No raw IP, no UA string. Admin: Traffic → *Download Campaigns*
+  (`GET /api/analytics/campaigns?days=…`), with range filtering and per-campaign drill-down.
+  Retention 400 days via `utils/retention.js` — a bad `ANALYTICS_RETENTION_DAYS` deletes
+  **nothing** rather than falling back to a default.
+- **Analytics honesty:** rows before `SYNTHETIC_CUTOFF` (pre-launch testing) and bot hits
+  are **filtered from reporting, never deleted**, and the panel says how many. Automated
+  checks send `X-Abierto-Check: 1` and are never recorded at all.
 - **QR codes:** `npm run qr` regenerates, `npm run qr:verify [-- --live]` proves they decode
-  to the right URL before printing. See `marketing/qr/README.md`. Generate them
-  mathematically — never with an image model.
+  to the right URL before printing. Print assets download from **/admin → QR Codes**. See
+  `marketing/qr/README.md`. Generate them mathematically — never with an image model.
+- **Health:** `/api/health` + `/health` are liveness (no DB); `/api/health/ready` runs a real
+  query and 503s if the database is down. Container probes point at liveness on purpose.
 
 ## Gotchas / conventions
 

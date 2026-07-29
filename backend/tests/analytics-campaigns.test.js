@@ -39,8 +39,10 @@ async function insert({ campaign, platform, destination, date, created_at, ip })
   );
 }
 
-describe('campaign analytics integrity', () => {
-  beforeAll(async () => {
+// File-scope setup: every describe below shares this fixture. Keep it out of an individual
+// describe — its afterAll would tear the data down before later describes run.
+beforeAll(async () => {
+  {
     await db.run(`CREATE TABLE IF NOT EXISTS download_clicks (
       id INTEGER PRIMARY KEY AUTOINCREMENT, campaign TEXT NOT NULL, platform TEXT NOT NULL,
       destination TEXT NOT NULL, date TEXT NOT NULL, ip_hash TEXT, referer TEXT,
@@ -58,13 +60,15 @@ describe('campaign analytics integrity', () => {
     await insert({ campaign: 'ceiba-ferry', platform: 'twa',     destination: 'already_installed', date: today, created_at: AFTER, ip: 'realdev2' });
     // A bot.
     await insert({ campaign: 'social',      platform: 'bot',     destination: 'landing', date: today, created_at: AFTER,  ip: 'crawler' });
-  });
+  }
+});
 
-  afterAll(async () => {
-    await db.run('DELETE FROM download_clicks');
-    await db.close();
-  });
+afterAll(async () => {
+  await db.run('DELETE FROM download_clicks');
+  await db.close();
+});
 
+describe('campaign analytics integrity', () => {
   test('requires an admin session', async () => {
     expect((await request(app).get('/api/analytics/campaigns')).status).toBe(401);
   });
@@ -118,5 +122,55 @@ describe('campaign analytics integrity', () => {
     const { body } = await getCampaigns();
     const total = body.daily.reduce((n, d) => n + d.scans, 0);
     expect(total).toBe(2);
+  });
+});
+
+describe('interactive range filtering', () => {
+  test('defaults to 30 days', async () => {
+    const { body } = await getCampaigns();
+    expect(body.range.days).toBe(30);
+    expect(body.range.label).toBe('Last 30 days');
+  });
+
+  test.each([[7], [30], [90], [365], [0]])('accepts ?days=%s', async (d) => {
+    const res = await request(app).get(`/api/analytics/campaigns?days=${d}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.range.days).toBe(d);
+  });
+
+  test.each([['999'], ['-1'], ['abc'], ["1; DROP TABLE download_clicks"], ['']])(
+    'falls back to the default for junk ?days=%s', async (bad) => {
+      const res = await request(app).get(`/api/analytics/campaigns?days=${encodeURIComponent(bad)}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.range.days).toBe(30);
+      // The table is still there — the value never reached the query.
+      const stored = await db.get('SELECT COUNT(*) AS c FROM download_clicks');
+      expect(stored.c).toBe(6);
+    }
+  );
+
+  test('the four summary cards ignore the range, so they stay a stable reference', async () => {
+    const a = (await request(app).get('/api/analytics/campaigns?days=7').set('Authorization', `Bearer ${adminToken}`)).body;
+    const b = (await request(app).get('/api/analytics/campaigns?days=0').set('Authorization', `Bearer ${adminToken}`)).body;
+    expect(a.totals).toEqual(b.totals);
+  });
+
+  test('each campaign carries its own device / destination / daily breakdown', async () => {
+    const { body } = await getCampaigns();
+    const ceiba = body.byCampaign.find(c => c.campaign === 'ceiba-ferry');
+    expect(ceiba.devices.map(d => d.platform).sort()).toEqual(['android', 'twa']);
+    expect(ceiba.destinations.map(d => d.destination).sort()).toEqual(['already_installed', 'play']);
+    expect(ceiba.daily.reduce((n, d) => n + d.scans, 0)).toBe(2);
+    expect(ceiba.usage).toMatch(/Ceiba ferry terminal/i);
+  });
+
+  test('per-campaign breakdowns sum to that campaign total', async () => {
+    const { body } = await getCampaigns();
+    for (const c of body.byCampaign) {
+      expect(c.devices.reduce((n, d) => n + d.scans, 0)).toBe(c.scans);
+      expect(c.destinations.reduce((n, d) => n + d.scans, 0)).toBe(c.scans);
+    }
   });
 });

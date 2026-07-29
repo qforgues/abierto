@@ -625,14 +625,74 @@ const DESTINATION_LABELS = {
   already_installed: 'Already had Abierto — opened the app',
 };
 
+const RANGE_CHOICES = [
+  { days: 7,   label: '7 days' },
+  { days: 30,  label: '30 days' },
+  { days: 90,  label: '90 days' },
+  { days: 365, label: 'Year' },
+  { days: 0,   label: 'All' },
+];
+
+/** Day-by-day scan trend. Hovering a bar names the day and the count. */
+function TrendChart({ daily, height = 90 }) {
+  const [hover, setHover] = React.useState(null);
+  if (!daily || daily.length === 0) {
+    return <p className="text-sm text-muted" style={{ margin: 0 }}>No scans in this period.</p>;
+  }
+  const max = Math.max(...daily.map(d => d.scans), 1);
+  const active = hover !== null ? daily[hover] : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: daily.length > 40 ? 1 : 4, height }}>
+        {daily.map((d, i) => (
+          <div
+            key={d.date}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover(null)}
+            title={`${d.date}: ${d.scans} scan${d.scans === 1 ? '' : 's'}`}
+            style={{
+              flex: 1, minWidth: 3, cursor: 'default',
+              height: `${Math.max(Math.round((d.scans / max) * height), 3)}px`,
+              background: hover === i
+                ? 'var(--dark)'
+                : 'linear-gradient(180deg, var(--turquoise), var(--ocean))',
+              borderRadius: '3px 3px 0 0',
+              transition: 'background 0.12s',
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.72rem', color: 'var(--mid)' }}>
+        <span>{daily[0].date}</span>
+        <span style={{ fontWeight: active ? 700 : 400, color: active ? 'var(--ocean)' : 'var(--mid)' }}>
+          {active
+            ? `${active.date} — ${active.scans} scan${active.scans === 1 ? '' : 's'}`
+            : `Peak ${max}/day · ${daily.reduce((s, d) => s + d.scans, 0)} total`}
+        </span>
+        <span>{daily[daily.length - 1].date}</span>
+      </div>
+    </div>
+  );
+}
+
 /** QR / campaign attribution for the /download acquisition endpoint. */
 function CampaignsPanel() {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState('');
+  const [days, setDays] = React.useState(30);
+  const [loading, setLoading] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(null);
 
-  React.useEffect(() => {
-    api.get('/analytics/campaigns').then(setData).catch(err => setError(err.message));
+  const load = React.useCallback((d) => {
+    setLoading(true);
+    api.get(`/analytics/campaigns?days=${d}`)
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
+
+  React.useEffect(() => { load(days); }, [days, load]);
 
   if (error) return null; // Never break the Traffic tab over the campaign panel.
   if (!data) return null;
@@ -750,36 +810,125 @@ function CampaignsPanel() {
         </div>
       </div>
 
+      {/* ── Everything below is scoped to the selected range ────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+        <strong style={{ fontSize: '0.9rem' }}>Show</strong>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {RANGE_CHOICES.map(r => (
+            <button
+              key={r.days}
+              onClick={() => { setExpanded(null); setDays(r.days); }}
+              aria-pressed={days === r.days}
+              style={{
+                padding: '6px 13px', borderRadius: 999, cursor: 'pointer',
+                fontSize: '0.83rem', fontWeight: 600,
+                border: `1.5px solid ${days === r.days ? 'var(--ocean)' : '#cbd5e1'}`,
+                background: days === r.days ? 'var(--ocean)' : '#fff',
+                color: days === r.days ? '#fff' : 'var(--mid)',
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => load(days)} disabled={loading}
+          style={{
+            marginLeft: 'auto', padding: '6px 13px', borderRadius: 8, cursor: 'pointer',
+            fontSize: '0.83rem', fontWeight: 600, border: '1.5px solid #cbd5e1',
+            background: '#fff', color: 'var(--mid)',
+          }}
+        >
+          {loading ? 'Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+
+      <div className="card card-body">
+        <h3 style={{ marginBottom: 4 }}>Scans over time</h3>
+        <p className="text-sm text-muted" style={{ marginTop: 0, marginBottom: 16 }}>
+          {data.range.label}. Hover a bar for that day’s count.
+        </p>
+        <TrendChart daily={daily} />
+      </div>
+
       <div className="card card-body">
         <h3 style={{ marginBottom: 4 }}>By Campaign</h3>
         <p className="text-sm text-muted" style={{ marginTop: 0, marginBottom: 14 }}>
-          Which printed code each scan came from.
+          Which printed code each scan came from — {data.range.label.toLowerCase()}.
+          {byCampaign.length > 0 && ' Click a campaign to break it down.'}
         </p>
         {byCampaign.length === 0 ? (
           <p className="text-sm text-muted" style={{ margin: 0 }}>
-            Nothing yet — download the codes from the QR Codes tab and put them up.
+            Nothing in this period — try a longer range, or download the codes from the QR Codes tab and put them up.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {byCampaign.map(c => (
-              <div key={c.campaign}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 500 }}>
-                    {c.label}
-                    {!c.registered && (
-                      <span className="text-sm text-muted" style={{ marginLeft: 6 }}>(unregistered)</span>
-                    )}
-                  </span>
-                  <span className="text-sm text-muted">
-                    {c.unique_devices} device{c.unique_devices === 1 ? '' : 's'}
-                  </span>
-                  <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem', minWidth: 34, textAlign: 'right' }}>{c.scans}</span>
+            {byCampaign.map(c => {
+              const open = expanded === c.campaign;
+              return (
+                <div key={c.campaign}>
+                  <button
+                    onClick={() => setExpanded(open ? null : c.campaign)}
+                    aria-expanded={open}
+                    style={{
+                      width: '100%', background: 'none', border: 'none', padding: '2px 0',
+                      cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--mid)', fontSize: '0.7rem', width: 10 }}>{open ? '▾' : '▸'}</span>
+                      <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 500 }}>
+                        {c.label}
+                        {!c.registered && (
+                          <span className="text-sm text-muted" style={{ marginLeft: 6 }}>(unregistered)</span>
+                        )}
+                      </span>
+                      <span className="text-sm text-muted">
+                        {c.unique_devices} device{c.unique_devices === 1 ? '' : 's'}
+                      </span>
+                      <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem', minWidth: 34, textAlign: 'right' }}>{c.scans}</span>
+                    </div>
+                    <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2, marginLeft: 20 }}>
+                      <div style={{ width: `${Math.round((c.scans / topScans) * 100)}%`, height: '100%', background: 'var(--ocean)', borderRadius: 2 }} />
+                    </div>
+                  </button>
+
+                  {open && (
+                    <div style={{
+                      margin: '12px 0 6px 20px', padding: '14px 16px',
+                      background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
+                      display: 'flex', flexDirection: 'column', gap: 14,
+                    }}>
+                      {c.usage && <p className="text-sm text-muted" style={{ margin: 0 }}>{c.usage}</p>}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: 6 }}>Devices</div>
+                          {c.devices.length === 0 ? <span className="text-sm text-muted">—</span> : c.devices.map(d => (
+                            <div key={d.platform} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.83rem', padding: '2px 0' }}>
+                              <span>{PLATFORM_LABELS[d.platform] || d.platform}</span>
+                              <span style={{ fontWeight: 600 }}>{d.scans}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: 6 }}>Where they went</div>
+                          {c.destinations.length === 0 ? <span className="text-sm text-muted">—</span> : c.destinations.map(d => (
+                            <div key={d.destination} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.83rem', padding: '2px 0' }}>
+                              <span>{DESTINATION_LABELS[d.destination] || d.destination}</span>
+                              <span style={{ fontWeight: 600 }}>{d.scans}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: 8 }}>Scans over time</div>
+                        <TrendChart daily={c.daily} height={54} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
-                  <div style={{ width: `${Math.round((c.scans / topScans) * 100)}%`, height: '100%', background: 'var(--ocean)', borderRadius: 2 }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

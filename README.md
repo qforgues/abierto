@@ -9,6 +9,7 @@ Abierto is a web application designed to facilitate the creation and management 
 - [Installation](#installation)
 - [Development](#development)
 - [Deployment](#deployment)
+- [Launch Infrastructure (QR campaigns)](#launch-infrastructure-qr-campaigns)
 - [Android TWA Build and Release Process](#android-twa-build-and-release-process)
 - [Contributing](#contributing)
 - [License](#license)
@@ -109,7 +110,40 @@ Abierto v1.4 is designed to facilitate the deployment of the existing Abierto we
 
 ### Health Check
 
-The application includes a health check endpoint at `/api/health` that returns the application status.
+Two endpoints, and the difference matters:
+
+| Endpoint | Type | Behaviour |
+|---|---|---|
+| `/api/health`, `/health` | **Liveness** | `{status, timestamp}`. No database access. |
+| `/api/health/ready` | **Readiness** | Runs a real query, reports latency, returns **503** if the database is unreachable. |
+
+The Dockerfile `HEALTHCHECK` and `render.yaml`'s `healthCheckPath` both point at
+**liveness** deliberately — if the container probe queried Turso, a database blip would be
+read as a dead container and trigger a restart loop, and restarting the app cannot fix
+someone else's database. Point external alerting at `/api/health/ready`.
+
+## Launch Infrastructure (QR campaigns)
+
+Abierto's acquisition system: one permanent, Abierto-controlled URL behind every printed
+advertisement. **Printed QR codes never encode a Google Play or App Store URL** — they
+point at `abierto.app/go/<campaign>` and the server decides where that goes, so
+destinations and tracking can change without reprinting anything.
+
+```bash
+npm run qr                    # regenerate every campaign QR code (SVG + PNG)
+npm run qr -- ceiba-ferry     # just one
+npm run qr -- --list          # show campaigns and URLs, write nothing
+npm run qr:verify             # decode every PNG and check it against the manifest
+npm run qr:verify -- --live   # ALSO check the live redirects — run before every print run
+```
+
+- **Print assets** download from **/admin → QR Codes**, named `abierto-qr-<campaign>.svg`.
+- **Scan reporting** lives in **/admin → Traffic → Download Campaigns**.
+- **When the iPhone app ships**, set `IOS_APP_STORE_URL` on Render — every code already
+  printed switches to the App Store. No reprint.
+
+Full reference: **`docs/LAUNCH_INFRASTRUCTURE.md`**. What the numbers mean and their
+limits: **`docs/CAMPAIGN_ATTRIBUTION.md`**. Printing guidance: **`marketing/qr/README.md`**.
 
 ## Android TWA Build and Release Process
 

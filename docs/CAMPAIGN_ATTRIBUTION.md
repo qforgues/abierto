@@ -168,3 +168,35 @@ never as a reliable negative. Some installed users will still be counted as Andr
 
 Nothing on the panel is seeded, sampled, estimated or projected. Every figure is a count
 of real stored rows.
+
+---
+
+## Reading the dashboard
+
+**/admin → Traffic → Download Campaigns.**
+
+The four cards at the top — Today / This Week / This Month / All Time — are **fixed
+windows** and deliberately ignore the range selector, so they stay a stable reference
+point no matter what you're filtering below.
+
+Everything under them is scoped by the **range chips** (7 / 30 / 90 days / Year / All,
+default 30 days):
+
+- **Scans over time** — day-by-day bars; hover one for that day's exact count.
+- **Who scanned, and what happened** — Android / iPhone / Desktop / Already Had Abierto,
+  plus how many were actually handed off to Google Play.
+- **By Campaign** — **click any campaign** to expand it. You get where that code is meant
+  to be used, its own device split, where those people ended up, and its own trend line.
+- **Refresh** re-fetches without a full page reload.
+
+All per-campaign detail is fetched in the same request, so expanding is instant.
+
+### If it says "No campaign activity yet"
+
+Read the line underneath. If it says *"Tracking is working — N record(s) are stored"*, the
+write path is fine and everything stored is currently excluded (pre-launch tests or bots).
+If it says *"Nothing has been recorded at all yet"*, no scan has ever reached the server.
+
+That distinction exists because an earlier version showed a bare "no activity" while
+silently hiding a real scan behind a too-broad exclusion — the numbers should never be
+able to lie by omission again.
