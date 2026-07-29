@@ -31,13 +31,17 @@ PY
 Play Console → **Grow → Store presence → Main store listing → App icon** → replace →
 **Save**. Goes through review; typically live in a few hours.
 
-## What this does NOT change
+## The launcher icon
 
-The **launcher icon** — the one on a user's home screen — is a different asset entirely:
-`twa-project/app/src/main/res/mipmap-*/ic_launcher*.png` in the `abierto-build` repo. It is
-currently the "Abierto?" wordmark, not this "?" mark. Changing it requires a full TWA
-release: bump `versionCode`, `./gradlew bundleRelease` with the keystore password, upload a
-new AAB, and existing users only see it after they update.
+Separate asset, and it now **matches** this one. It lives in
+`android/app/src/main/res/mipmap-*/` in the **live** Android project (`~/abierto/android`,
+*not* the stale `abierto-build/twa-project`) and is generated from the same master artwork:
 
-Store icon and launcher icon are independent. They do not have to match, but they usually
-should.
+```bash
+python3 scripts/generate-launcher-icons.py
+```
+
+Unlike the store icon, changing it requires a full release: bump `versionCode`, run
+`./scripts/build-release.sh`, upload the AAB. Existing users only see it after they update.
+
+Store icon and launcher icon are independent and do not *have* to match — they now do.

@@ -20,9 +20,20 @@ Three layers — know which one a change belongs to:
 2. **Hosting** — deployed to **Render.com** (`render.yaml`), auto-deploys on push to `main`.
    **Cloudflare sits in front as CDN/proxy** — it is NOT Cloudflare Pages.
 3. **Android app** — a **TWA** (Trusted Web Activity) wrapper, package `com.abierto.app`, that just
-   opens https://abierto.app full-screen for the Google Play Store. Lives in a separate repo
-   (`qforgues/abierto-twa`) / the `~/ProjectArchive_ToDelete/abierto-build` folder. Only rebuilt
-   when the app name/icon/splash/version changes — **content changes never need a new Play build.**
+   opens https://abierto.app full-screen for the Google Play Store. **It lives in `android/` in
+   THIS repo** (`versionCode 7` / `1.1.0`, targetSdk 36). The
+   `~/ProjectArchive_ToDelete/abierto-build/twa-project` copy is **stale** (versionCode 5,
+   targetSdk 35) — editing it produces a build that never reaches Play. Only rebuilt when the
+   app name/icon/splash/version changes — **content changes never need a new Play build.**
+   - **Launcher icons:** `python3 scripts/generate-launcher-icons.py` — regenerates every
+     density plus the adaptive background/foreground/monochrome layers from
+     `frontend/public/icon-512.png`, the single master artwork shared with the website, the
+     PWA and the Play Store listing icon.
+   - **Signed build:** `./scripts/build-release.sh` — prompts for the keystore password so it
+     never lands in shell history, then writes
+     `android/app/build/outputs/bundle/release/app-release.aab` for Play Console.
+   - **Store listing** assets (the 512×512 icon shoppers see, screenshots, description) are
+     uploaded in Play Console and need **no rebuild**: see `marketing/store/README.md`.
 
 ## Commands
 
