@@ -194,7 +194,7 @@ function handleDownload(req, res, { campaignOverride, forced } = {}) {
   const { campaign } = normalizeCampaign(
     campaignOverride ?? req.query.src ?? req.query.utm_source
   );
-  const platform = detectPlatform(req.headers['user-agent']);
+  const platform = detectPlatform(req.headers['user-agent'], req.headers['x-requested-with']);
   // A forced route means they tapped a button on our landing page, not scanned a code.
   const medium = forced ? 'web' : 'qr';
 
@@ -203,7 +203,13 @@ function handleDownload(req, res, { campaignOverride, forced } = {}) {
 
   const target = forced || platform;
 
-  if (target === 'android') {
+  if (target === 'twa') {
+    // They're scanning from inside the app they'd otherwise be sent to install. Sending
+    // them to Play would be a dead end; drop them straight into the content instead.
+    // Recorded as its own platform so it never inflates Android acquisition numbers.
+    destination = 'already_installed';
+    send = () => redirectTo(res, WEB_APP_URL);
+  } else if (target === 'android') {
     destination = forced ? 'play_manual' : 'play';
     send = () => redirectTo(res, androidUrlFor(campaign, medium));
   } else if (target === 'ios') {

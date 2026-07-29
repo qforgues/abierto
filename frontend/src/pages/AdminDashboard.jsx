@@ -19,6 +19,7 @@ const TAB_ICON_PATHS = {
   traffic: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M4 20h16"/>',
   settings: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/>',
   events: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/>',
+  qr: '<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><path d="M13.5 13.5h3v3h-3zM20.5 13.5v3M13.5 20.5h3M20.5 20.5v.01"/>',
 };
 
 function TabIcon({ name, size = 17 }) {
@@ -36,6 +37,7 @@ const ADMIN_TABS = [
   { key: 'notifications', label: 'Notifications' },
   { key: 'messages',      label: 'Messages' },
   { key: 'traffic',       label: 'Traffic' },
+  { key: 'qr',            label: 'QR Codes' },
   { key: 'settings',      label: 'Settings' },
   { key: 'events',        label: 'Events' },
 ];
@@ -509,21 +511,118 @@ function TrafficTab() {
   );
 }
 
+/** Downloads an admin-only asset with its human-readable filename. */
+async function downloadAsset(url, filename) {
+  const res = await fetch(`/api${url.replace(/^\/api/, '')}`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Download failed.');
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
+/** Printable QR codes, in plain language, with downloads. */
+function QRLibraryTab() {
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState('');
+  const [busy, setBusy] = React.useState('');
+
+  React.useEffect(() => {
+    api.get('/qr').then(setData).catch(err => setError(err.message));
+  }, []);
+
+  const grab = async (url, filename, key) => {
+    setBusy(key);
+    try { await downloadAsset(url, filename); }
+    catch (err) { setError(err.message); }
+    finally { setBusy(''); }
+  };
+
+  if (error) return <div className="alert alert-error">{error}</div>;
+  if (!data) return <div className="spinner" />;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="card card-body">
+        <h3 style={{ marginTop: 0, marginBottom: 6 }}>Printed QR codes</h3>
+        <p className="text-sm text-muted" style={{ margin: 0 }}>
+          Every code points at <code>abierto.app</code>, never straight to an app store — so
+          where it sends people can change later without reprinting anything.
+          {' '}<strong>Send the SVG to a printer</strong>; it stays sharp at any size.
+          {!data.iosAppExists && ' iPhone visitors currently see the “coming soon” page; when the iPhone app launches, every code below switches over automatically.'}
+        </p>
+      </div>
+
+      {data.codes.map(c => (
+        <div key={c.campaign} className="card card-body">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'baseline', marginBottom: 6 }}>
+            <h3 style={{ margin: 0 }}>{c.label}</h3>
+            <code style={{ fontSize: '0.78rem', color: 'var(--ocean)', background: '#f1f5f9', padding: '2px 7px', borderRadius: 5 }}>
+              {c.campaign}
+            </code>
+            {!c.generated && <span className="text-sm" style={{ color: '#b45309' }}>not generated yet</span>}
+          </div>
+
+          <p style={{ margin: '0 0 4px', fontSize: '0.93rem' }}>{c.usage}</p>
+          {c.note && <p className="text-sm text-muted" style={{ margin: '0 0 12px' }}>{c.note}</p>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.85rem',
+            borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '10px 0', marginBottom: 12 }}>
+            <div><strong style={{ display: 'inline-block', minWidth: 150 }}>Link on the code</strong>
+              <a href={c.url} target="_blank" rel="noreferrer" style={{ color: 'var(--ocean)' }}>{c.url}</a></div>
+            <div><strong style={{ display: 'inline-block', minWidth: 150 }}>Android</strong>{c.behaviour.android}</div>
+            <div><strong style={{ display: 'inline-block', minWidth: 150 }}>iPhone</strong>{c.behaviour.ios}</div>
+            <div><strong style={{ display: 'inline-block', minWidth: 150 }}>Computer</strong>{c.behaviour.desktop}</div>
+            <div><strong style={{ display: 'inline-block', minWidth: 150 }}>Already has Abierto</strong>{c.behaviour.alreadyHadApp}</div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {c.downloads.svg && (
+              <button className="btn btn-primary btn-sm" disabled={busy === c.campaign + 'svg'}
+                onClick={() => grab(c.downloads.svg, c.filenames.svg, c.campaign + 'svg')}>
+                {busy === c.campaign + 'svg' ? 'Downloading…' : 'Download SVG (for printing)'}
+              </button>
+            )}
+            {c.downloads.png2048 && (
+              <button className="btn btn-secondary btn-sm" disabled={busy === c.campaign + 'png'}
+                onClick={() => grab(c.downloads.png2048, c.filenames.png2048, c.campaign + 'png')}>
+                {busy === c.campaign + 'png' ? 'Downloading…' : 'Download PNG'}
+              </button>
+            )}
+            {c.spec && (
+              <span className="text-sm text-muted" style={{ marginLeft: 'auto' }}>
+                QR v{c.spec.qrVersion} · {c.spec.modules}×{c.spec.modules} · error correction {c.spec.errorCorrectionLevel}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const PLATFORM_LABELS = {
   android: 'Android',
   ios: 'iPhone / iPad',
   desktop: 'Desktop',
+  twa: 'Already Had Abierto',
   other: 'Other / unknown',
 };
 
 const DESTINATION_LABELS = {
-  play:             'Sent to Google Play',
-  play_manual:      'Chose Android on the landing page',
-  ios_store:        'Sent to the App Store',
-  ios_store_manual: 'Chose iPhone on the landing page',
-  ios_coming_soon:  'Shown the iPhone "coming soon" page',
-  landing:          'Shown the download landing page',
-  web_app:          'Chose the web app',
+  play:              'Sent to Google Play',
+  play_manual:       'Chose Android on the landing page',
+  ios_store:         'Sent to the App Store',
+  ios_store_manual:  'Chose iPhone on the landing page',
+  ios_coming_soon:   'Shown the iPhone "coming soon" page',
+  landing:           'Shown the download landing page',
+  web_app:           'Chose the web app',
+  already_installed: 'Already had Abierto — opened the app',
 };
 
 /** QR / campaign attribution for the /download acquisition endpoint. */
@@ -538,8 +637,9 @@ function CampaignsPanel() {
   if (error) return null; // Never break the Traffic tab over the campaign panel.
   if (!data) return null;
 
-  const { totals, byCampaign, byPlatform, byDestination } = data;
+  const { totals, byCampaign, byPlatform, byDestination, devices, googlePlayRedirects, exclusions } = data;
   const topScans = byCampaign[0]?.scans || 1;
+  const hasData = totals.allTime > 0;
 
   const Breakdown = ({ title, rows, labels, keyName }) => (
     <div className="card card-body">
@@ -563,29 +663,92 @@ function CampaignsPanel() {
     <>
       <h2 style={{ marginTop: 12, marginBottom: 2 }}>Download Campaigns</h2>
       <p className="text-sm text-muted" style={{ marginTop: 0 }}>
-        Scans of the printed QR codes and other links pointing at <code>abierto.app/go/…</code>.
-        Link-preview bots are excluded{totals.bots > 0 ? ` (${totals.bots} filtered out)` : ''}.
+        Real scans of links pointing at <code>abierto.app/go/…</code> — one row per visit, nothing
+        estimated or seeded. Someone who already has the app is counted separately and never
+        as a new download.
       </p>
+
+      {/* Say out loud what is being held back, so no number is quietly smaller than it looks. */}
+      {(exclusions?.rowsExcludedByDate > 0 || totals.bots > 0) && (
+        <div className="card card-body" style={{ borderLeft: '3px solid var(--ocean)', padding: '12px 16px' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 4 }}>Excluded from these numbers</div>
+          <ul className="text-sm text-muted" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.65 }}>
+            {exclusions?.rowsExcludedByDate > 0 && (
+              <li>
+                <strong>{exclusions.rowsExcludedByDate}</strong> record(s) from{' '}
+                {exclusions.contaminatedDates.join(', ')} — pre-launch testing, before any QR code
+                was printed. Kept in the database, hidden from reporting.
+              </li>
+            )}
+            {totals.bots > 0 && (
+              <li><strong>{totals.bots}</strong> link-preview bot and crawler hit(s).</li>
+            )}
+            <li>Automated pre-print QR checks are never recorded at all.</li>
+          </ul>
+        </div>
+      )}
+
+      {!hasData && (
+        <div className="card card-body">
+          <p style={{ margin: 0, fontWeight: 600 }}>No campaign activity yet.</p>
+          <p className="text-sm text-muted" style={{ margin: '4px 0 0' }}>
+            This is the correct reading before the printed codes go up — the counters below start
+            moving the first time a real person scans one. Codes are ready in the QR Codes tab.
+          </p>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
         {[
-          { label: 'Today',      value: totals.today },
-          { label: 'This Week',  value: totals.week },
-          { label: 'This Month', value: totals.month },
-          { label: 'All Time',   value: totals.allTime },
-        ].map(({ label, value }) => (
-          <div key={label} className="card card-body" style={{ textAlign: 'center' }}>
+          { label: 'Today',      value: totals.today,   hint: 'Scans since midnight (Vieques time)' },
+          { label: 'This Week',  value: totals.week,    hint: 'Scans in the last 7 days' },
+          { label: 'This Month', value: totals.month,   hint: 'Scans in the last 30 days' },
+          { label: 'All Time',   value: totals.allTime, hint: 'Every reportable scan on record' },
+        ].map(({ label, value, hint }) => (
+          <div key={label} className="card card-body" style={{ textAlign: 'center' }} title={hint}>
             <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--ocean)' }}>{value.toLocaleString()}</div>
             <div style={{ fontWeight: 600, marginTop: 2, fontSize: '0.85rem' }}>{label}</div>
           </div>
         ))}
       </div>
 
+      {/* The headline acquisition figures, each one labelled with what it actually means. */}
       <div className="card card-body">
-        <h3 style={{ marginBottom: 14 }}>By Campaign</h3>
+        <h3 style={{ marginBottom: 4 }}>Who scanned, and what happened</h3>
+        <p className="text-sm text-muted" style={{ marginTop: 0, marginBottom: 14 }}>
+          “Devices” counts distinct phones, so one person scanning the same poster twice
+          doesn’t read as two people.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+          {[
+            { label: 'Android',            d: devices.android,       hint: 'Android phones sent to Google Play' },
+            { label: 'iPhone / iPad',      d: devices.ios,           hint: 'Apple devices shown the iPhone page' },
+            { label: 'Desktop',            d: devices.desktop,       hint: 'Computers shown the landing page' },
+            { label: 'Already Had Abierto', d: devices.alreadyHadApp, hint: 'Scanned from inside the installed app — NOT a new download' },
+          ].map(({ label, d, hint }) => (
+            <div key={label} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }} title={hint}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--ocean)' }}>{d.scans.toLocaleString()}</div>
+              <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>{label}</div>
+              <div className="text-sm text-muted">{d.uniqueDevices} device{d.uniqueDevices === 1 ? '' : 's'}</div>
+            </div>
+          ))}
+          <div style={{ border: '1px solid var(--ocean)', borderRadius: 10, padding: '12px 14px', background: '#f0fdfa' }}
+            title="Times someone was actually handed off to the Google Play listing">
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--ocean)' }}>{googlePlayRedirects.toLocaleString()}</div>
+            <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>Sent to Google Play</div>
+            <div className="text-sm text-muted">installs shown in Play Console</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card card-body">
+        <h3 style={{ marginBottom: 4 }}>By Campaign</h3>
+        <p className="text-sm text-muted" style={{ marginTop: 0, marginBottom: 14 }}>
+          Which printed code each scan came from.
+        </p>
         {byCampaign.length === 0 ? (
           <p className="text-sm text-muted" style={{ margin: 0 }}>
-            No scans yet. QR codes live in <code>marketing/qr/</code> — regenerate with <code>npm run qr</code>.
+            Nothing yet — download the codes from the QR Codes tab and put them up.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1281,6 +1444,7 @@ export default function AdminDashboard() {
             {tab === 'billing' && <BillingTab />}
             {tab === 'messages' && <MessagesTab />}
             {tab === 'traffic' && <TrafficTab />}
+            {tab === 'qr' && <QRLibraryTab />}
             {tab === 'settings' && <SettingsTab />}
             {tab === 'events' && <EventsTab />}
 

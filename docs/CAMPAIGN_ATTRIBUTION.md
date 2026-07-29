@@ -122,3 +122,38 @@ check still tests the real thing.
 exclusion existed, so `download_clicks` contains roughly 30 synthetic rows dated
 **2026-07-29**. No printed material existed then, so any activity on that date is test
 traffic — discount it when reading the first campaign report.
+
+---
+
+## "Already Had Abierto" — implemented
+
+Chrome sends `X-Requested-With: com.abierto.app` on navigations inside the installed TWA.
+`detectPlatform()` checks this **before** the User-Agent, so an installed user is never
+classified as Android however their UA reads.
+
+Those requests are redirected into the app content instead of Google Play (sending an
+existing user to the store is a dead end), recorded as `platform = 'twa'` /
+`destination = 'already_installed'`, and reported as their own **Already Had Abierto**
+figure — never inside the Android acquisition number. No app rebuild or Play release was
+needed; the header comes from Chrome, not from our code.
+
+Caveat: newer Chrome builds have narrowed when this header is sent. Treat it as a
+high-confidence *positive* signal — a request carrying it is definitely from the app — but
+never as a reliable negative. Some installed users will still be counted as Android.
+
+## Metric definitions
+
+| Metric | Exactly what it counts |
+|---|---|
+| Today / Week / Month / All Time | Reportable scans — one row per visit to a `/go/…` or `/download` URL, excluding bots and contaminated dates |
+| Unique devices | Distinct salted IP hashes; one phone scanning twice counts once |
+| Android | Scans from Android phones **without** the app installed |
+| iPhone / iPad | Scans from Apple devices |
+| Desktop | Scans from computers |
+| Already Had Abierto | Scans from inside the installed Android app — **not** a new download |
+| Sent to Google Play | Times someone was actually handed off to the Play listing (`play` + `play_manual`) |
+| By Campaign | Which printed code the scan came from |
+| Stored rows | Every row in the table, including excluded ones — for reconciliation |
+
+Nothing on the panel is seeded, sampled, estimated or projected. Every figure is a count
+of real stored rows.

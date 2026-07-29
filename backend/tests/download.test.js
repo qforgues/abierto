@@ -11,7 +11,9 @@ const express = require('express');
 const request = require('supertest');
 
 const downloadRouter = require('../routes/download');
-const { normalizeCampaign, detectPlatform, androidUrlFor } = require('../config/appLinks');
+const {
+  normalizeCampaign, detectPlatform, androidUrlFor, isAbiertoApp, ANDROID_PACKAGE,
+} = require('../config/appLinks');
 const db = require('../db/database');
 
 const app = express();
@@ -50,6 +52,43 @@ describe('platform detection', () => {
     expect(detectPlatform(undefined)).toBe('other');
     expect(detectPlatform(null)).toBe('other');
     expect(detectPlatform(12345)).toBe('other');
+  });
+});
+
+describe('“Already Had Abierto” (installed TWA) detection', () => {
+  test('recognises our own package in X-Requested-With', () => {
+    expect(ANDROID_PACKAGE).toBe('com.abierto.app');
+    expect(isAbiertoApp('com.abierto.app')).toBe(true);
+    expect(isAbiertoApp('  COM.ABIERTO.APP  ')).toBe(true);
+  });
+
+  test('does not match other apps or junk', () => {
+    expect(isAbiertoApp('com.other.app')).toBe(false);
+    expect(isAbiertoApp('com.abierto.app.evil')).toBe(false);
+    expect(isAbiertoApp('XMLHttpRequest')).toBe(false);
+    expect(isAbiertoApp(undefined)).toBe(false);
+    expect(isAbiertoApp(null)).toBe(false);
+    expect(isAbiertoApp(123)).toBe(false);
+  });
+
+  test('wins over the Android user-agent — an installed user is never a new Android scan', () => {
+    expect(detectPlatform(UA.android, 'com.abierto.app')).toBe('twa');
+    expect(detectPlatform(UA.android, undefined)).toBe('android');
+  });
+
+  test('is NOT sent to Google Play — it opens the app content instead', async () => {
+    const res = await request(app)
+      .get('/go/ceiba-ferry')
+      .set('User-Agent', UA.android)
+      .set('X-Requested-With', 'com.abierto.app');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/vieques');
+    expect(res.headers.location).not.toContain('play.google.com');
+  });
+
+  test('a normal Android scan still goes to Play', async () => {
+    const res = await request(app).get('/go/ceiba-ferry').set('User-Agent', UA.android);
+    expect(res.headers.location).toContain('play.google.com');
   });
 });
 
@@ -295,6 +334,8 @@ describe('tracking writes', () => {
     await request(app).get(`/download?src=${TEST_CAMPAIGN}`).set('User-Agent', UA.iphone);
     await request(app).get(`/download?src=${TEST_CAMPAIGN}`).set('User-Agent', UA.mac);
     await request(app).get(`/download?src=${TEST_CAMPAIGN}`).set('User-Agent', UA.bot);
+    await request(app).get(`/download?src=${TEST_CAMPAIGN}`)
+      .set('User-Agent', UA.android).set('X-Requested-With', 'com.abierto.app');
 
     // Tracking is fire-and-forget after the response — give the writes a moment.
     await new Promise(r => setTimeout(r, 250));
@@ -303,13 +344,27 @@ describe('tracking writes', () => {
       `SELECT platform, destination FROM download_clicks WHERE campaign = ? ORDER BY id`,
       [TEST_CAMPAIGN]
     );
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     expect(rows.map(r => `${r.platform}:${r.destination}`)).toEqual([
       'android:play',
       'ios:ios_coming_soon',
       'desktop:landing',
       'bot:landing',
+      'twa:already_installed',
     ]);
+  });
+
+  test('an installed-app scan is never counted as an Android acquisition', async () => {
+    const rows = await db.all(
+      `SELECT platform FROM download_clicks WHERE campaign = ? AND destination = 'play'`,
+      [TEST_CAMPAIGN]
+    );
+    expect(rows.every(r => r.platform === 'android')).toBe(true);
+    const twa = await db.all(
+      `SELECT destination FROM download_clicks WHERE campaign = ? AND platform = 'twa'`,
+      [TEST_CAMPAIGN]
+    );
+    expect(twa.every(r => r.destination === 'already_installed')).toBe(true);
   });
 
   test('the pre-print verifier does not write fake scans', async () => {

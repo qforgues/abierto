@@ -114,6 +114,7 @@ app.use('/api/businesses/:id/status', require('./routes/status'));
 app.use('/api/businesses/:id/photos', require('./routes/photos'));
 app.use('/api/businesses/:id/hours',  require('./routes/hours'));
 app.use('/api/analytics',             require('./routes/analytics'));
+app.use('/api/qr',                    require('./routes/qr'));
 app.use('/api/notifications',         require('./routes/notifications'));
 app.use('/api/contact',               require('./routes/contact'));
 app.use('/api/settings',              require('./routes/settings'));
@@ -303,27 +304,9 @@ async function initAndStart() {
   } catch (e) {}
 
   // ── Analytics retention ─────────────────────────────────────────────────────
-  // page_views and download_clicks are append-only and would otherwise grow forever.
-  // Both hold a salted IP hash, so this is a privacy boundary as much as a size one.
-  //
-  // 400 days ≈ 13 months: every report we run (day, week, month, season, and
-  // year-over-year for a campaign like the ferry push) stays fully intact, and nothing
-  // pseudonymous lives longer than it's useful. Tune with ANALYTICS_RETENTION_DAYS.
-  const retentionDays = parseInt(process.env.ANALYTICS_RETENTION_DAYS || '400', 10);
-  if (Number.isFinite(retentionDays) && retentionDays >= 30) {
-    const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 10);
-    for (const table of ['page_views', 'download_clicks']) {
-      try {
-        const r = await db.run(`DELETE FROM ${table} WHERE date < ?`, [cutoff]);
-        if (r.changes > 0) {
-          console.log(`Retention: pruned ${r.changes} ${table} row(s) older than ${cutoff}.`);
-        }
-      } catch (e) {}
-    }
-  } else {
-    // A typo like ANALYTICS_RETENTION_DAYS=1 must never mass-delete analytics.
-    console.warn(`Retention: ignoring unsafe ANALYTICS_RETENTION_DAYS="${process.env.ANALYTICS_RETENTION_DAYS}" (minimum 30).`);
-  }
+  // 400 days ≈ 13 months by default, so every report (day, week, month, season, and
+  // year-over-year for a campaign like the ferry push) stays intact. See utils/retention.js.
+  await require('./utils/retention').pruneAnalytics(db);
 
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');
