@@ -4,6 +4,9 @@ services:
     runtime: node
     buildCommand: cd backend && npm install && cd ../frontend && npm install && npm run build
     startCommand: node backend/app.js
+    # Liveness only — deliberately NOT /api/health/ready. A Turso blip must not make Render
+    # cycle the container; restarting the app cannot fix someone else's database.
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
