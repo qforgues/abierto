@@ -31,6 +31,10 @@ const UA_IPHONE =
 const UA_DESKTOP =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+// Tells the server not to log these as real scans — a pre-print check must not
+// write fake campaign data into production. See trackClick() in routes/download.js.
+const NO_TRACK = { 'X-Abierto-Check': '1' };
+
 let failures = 0;
 const pass = (msg) => console.log(`    ✓ ${msg}`);
 const fail = (msg) => { failures++; console.log(`    ✗ ${msg}`); };
@@ -53,7 +57,7 @@ async function checkLive(entry) {
   const expectAndroid = async () => {
     const res = await fetch(entry.url, {
       redirect: 'manual',
-      headers: { 'User-Agent': UA_ANDROID },
+      headers: { 'User-Agent': UA_ANDROID, ...NO_TRACK },
     });
     const loc = res.headers.get('location') || '';
     if (res.status !== 302) return fail(`live/android: expected 302, got ${res.status}`);
@@ -66,7 +70,7 @@ async function checkLive(entry) {
   const expectIphone = async () => {
     const res = await fetch(entry.url, {
       redirect: 'manual',
-      headers: { 'User-Agent': UA_IPHONE },
+      headers: { 'User-Agent': UA_IPHONE, ...NO_TRACK },
     });
     if (res.status === 302) {
       const loc = res.headers.get('location') || '';
@@ -85,7 +89,7 @@ async function checkLive(entry) {
   const expectDesktop = async () => {
     const res = await fetch(entry.url, {
       redirect: 'manual',
-      headers: { 'User-Agent': UA_DESKTOP },
+      headers: { 'User-Agent': UA_DESKTOP, ...NO_TRACK },
     });
     if (res.status !== 200) return fail(`live/desktop: expected 200, got ${res.status}`);
     const body = await res.text();

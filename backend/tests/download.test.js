@@ -312,6 +312,30 @@ describe('tracking writes', () => {
     ]);
   });
 
+  test('the pre-print verifier does not write fake scans', async () => {
+    const before = await db.get(
+      `SELECT COUNT(*) AS c FROM download_clicks WHERE campaign = ?`, [TEST_CAMPAIGN]
+    );
+    await request(app)
+      .get(`/download?src=${TEST_CAMPAIGN}`)
+      .set('User-Agent', UA.android)
+      .set('X-Abierto-Check', '1');
+    await new Promise(r => setTimeout(r, 250));
+    const after = await db.get(
+      `SELECT COUNT(*) AS c FROM download_clicks WHERE campaign = ?`, [TEST_CAMPAIGN]
+    );
+    expect(after.c).toBe(before.c);
+  });
+
+  test('the check header still returns a real, correct redirect', async () => {
+    const res = await request(app)
+      .get('/download?src=ceiba-ferry')
+      .set('User-Agent', UA.android)
+      .set('X-Abierto-Check', '1');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('utm_campaign%3Dceiba-ferry');
+  });
+
   test('stores no raw IP and no user-agent string', async () => {
     const row = await db.get(
       `SELECT * FROM download_clicks WHERE campaign = ? LIMIT 1`, [TEST_CAMPAIGN]

@@ -44,6 +44,11 @@ function getViequesDate() {
  */
 async function trackClick({ campaign, platform, destination, req }) {
   try {
+    // scripts/verify-qr.js --live hits every campaign URL with real device user-agents.
+    // Without this it would write ~24 fake scans into production on every pre-print check
+    // and quietly poison the campaign numbers it exists to protect.
+    if (req.headers['x-abierto-check'] === '1') return;
+
     const ip =
       req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
       req.socket?.remoteAddress ||

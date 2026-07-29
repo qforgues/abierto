@@ -107,3 +107,18 @@ User-Agent detection is a hygiene measure, not a guarantee: a bot that lies abou
 User-Agent will be counted as a real scan. At the volumes this campaign operates at, treat
 scan counts as a strong directional signal rather than an exact tally — and lean on
 `unique_devices` and Play installs when a number really matters.
+
+---
+
+## Verification traffic is excluded
+
+`npm run qr:verify -- --live` hits every campaign URL with real Android/iPhone/desktop
+user-agents. It sends `X-Abierto-Check: 1`, and `trackClick()` skips any request carrying
+that header — otherwise every pre-print check would write ~24 fake scans into production
+and poison the very numbers it exists to protect. Redirect behaviour is unchanged, so the
+check still tests the real thing.
+
+**Note on the launch baseline:** the initial deploy verification ran *before* this
+exclusion existed, so `download_clicks` contains roughly 30 synthetic rows dated
+**2026-07-29**. No printed material existed then, so any activity on that date is test
+traffic — discount it when reading the first campaign report.
