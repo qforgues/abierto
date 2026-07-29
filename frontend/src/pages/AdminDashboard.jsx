@@ -503,7 +503,118 @@ function TrafficTab() {
       {daily.length === 0 && topPages.length === 0 && (
         <p className="text-center text-muted mt-4">No traffic data yet — data appears as visitors use the app.</p>
       )}
+
+      <CampaignsPanel />
     </div>
+  );
+}
+
+const PLATFORM_LABELS = {
+  android: 'Android',
+  ios: 'iPhone / iPad',
+  desktop: 'Desktop',
+  other: 'Other / unknown',
+};
+
+const DESTINATION_LABELS = {
+  play:             'Sent to Google Play',
+  play_manual:      'Chose Android on the landing page',
+  ios_store:        'Sent to the App Store',
+  ios_store_manual: 'Chose iPhone on the landing page',
+  ios_coming_soon:  'Shown the iPhone "coming soon" page',
+  landing:          'Shown the download landing page',
+  web_app:          'Chose the web app',
+};
+
+/** QR / campaign attribution for the /download acquisition endpoint. */
+function CampaignsPanel() {
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    api.get('/analytics/campaigns').then(setData).catch(err => setError(err.message));
+  }, []);
+
+  if (error) return null; // Never break the Traffic tab over the campaign panel.
+  if (!data) return null;
+
+  const { totals, byCampaign, byPlatform, byDestination } = data;
+  const topScans = byCampaign[0]?.scans || 1;
+
+  const Breakdown = ({ title, rows, labels, keyName }) => (
+    <div className="card card-body">
+      <h3 style={{ marginBottom: 14 }}>{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted" style={{ margin: 0 }}>Nothing yet.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map(r => (
+            <div key={r[keyName]} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ flex: 1, fontSize: '0.9rem' }}>{labels[r[keyName]] || r[keyName]}</span>
+              <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem' }}>{r.scans}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <h2 style={{ marginTop: 12, marginBottom: 2 }}>Download Campaigns</h2>
+      <p className="text-sm text-muted" style={{ marginTop: 0 }}>
+        Scans of the printed QR codes and other links pointing at <code>abierto.app/go/…</code>.
+        Link-preview bots are excluded{totals.bots > 0 ? ` (${totals.bots} filtered out)` : ''}.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+        {[
+          { label: 'Today',      value: totals.today },
+          { label: 'This Week',  value: totals.week },
+          { label: 'This Month', value: totals.month },
+          { label: 'All Time',   value: totals.allTime },
+        ].map(({ label, value }) => (
+          <div key={label} className="card card-body" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--ocean)' }}>{value.toLocaleString()}</div>
+            <div style={{ fontWeight: 600, marginTop: 2, fontSize: '0.85rem' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card card-body">
+        <h3 style={{ marginBottom: 14 }}>By Campaign</h3>
+        {byCampaign.length === 0 ? (
+          <p className="text-sm text-muted" style={{ margin: 0 }}>
+            No scans yet. QR codes live in <code>marketing/qr/</code> — regenerate with <code>npm run qr</code>.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {byCampaign.map(c => (
+              <div key={c.campaign}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 500 }}>
+                    {c.label}
+                    {!c.registered && (
+                      <span className="text-sm text-muted" style={{ marginLeft: 6 }}>(unregistered)</span>
+                    )}
+                  </span>
+                  <span className="text-sm text-muted">{c.unique_devices} devices</span>
+                  <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem', minWidth: 34, textAlign: 'right' }}>{c.scans}</span>
+                </div>
+                <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
+                  <div style={{ width: `${Math.round((c.scans / topScans) * 100)}%`, height: '100%', background: 'var(--ocean)', borderRadius: 2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Breakdown title="By Device" rows={byPlatform} labels={PLATFORM_LABELS} keyName="platform" />
+        <Breakdown title="Where They Went" rows={byDestination} labels={DESTINATION_LABELS} keyName="destination" />
+      </div>
+    </>
   );
 }
 

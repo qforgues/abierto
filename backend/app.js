@@ -34,6 +34,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ── Well-known assets (e.g. assetlinks.json for App Links) ──────────────────────
 app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known')));
 
+// ── Download / campaign routing (/download, /go/:campaign, …) ────────────────
+// MUST be mounted before express.static + the SPA `*` fallback below, or React
+// Router swallows these paths and renders the 404 page.
+app.use('/', require('./routes/download'));
+
 // ── Privacy policy ───────────────────────────────────────────────────────────
 app.get('/privacy', (req, res) => {
   res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy – Abierto</title><style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#333;line-height:1.6}h1{color:#1a1a1a}</style></head><body><h1>Privacy Policy</h1><p><strong>Last updated: April 2026</strong></p><p>Abierto ("the app") is a business directory for Vieques, Puerto Rico. This policy explains how we handle your information.</p><h2>Information We Collect</h2><ul><li><strong>Camera:</strong> Used only to let business owners upload photos. Photos are uploaded to our server and stored securely. We do not access your camera without your action.</li><li><strong>Location:</strong> Used to show nearby businesses on the map. Location is not stored or shared.</li><li><strong>Account info:</strong> Email and password (hashed) for business owner accounts.</li></ul><h2>How We Use Your Information</h2><p>We use collected information solely to operate the Abierto directory. We do not sell, share, or use your data for advertising.</p><h2>Data Storage</h2><p>Data is stored on secure servers. Photos uploaded by business owners are stored and displayed publicly in the app.</p><h2>Contact</h2><p>Questions? Email us at <a href="mailto:hello@abierto.app">hello@abierto.app</a>.</p></body></html>`);
@@ -43,6 +48,11 @@ app.get('/privacy', (req, res) => {
 app.get('/delete-account', (req, res) => {
   res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delete Account – Abierto Vieques</title><style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#333;line-height:1.6}h1{color:#1a1a1a}ol li{margin-bottom:8px}.note{background:#f5f5f5;padding:12px 16px;border-radius:6px;font-size:0.95em}</style></head><body><h1>Delete Your Abierto Vieques Account</h1><p>If you would like to delete your Abierto Vieques account and all associated data, follow the steps below.</p><h2>How to Request Account Deletion</h2><ol><li>Send an email to <a href="mailto:hello@abierto.app">hello@abierto.app</a> from the email address associated with your account.</li><li>Use the subject line: <strong>Delete My Account</strong></li><li>We will process your request within 7 business days and send a confirmation email when complete.</li></ol><h2>What Gets Deleted</h2><ul><li>Your account and login credentials</li><li>Your business profile and all associated information</li><li>All photos you have uploaded</li></ul><h2>What May Be Retained</h2><p class="note">We do not retain any personal data after account deletion. Backups are purged within 30 days.</p><h2>Questions?</h2><p>Contact us at <a href="mailto:hello@abierto.app">hello@abierto.app</a>.</p></body></html>`);
 });
+
+// ── Health check (no DB) ─────────────────────────────────────────────────────
+// Both paths, per docs/HEALTH_CHECK.md and the Dockerfile HEALTHCHECK.
+app.use('/api', require('./routes/health'));
+app.use('/',    require('./routes/health'));
 
 // ── Ping (no DB) ─────────────────────────────────────────────────────────────
 app.get('/api/ping', (req, res) => {
@@ -242,6 +252,31 @@ async function initAndStart() {
       key   TEXT PRIMARY KEY,
       value TEXT
     )`,
+    // page_views has existed in production since the Traffic tab shipped, but was never
+    // in this list — a fresh database would have silently lost every pageview. IF NOT
+    // EXISTS makes this a no-op against production.
+    `CREATE TABLE IF NOT EXISTS page_views (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      path       TEXT NOT NULL,
+      ip_hash    TEXT,
+      date       TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    // Campaign attribution for the /download acquisition endpoint. Deliberately holds
+    // no personal data: no raw IP (salted hash only), no User-Agent string (just the
+    // derived platform bucket), and referrers stored without their query string.
+    `CREATE TABLE IF NOT EXISTS download_clicks (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign    TEXT NOT NULL,
+      platform    TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      date        TEXT NOT NULL,
+      ip_hash     TEXT,
+      referer     TEXT,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_download_clicks_date     ON download_clicks(date)`,
+    `CREATE INDEX IF NOT EXISTS idx_download_clicks_campaign ON download_clicks(campaign)`,
   ];
 
   for (const sql of schema) {
@@ -253,6 +288,10 @@ async function initAndStart() {
   try { await db.run('ALTER TABLE businesses ADD COLUMN description_es TEXT'); } catch (e) {}
   try { await db.run('ALTER TABLE business_status ADD COLUMN quick_override INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
   try { await db.run("ALTER TABLE businesses ADD COLUMN island TEXT DEFAULT 'vieques'"); } catch (e) {}
+  // routes/subscriptions.js + the admin Billing tab read and write this column, but it
+  // was only ever added to production by hand — a fresh database (or a restore, see
+  // docs/RESTORE_RUNBOOK.md) would break the whole Billing tab. No-op where it exists.
+  try { await db.run('ALTER TABLE subscription_payments ADD COLUMN forgiven INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
   // Back-fill any rows where island is null (pre-migration rows)
   try { await db.run("UPDATE businesses SET island = 'vieques' WHERE island IS NULL"); } catch (e) {}
 
@@ -262,6 +301,29 @@ async function initAndStart() {
     await db.run(`UPDATE businesses SET is_active = 1 WHERE is_active = 0 AND id IN (SELECT DISTINCT business_id FROM notifications WHERE type = 'subscription')`);
     await db.run(`DELETE FROM notifications WHERE type = 'subscription'`);
   } catch (e) {}
+
+  // ── Analytics retention ─────────────────────────────────────────────────────
+  // page_views and download_clicks are append-only and would otherwise grow forever.
+  // Both hold a salted IP hash, so this is a privacy boundary as much as a size one.
+  //
+  // 400 days ≈ 13 months: every report we run (day, week, month, season, and
+  // year-over-year for a campaign like the ferry push) stays fully intact, and nothing
+  // pseudonymous lives longer than it's useful. Tune with ANALYTICS_RETENTION_DAYS.
+  const retentionDays = parseInt(process.env.ANALYTICS_RETENTION_DAYS || '400', 10);
+  if (Number.isFinite(retentionDays) && retentionDays >= 30) {
+    const cutoff = new Date(Date.now() - retentionDays * 86400000).toISOString().slice(0, 10);
+    for (const table of ['page_views', 'download_clicks']) {
+      try {
+        const r = await db.run(`DELETE FROM ${table} WHERE date < ?`, [cutoff]);
+        if (r.changes > 0) {
+          console.log(`Retention: pruned ${r.changes} ${table} row(s) older than ${cutoff}.`);
+        }
+      } catch (e) {}
+    }
+  } else {
+    // A typo like ANALYTICS_RETENTION_DAYS=1 must never mass-delete analytics.
+    console.warn(`Retention: ignoring unsafe ANALYTICS_RETENTION_DAYS="${process.env.ANALYTICS_RETENTION_DAYS}" (minimum 30).`);
+  }
 
   // Seed admin user if table is empty
   const adminRow = await db.get('SELECT COUNT(*) as count FROM admin');

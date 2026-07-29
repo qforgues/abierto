@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db/database');
 const { requireAdmin } = require('../middleware/auth');
+const { CAMPAIGNS } = require('../config/appLinks');
 
 const router = express.Router();
 
@@ -85,6 +86,80 @@ router.get('/summary', requireAdmin, async (req, res) => {
       },
       daily,
       topPages: topWithNames,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error.' });
+  }
+});
+
+// GET /api/analytics/campaigns — admin only
+// Where /download traffic comes from, what device it was on, and where it went.
+// Bot/link-preview hits are counted separately so headline numbers stay honest.
+router.get('/campaigns', requireAdmin, async (req, res) => {
+  try {
+    const today = getViequesDate();
+    const d7  = new Date(Date.now() -  7 * 86400000).toISOString().slice(0, 10);
+    const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const d14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+
+    const HUMAN = `platform != 'bot'`;
+
+    const [totals, byCampaign, byPlatform, byDestination, daily] = await Promise.all([
+      // SUM(CASE …) rather than COUNT(*) FILTER — portable across every SQLite/libSQL
+      // build we might ever run on.
+      db.get(
+        `SELECT
+           SUM(CASE WHEN ${HUMAN}                 THEN 1 ELSE 0 END) AS all_time,
+           SUM(CASE WHEN ${HUMAN} AND date =  ?   THEN 1 ELSE 0 END) AS today,
+           SUM(CASE WHEN ${HUMAN} AND date >= ?   THEN 1 ELSE 0 END) AS week,
+           SUM(CASE WHEN ${HUMAN} AND date >= ?   THEN 1 ELSE 0 END) AS month,
+           SUM(CASE WHEN platform = 'bot'         THEN 1 ELSE 0 END) AS bots
+         FROM download_clicks`,
+        [today, d7, d30]
+      ),
+      db.all(
+        `SELECT campaign,
+                COUNT(*)                        AS scans,
+                COUNT(DISTINCT ip_hash)         AS unique_devices,
+                MAX(created_at)                 AS last_seen
+         FROM download_clicks WHERE ${HUMAN}
+         GROUP BY campaign ORDER BY scans DESC`,
+        []
+      ),
+      db.all(
+        `SELECT platform, COUNT(*) AS scans FROM download_clicks
+         WHERE ${HUMAN} GROUP BY platform ORDER BY scans DESC`,
+        []
+      ),
+      db.all(
+        `SELECT destination, COUNT(*) AS scans FROM download_clicks
+         WHERE ${HUMAN} GROUP BY destination ORDER BY scans DESC`,
+        []
+      ),
+      db.all(
+        `SELECT date, COUNT(*) AS scans FROM download_clicks
+         WHERE ${HUMAN} AND date >= ? GROUP BY date ORDER BY date ASC`,
+        [d14]
+      ),
+    ]);
+
+    res.json({
+      totals: {
+        today:   totals?.today   || 0,
+        week:    totals?.week    || 0,
+        month:   totals?.month   || 0,
+        allTime: totals?.all_time || 0,
+        bots:    totals?.bots    || 0,
+      },
+      byCampaign: byCampaign.map(r => ({
+        ...r,
+        label: CAMPAIGNS[r.campaign]?.label || r.campaign,
+        registered: Object.hasOwn(CAMPAIGNS, r.campaign),
+      })),
+      byPlatform,
+      byDestination,
+      daily,
     });
   } catch (err) {
     console.error(err);

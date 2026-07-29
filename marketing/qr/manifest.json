@@ -1,0 +1,117 @@
+{
+  "baseUrl": "https://abierto.app",
+  "codes": [
+    {
+      "campaign": "business",
+      "label": "Participating Business",
+      "url": "https://abierto.app/go/business",
+      "qrVersion": 3,
+      "modules": 29,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/business/abierto-business.svg",
+        "marketing/qr/business/abierto-business-1024.png",
+        "marketing/qr/business/abierto-business-2048.png"
+      ]
+    },
+    {
+      "campaign": "business-card",
+      "label": "Business Card",
+      "url": "https://abierto.app/go/business-card",
+      "qrVersion": 4,
+      "modules": 33,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/business-card/abierto-business-card.svg",
+        "marketing/qr/business-card/abierto-business-card-1024.png",
+        "marketing/qr/business-card/abierto-business-card-2048.png"
+      ]
+    },
+    {
+      "campaign": "ceiba-ferry",
+      "label": "Ceiba Ferry Terminal",
+      "url": "https://abierto.app/go/ceiba-ferry",
+      "qrVersion": 4,
+      "modules": 33,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/ceiba-ferry/abierto-ceiba-ferry.svg",
+        "marketing/qr/ceiba-ferry/abierto-ceiba-ferry-1024.png",
+        "marketing/qr/ceiba-ferry/abierto-ceiba-ferry-2048.png"
+      ]
+    },
+    {
+      "campaign": "ferry-wifi",
+      "label": "Abierto Free Ferry Wi-Fi",
+      "url": "https://abierto.app/go/ferry-wifi",
+      "qrVersion": 4,
+      "modules": 33,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/ferry-wifi/abierto-ferry-wifi.svg",
+        "marketing/qr/ferry-wifi/abierto-ferry-wifi-1024.png",
+        "marketing/qr/ferry-wifi/abierto-ferry-wifi-2048.png"
+      ]
+    },
+    {
+      "campaign": "lodging",
+      "label": "Lodging / Airbnb / Guesthouse",
+      "url": "https://abierto.app/go/lodging",
+      "qrVersion": 3,
+      "modules": 29,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/lodging/abierto-lodging.svg",
+        "marketing/qr/lodging/abierto-lodging-1024.png",
+        "marketing/qr/lodging/abierto-lodging-2048.png"
+      ]
+    },
+    {
+      "campaign": "social",
+      "label": "Social / General",
+      "url": "https://abierto.app/go/social",
+      "qrVersion": 3,
+      "modules": 29,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/social/abierto-social.svg",
+        "marketing/qr/social/abierto-social-1024.png",
+        "marketing/qr/social/abierto-social-2048.png"
+      ]
+    },
+    {
+      "campaign": "transport",
+      "label": "Rental / Taxi Partner",
+      "url": "https://abierto.app/go/transport",
+      "qrVersion": 3,
+      "modules": 29,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/transport/abierto-transport.svg",
+        "marketing/qr/transport/abierto-transport-1024.png",
+        "marketing/qr/transport/abierto-transport-2048.png"
+      ]
+    },
+    {
+      "campaign": "vieques-ferry",
+      "label": "Vieques Ferry Arrival",
+      "url": "https://abierto.app/go/vieques-ferry",
+      "qrVersion": 4,
+      "modules": 33,
+      "errorCorrectionLevel": "Q",
+      "quietZoneModules": 4,
+      "files": [
+        "marketing/qr/vieques-ferry/abierto-vieques-ferry.svg",
+        "marketing/qr/vieques-ferry/abierto-vieques-ferry-1024.png",
+        "marketing/qr/vieques-ferry/abierto-vieques-ferry-2048.png"
+      ]
+    }
+  ]
+}

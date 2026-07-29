@@ -81,6 +81,26 @@ landed by watching the hashed bundle name in the live HTML (`/assets/index-*.js`
 - **Map**: `frontend/src/components/MapView.jsx` uses `@react-google-maps/api` with
   `VITE_GOOGLE_MAPS_API_KEY` (set at build time on Render).
 
+## Download / campaign routing (launch infrastructure)
+
+Printed QR codes **never** point at Google Play or the App Store — they point at
+`abierto.app/go/<campaign>`, so destinations and tracking can change without reprinting.
+
+- **`backend/config/appLinks.js`** — single source of truth: store URLs, the campaign
+  registry, UA→platform detection. **When the iPhone app ships, set `IOS_APP_STORE_URL` on
+  Render (or `IOS_STORE_URL` here) and every existing printed code starts working.**
+- **`backend/routes/download.js`** — `/download`, `/go/:campaign`, `/app`, `/get`, plus
+  `/download/{android,ios,web}`. Server-rendered HTML (like `/privacy`), so it paints on bad
+  ferry wifi without booting React. Mounted in `app.js` **before** `express.static` and the
+  SPA `*` fallback — move it after and React Router eats these paths.
+- Redirects are **302 + `no-store`**, never 301, so Cloudflare can't pin a destination.
+- **Tracking:** `download_clicks` table (campaign / platform / destination / date / salted
+  IP hash / referer-without-query). No raw IP, no UA string. Admin view: Traffic tab →
+  *Download Campaigns* (`GET /api/analytics/campaigns`).
+- **QR codes:** `npm run qr` regenerates, `npm run qr:verify [-- --live]` proves they decode
+  to the right URL before printing. See `marketing/qr/README.md`. Generate them
+  mathematically — never with an image model.
+
 ## Gotchas / conventions
 
 - **Never commit** `backend/.env` or `backend/db/*.db` (git-ignored). Demo/seed data belongs only
