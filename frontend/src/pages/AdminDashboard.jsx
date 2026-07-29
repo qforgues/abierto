@@ -770,7 +770,9 @@ function CampaignsPanel() {
                       <span className="text-sm text-muted" style={{ marginLeft: 6 }}>(unregistered)</span>
                     )}
                   </span>
-                  <span className="text-sm text-muted">{c.unique_devices} devices</span>
+                  <span className="text-sm text-muted">
+                    {c.unique_devices} device{c.unique_devices === 1 ? '' : 's'}
+                  </span>
                   <span style={{ fontWeight: 700, color: 'var(--ocean)', fontSize: '0.9rem', minWidth: 34, textAlign: 'right' }}>{c.scans}</span>
                 </div>
                 <div style={{ height: 4, background: '#e2e8f0', borderRadius: 2 }}>
