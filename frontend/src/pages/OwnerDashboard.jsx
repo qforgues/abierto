@@ -5,6 +5,7 @@ import PhotoUploader from '../components/PhotoUploader';
 import StatusBadge from '../components/StatusBadge';
 import HoursEditor from '../components/HoursEditor';
 import CoordEditor from '../components/CoordEditor';
+import CategoryIcon from '../components/CategoryIcon';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
@@ -275,10 +276,21 @@ export default function OwnerDashboard() {
             <>
               {business.category && <p className="text-sm"><strong>{ow.categoryLabel}:</strong> {business.category}</p>}
               {business.description && <p className="text-sm">{business.description}</p>}
-              {business.lat && <p className="text-sm text-muted">📍 {Number(business.lat).toFixed(8)}, {Number(business.lon).toFixed(8)}</p>}
+              {business.lat && (
+                <p className="text-sm text-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CategoryIcon name="Pin" size={15} />
+                  {Number(business.lat).toFixed(8)}, {Number(business.lon).toFixed(8)}
+                </p>
+              )}
               {business.phone
-                ? <p className="text-sm">📱 <strong>WhatsApp/SMS:</strong> {business.phone}</p>
-                : <p className="text-sm text-muted">📱 {ow.noPhone}</p>
+                ? <p className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CategoryIcon name="Phone" size={15} />
+                    <span><strong>WhatsApp/SMS:</strong> {business.phone}</span>
+                  </p>
+                : <p className="text-sm text-muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CategoryIcon name="Phone" size={15} />
+                    <span>{ow.noPhone}</span>
+                  </p>
               }
             </>
           ) : (

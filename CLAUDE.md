@@ -125,6 +125,28 @@ Printed QR codes **never** point at Google Play or the App Store — they point 
 - **Health:** `/api/health` + `/health` are liveness (no DB); `/api/health/ready` runs a real
   query and 503s if the database is down. Container probes point at liveness on purpose.
 
+## Status freshness, offline, and billing
+
+- **Status by WhatsApp / SMS** (`backend/routes/webhooks.js`) — an owner texts `OPEN` /
+  `ABIERTO` / `CLOSED` / `LUNCH` / `SEASON` and their public status changes instantly. Code is
+  done and tested; it needs `TWILIO_AUTH_TOKEN` on Render, a Twilio WhatsApp sender, and
+  `businesses.phone` populated (**0 of 25 today** — that's the real blocker). Full setup +
+  the two silent bugs that used to break it: **`docs/WHATSAPP_STATUS.md`**.
+  - Match phones on the **last 10 digits** — the signup form stores `(787) 555-1234`, Twilio
+    sends `whatsapp:+17875551234`.
+  - Any manual status set outside the schedule **must** set `quick_override = 1`, or
+    `computeStatus` silently discards it for the 92% of businesses that have hours.
+- **Offline** (`frontend/public/sw.js`) — real caching now: cache-first for `/assets` and
+  `/uploads`, network-first with a stamped cache fallback for `GET /api/*`. Vieques signal is
+  patchy and someone who installs at the ferry terminal must not open a blank app.
+  **Cached data is never presented as live** — the SW tags it with `X-Abierto-From-Cache` +
+  `X-Abierto-Cached-At`, `api/client.js` exposes `onFreshnessChange`, and
+  `components/OfflineNotice.jsx` shows an unmissable banner with the age. `/download`, `/go`
+  and `/api/analytics` are deliberately never cached.
+- **Billing toggle** — `app_settings.billing_enabled`, **default off**. While off, listing a
+  business is free and the admin Billing tab says so plainly instead of implying money is
+  owed. Flip it in admin → Settings when subscriptions actually start.
+
 ## Gotchas / conventions
 
 - **Never commit** `backend/.env` or `backend/db/*.db` (git-ignored). Demo/seed data belongs only

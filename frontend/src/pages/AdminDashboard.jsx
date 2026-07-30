@@ -57,12 +57,18 @@ function BillingTab() {
   const [paying, setPaying] = useState({});
   const [forgiving, setForgiving] = useState({});
 
+  const [billingEnabled, setBillingEnabled] = useState(null);
+
   const load = useCallback(() => {
     setError(null);
     return api.get('/subscriptions').then(setData).catch(err => setError(err.message));
   }, []);
 
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // Whether these figures are real money or just bookkeeping — see Settings.
+    api.get('/settings').then(s => setBillingEnabled(!!s.billing_enabled)).catch(() => {});
+  }, []);
 
   const toggleHistory = async (businessId) => {
     if (expanded === businessId) { setExpanded(null); return; }
@@ -122,6 +128,19 @@ function BillingTab() {
 
   return (
     <div>
+      {/* Billing is off by default during the launch push — say so plainly, or these
+          dollar figures read as money that's actually owed. */}
+      {billingEnabled === false && (
+        <div className="card card-body" style={{ borderLeft: '3px solid var(--ocean)', padding: '12px 16px', marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Subscriptions are switched off — every business is free</div>
+          <div className="text-sm text-muted" style={{ marginTop: 4, lineHeight: 1.5 }}>
+            Nothing below is being charged or chased. It's bookkeeping only, so you can see what
+            billing <em>would</em> look like. Turn it on in <strong>Settings</strong> when you're
+            ready to start collecting.
+          </div>
+        </div>
+      )}
+
       {/* Summary bar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
         {[
@@ -392,6 +411,31 @@ function SettingsTab() {
       </div>
       <p className="text-sm text-muted" style={{ paddingLeft: 4 }}>
         Turn this off when preparing to publish to the Play Store.
+      </p>
+
+      <div className="card card-body" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: '1rem' }}>Business Subscriptions</div>
+          <div className="text-sm text-muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+            When off, listing a business is <strong>free</strong> — no charges are tracked or
+            chased, and nothing in the app asks an owner to pay. Turn it on when you're ready
+            to start billing the monthly subscription.
+          </div>
+          <div className="text-sm" style={{ marginTop: 6, color: settings.billing_enabled ? 'var(--ocean)' : 'var(--mid)', fontWeight: 600 }}>
+            {settings.billing_enabled
+              ? '✓ On — subscriptions are being billed'
+              : '✕ Off — every business is free'}
+          </div>
+        </div>
+        <ToggleSwitch
+          checked={!!settings.billing_enabled}
+          onChange={() => toggle('billing_enabled')}
+          disabled={saving}
+        />
+      </div>
+      <p className="text-sm text-muted" style={{ paddingLeft: 4 }}>
+        Leave this off during the launch push — recruiting businesses is far easier when
+        being listed costs nothing.
       </p>
     </div>
   );

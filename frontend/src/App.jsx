@@ -13,6 +13,7 @@ import CoordinatorDashboard from './pages/CoordinatorDashboard';
 import EventsPage from './pages/EventsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotFoundPage from './pages/NotFoundPage';
+import OfflineNotice from './components/OfflineNotice';
 
 export default function App() {
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function App() {
 
   return (
     <>
+      <OfflineNotice />
       <Routes>
         <Route path="/" element={<IslandPickerPage />} />
         <Route path="/vieques" element={<HomePage island="vieques" />} />

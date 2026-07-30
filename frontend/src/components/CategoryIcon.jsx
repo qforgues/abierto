@@ -20,6 +20,8 @@ export const ICON_PATHS = {
   Events: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/>',
   Clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
   Delivery: '<circle cx="6" cy="17" r="2.3"/><circle cx="17.5" cy="17" r="2.3"/><path d="M8.3 17h6.9"/><path d="M15.2 17 12.5 8.5H10"/><path d="M12.5 8.5H16l2 4.7"/><path d="M4.5 12H8l1.4 5"/>',
+  Phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.4"/><path d="M10.5 18.6h3"/>',
+  Pin: '<path d="M20 10.5c0 5.5-8 11-8 11s-8-5.5-8-11a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10.5" r="2.6"/>',
 };
 
 export default function CategoryIcon({ name, size = 22 }) {

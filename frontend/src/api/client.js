@@ -6,6 +6,29 @@ function isFormData(value) {
   return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
+/**
+ * Freshness tracking for offline use.
+ *
+ * The service worker serves cached API data when the network fails and tags it with
+ * `X-Abierto-From-Cache` plus the time it was captured. Abierto's promise is "open right
+ * now", so stale data must never pass as live — subscribers below drive the offline notice
+ * that tells people exactly how old what they're looking at is.
+ */
+const freshnessListeners = new Set();
+let freshness = { fromCache: false, cachedAt: null };
+
+export function onFreshnessChange(fn) {
+  freshnessListeners.add(fn);
+  fn(freshness);
+  return () => freshnessListeners.delete(fn);
+}
+
+function setFreshness(next) {
+  if (next.fromCache === freshness.fromCache && next.cachedAt === freshness.cachedAt) return;
+  freshness = next;
+  freshnessListeners.forEach((fn) => fn(freshness));
+}
+
 async function request(path, options = {}) {
   const headers = { ...options.headers };
   const body = options.body;
@@ -18,6 +41,17 @@ async function request(path, options = {}) {
     headers,
     credentials: 'include',
   });
+
+  // Only GETs of public data speak to freshness — an admin PATCH says nothing about
+  // whether the business list on screen is current.
+  if (!options.method || options.method === 'GET') {
+    setFreshness(
+      res.headers.get('X-Abierto-From-Cache') === '1'
+        ? { fromCache: true, cachedAt: res.headers.get('X-Abierto-Cached-At') || null }
+        : { fromCache: false, cachedAt: null }
+    );
+  }
+
   const text = await res.text();
   const data = text ? (() => {
     try {

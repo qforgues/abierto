@@ -124,7 +124,7 @@ device does when scanned, the live URL, and SVG/PNG downloads named
 ## Testing
 
 ```bash
-cd backend && npx jest        # 126 tests, 5 suites
+cd backend && npx jest        # 156 tests, 6 suites
 npm run qr:verify -- --live   # 48 checks against production
 ```
 
@@ -135,6 +135,7 @@ npm run qr:verify -- --live   # 48 checks against production
 | `qr-library.test.js` | Listing shape, human-readable filenames, admin auth, path-traversal rejection |
 | `retention.test.js` | Window resolution, cutoff maths, and that a misconfiguration deletes **nothing** |
 | `health.test.js` | Both paths, JSON not SPA HTML |
+| `webhooks.test.js` | WhatsApp/SMS commands, phone normalisation, the quick_override guard, TwiML escaping, signature validation |
 
 The pre-print gate is `npm run qr:verify -- --live`. A failing `/go/...` check usually means
 the route isn't deployed yet.
@@ -152,6 +153,19 @@ the route isn't deployed yet.
   query string. No third-party analytics vendor, no tracking pixel, no consent banner.
 
 ---
+
+## Deferred, on purpose
+
+Agreed on 2026-07-30 to hold until the Ceiba placement actually exists — building
+measurement for a campaign that hasn't launched is guesswork.
+
+- **Per-placement campaign codes.** Distinct slugs for each position at the terminal
+  (ticket window vs boarding gate vs waiting area) so you learn *which placement* works
+  rather than just "the terminal works". Add slugs to `CAMPAIGNS`, `npm run qr`, done —
+  maybe an hour. Depends on the terminal allowing more than one placement.
+- **Campaign measurement targets.** Define what success is *before* launch: scans per
+  sailing, scan→install rate (Play Console referrer), install→first-search rate. Without
+  these set in advance you can't tell a bad placement from a bad product.
 
 ## Known limits
 

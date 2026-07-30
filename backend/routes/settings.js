@@ -12,7 +12,10 @@ router.get('/', async (req, res) => {
     for (const row of rows) {
       settings[row.key] = row.value === '1';
     }
-    res.json({ pwa_enabled: true, ...settings });
+    // Defaults for keys that have never been written. billing_enabled is OFF: listing a
+    // business is free until it's deliberately switched on, so the launch push isn't
+    // asking anyone for $20/month.
+    res.json({ pwa_enabled: true, billing_enabled: false, ...settings });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error.' });
@@ -22,7 +25,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/settings — admin only
 router.patch('/', requireAdmin, async (req, res) => {
   try {
-    const allowed = ['pwa_enabled'];
+    const allowed = ['pwa_enabled', 'billing_enabled'];
     for (const key of allowed) {
       if (key in req.body) {
         await db.run(
