@@ -16,10 +16,10 @@
   "forbiddenClasses": [
     "abierto/app/MainActivity"
   ],
-  "lastShippedVersionCode": 7,
+  "lastShippedVersionCode": 8,
   "minTargetSdk": 35,
   "notes": {
-    "lastShippedVersionCode": "7 = the broken release currently live. Next upload must be 8+.",
+    "lastShippedVersionCode": "8 (1.1.1) = the hotfix, live on Play since 30 Jul 2026 20:59. It restored the real TWA after versionCode 7 shipped the wrong application and crashed on launch. Next upload must be 9+.",
     "minTargetSdk": "Raise to 36 before 31 Aug 2026 — Play blocks updates below that after then. Do it as its own release, tested on a device, NOT bundled with anything else."
   }
 }
