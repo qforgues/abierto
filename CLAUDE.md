@@ -19,21 +19,33 @@ Three layers — know which one a change belongs to:
    - **Database: Turso (libSQL/SQLite)** in production; automatic **local SQLite fallback** in dev.
 2. **Hosting** — deployed to **Render.com** (`render.yaml`), auto-deploys on push to `main`.
    **Cloudflare sits in front as CDN/proxy** — it is NOT Cloudflare Pages.
-3. **Android app** — a **TWA** (Trusted Web Activity) wrapper, package `com.abierto.app`, that just
-   opens https://abierto.app full-screen for the Google Play Store. **It lives in `android/` in
-   THIS repo** (`versionCode 7` / `1.1.0`, targetSdk 36). The
-   `~/ProjectArchive_ToDelete/abierto-build/twa-project` copy is **stale** (versionCode 5,
-   targetSdk 35) — editing it produces a build that never reaches Play. Only rebuilt when the
-   app name/icon/splash/version changes — **content changes never need a new Play build.**
-   - **Launcher icons:** `python3 scripts/generate-launcher-icons.py` — regenerates every
-     density plus the adaptive background/foreground/monochrome layers from
-     `frontend/public/icon-512.png`, the single master artwork shared with the website, the
-     PWA and the Play Store listing icon.
-   - **Signed build:** `./scripts/build-release.sh` — prompts for the keystore password so it
-     never lands in shell history, then writes
-     `android/app/build/outputs/bundle/release/app-release.aab` for Play Console.
-   - **Store listing** assets (the 512×512 icon shoppers see, screenshots, description) are
-     uploaded in Play Console and need **no rebuild**: see `marketing/store/README.md`.
+3. **Android app** — a **TWA** (Trusted Web Activity), package `com.abierto.app`, that opens
+   https://abierto.app full-screen for Google Play.
+
+   > ### ⛔ THE RULE: GitHub is the only source of truth.
+   > **The app is `android/` IN THIS REPO. Build from a clean checkout of `main` and from
+   > nowhere else.** An Android project outside this repository is NOT the app, however new
+   > it looks. On 30 Jul 2026 a build made from `abierto-build/twa-project`'s counterpart —
+   > an unshipped hand-rolled rewrite that looked newer by every signal — shipped as
+   > versionCode 7 and **crashed on launch for every user**. Read `docs/ANDROID_RELEASE.md`
+   > before touching anything Android.
+
+   - It is a **real TWA**: `com.google.androidbrowserhelper` `LauncherActivity`, **zero
+     custom Java**. If you find yourself editing an `Activity`, you are in the wrong project.
+   - **Never upload anything that hasn't passed `./scripts/verify-release.sh`**, and never
+     upload anything you have not installed and opened yourself. Compiling is not working —
+     that assumption is exactly what caused the outage.
+   - Release: `git pull` → bump `versionCode`/`versionName` (must exceed what is **live on
+     Play**, not the repo) → `./scripts/build-release.sh` (prompts for the keystore password)
+     → `./scripts/verify-release.sh` → run it → upload. Full checklist in
+     `docs/ANDROID_RELEASE.md`.
+   - **Launcher icons:** `python3 scripts/generate-launcher-icons.py` regenerates every
+     density plus adaptive layers from `frontend/public/icon-512.png`, the master artwork
+     shared with the website, PWA and Play Store listing icon.
+   - **Store listing** assets need **no rebuild** at all: see `marketing/store/README.md`.
+   - **Pending:** targetSdk must reach **36 before 31 Aug 2026** (currently 35) or Play
+     blocks updates. Ship it as its own device-tested release — bundling it with other
+     changes is what went wrong last time.
 
 ## Commands
 

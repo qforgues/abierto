@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Abierto</string>
-    <string name="app_description">Manage your business and upload photos easily</string>
+    <string name="appName">Abierto?</string>
+    <string name="launcherName">Abierto?</string>
+    <string name="hostName">abierto.app</string>
+    <string name="launchUrl">https://abierto.app/</string>
+    <string name="assetStatements">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://abierto.app\"}}]</string>
 </resources>

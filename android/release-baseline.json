@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Invariants every Android release must satisfy. Checked by scripts/verify-release.sh",
+    "before any upload to Play Console.",
+    "",
+    "requiredLauncherClass is the load-bearing one. On 2026-07-30, versionCode 7 was built",
+    "from a hand-rolled rewrite instead of the real TWA and crashed on launch for every",
+    "user. It compiled, it was signed, its versionCode was higher, and its icons were",
+    "correct — none of which detects 'this is a different application'. Asserting the",
+    "launcher class does.",
+    "",
+    "Update lastShippedVersionCode ONLY after a release has actually rolled out on Play."
+  ],
+  "package": "com.abierto.app",
+  "requiredLauncherClass": "com.google.androidbrowserhelper.trusted.LauncherActivity",
+  "forbiddenClasses": [
+    "abierto/app/MainActivity"
+  ],
+  "lastShippedVersionCode": 7,
+  "minTargetSdk": 35,
+  "notes": {
+    "lastShippedVersionCode": "7 = the broken release currently live. Next upload must be 8+.",
+    "minTargetSdk": "Raise to 36 before 31 Aug 2026 — Play blocks updates below that after then. Do it as its own release, tested on a device, NOT bundled with anything else."
+  }
+}
